@@ -1,0 +1,231 @@
+<Window x:Class="CheckOrderConfirmationFromSupplier.Windows.CorrectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Ergebnis-Korrektur" 
+        Height="600" Width="800"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F7FA"
+        ResizeMode="CanResize">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="PrimaryColor" Color="#0078D4"/>
+        <SolidColorBrush x:Key="PrimaryDarkColor" Color="#005A9E"/>
+        <SolidColorBrush x:Key="SuccessColor" Color="#107C10"/>
+        <SolidColorBrush x:Key="WarningColor" Color="#FFB900"/>
+        <SolidColorBrush x:Key="BackgroundColor" Color="#F5F7FA"/>
+        <SolidColorBrush x:Key="SurfaceColor" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextPrimaryColor" Color="#1F1F1F"/>
+        <SolidColorBrush x:Key="TextSecondaryColor" Color="#605E5C"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#E1E1E1"/>
+
+        <DropShadowEffect x:Key="CardShadow" 
+                         BlurRadius="16" 
+                         ShadowDepth="2" 
+                         Direction="270" 
+                         Opacity="0.15" 
+                         Color="#000000"/>
+
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryColor}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource PrimaryDarkColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryColor}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="{StaticResource PrimaryColor}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource PrimaryColor}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{StaticResource SurfaceColor}" 
+            Margin="20" 
+            CornerRadius="12"
+            Effect="{StaticResource CardShadow}">
+        <Grid Margin="30">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                <TextBlock Text="Analyse-Ergebnis korrigieren" 
+                          FontSize="24" 
+                          FontWeight="Bold" 
+                          Foreground="{StaticResource TextPrimaryColor}"
+                          Margin="0,0,0,8"/>
+                <TextBlock x:Name="pdfNameLabel"
+                          Text="PDF: Beispiel.pdf" 
+                          FontSize="14" 
+                          Foreground="{StaticResource TextSecondaryColor}"/>
+            </StackPanel>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Info Box -->
+                    <Border Background="#FFF4CE" 
+                            BorderBrush="{StaticResource WarningColor}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="12"
+                            Margin="0,0,0,20">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Info" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="Pruefen Sie die erkannte Klassifizierung und korrigieren Sie bei Bedarf." 
+                                      TextWrapping="Wrap"
+                                      Foreground="{StaticResource TextPrimaryColor}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Document Type -->
+                    <TextBlock Text="Dokumenttyp" 
+                              FontSize="14" 
+                              FontWeight="SemiBold" 
+                              Foreground="{StaticResource TextPrimaryColor}"
+                              Margin="0,0,0,8"/>
+                    <ComboBox x:Name="documentTypeComboBox"
+                             FontSize="14"
+                             Padding="10"
+                             Margin="0,0,0,20">
+                        <ComboBoxItem Content="COMPONENT - Technisches Datenblatt" Tag="COMPONENT"/>
+                        <ComboBoxItem Content="MIXTURE - Sicherheitsdatenblatt" Tag="MIXTURE"/>
+                    </ComboBox>
+
+                    <!-- Component Category -->
+                    <TextBlock Text="Komponenten-Kategorie" 
+                              FontSize="14" 
+                              FontWeight="SemiBold" 
+                              Foreground="{StaticResource TextPrimaryColor}"
+                              Margin="0,0,0,8"/>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="categoryComboBox"
+                                 Grid.Column="0"
+                                 IsEditable="True"
+                                 FontSize="14"
+                                 Padding="10"
+                                 Margin="0,0,10,0"
+                                 SelectionChanged="CategoryComboBox_SelectionChanged"/>
+                        <Button Grid.Column="1"
+                               Content="Aktualisieren"
+                               Style="{StaticResource SecondaryButton}"
+                               Click="RefreshCategories_Click"
+                               Padding="12,10"
+                               ToolTip="Kategorien neu laden"/>
+                    </Grid>
+
+                    <!-- Manufacturer Part Number (only for Resistor) -->
+                    <StackPanel x:Name="partNumberPanel" Visibility="Collapsed" Margin="0,0,0,20">
+                        <TextBlock Text="Herstellernummer" 
+                                  FontSize="14" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="{StaticResource TextPrimaryColor}"
+                                  Margin="0,0,0,8"/>
+                        <TextBox x:Name="partNumberTextBox"
+                                FontSize="14"
+                                Padding="10"/>
+                    </StackPanel>
+
+                    <!-- Manufacturer -->
+                    <TextBlock Text="Hersteller (optional)" 
+                              FontSize="14" 
+                              FontWeight="SemiBold" 
+                              Foreground="{StaticResource TextPrimaryColor}"
+                              Margin="0,0,0,8"/>
+                    <TextBox x:Name="manufacturerTextBox"
+                            FontSize="14"
+                            Padding="10"
+                            Margin="0,0,0,20"/>
+
+                    <!-- Correction Note -->
+                    <TextBlock Text="Notiz zur Korrektur (optional)" 
+                              FontSize="14" 
+                              FontWeight="SemiBold" 
+                              Foreground="{StaticResource TextPrimaryColor}"
+                              Margin="0,0,0,8"/>
+                    <TextBox x:Name="correctionNoteTextBox"
+                            FontSize="14"
+                            Padding="10"
+                            Height="80"
+                            TextWrapping="Wrap"
+                            AcceptsReturn="True"
+                            VerticalScrollBarVisibility="Auto"
+                            Margin="0,0,0,10"/>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Action Buttons -->
+            <Grid Grid.Row="2" Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="1"
+                       Content="Abbrechen"
+                       Style="{StaticResource SecondaryButton}"
+                       Click="Cancel_Click"
+                       MinWidth="120"
+                       Margin="0,0,10,0"/>
+
+                <Button Grid.Column="2"
+                       Content="Uebernehmen"
+                       Style="{StaticResource ModernButton}"
+                       Click="Apply_Click"
+                       MinWidth="120"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

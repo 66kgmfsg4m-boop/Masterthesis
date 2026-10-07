@@ -1,0 +1,256 @@
+<Window x:Class="CheckOrderConfirmationFromSupplier.Windows.ResistorParameterDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Widerstands-Parameter eingeben"
+        Width="600" Height="700"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#F5F5F5">
+    
+    <Window.Resources>
+        <Style TargetType="Label">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,10,0,5"/>
+        </Style>
+        
+        <Style TargetType="TextBox">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+        </Style>
+        
+        <Style TargetType="ComboBox">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+        </Style>
+        
+        <Style TargetType="Button">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="Widerstands-Parameter" 
+                       FontSize="22" 
+                       FontWeight="Bold"
+                       Foreground="#1F1F1F"
+                       Margin="0,0,0,10"/>
+            
+            <Border x:Name="autoDecodedInfoPanel"
+                    Background="#E8F5E9" 
+                    BorderBrush="#4CAF50" 
+                    BorderThickness="2" 
+                    CornerRadius="4" 
+                    Padding="12"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Text="Werte automatisch aus Part Number dekodiert!" 
+                               FontWeight="Bold" 
+                               FontSize="14"
+                               Foreground="#2E7D32"/>
+                    <TextBlock TextWrapping="Wrap" 
+                               FontSize="12" 
+                               Margin="0,5,0,0"
+                               Foreground="#1B5E20">
+                        <Run Text="Die technischen Parameter wurden automatisch aus der Herstellernummer extrahiert."/>
+                        <LineBreak/>
+                        <Run Text="Bitte ueberpruefen Sie die Werte und korrigieren Sie sie bei Bedarf."/>
+                    </TextBlock>
+                    <TextBlock x:Name="autoDecodedSourceLabel"
+                               FontSize="11" 
+                               FontStyle="Italic"
+                               Margin="0,8,0,0"
+                               Foreground="#388E3C"/>
+                </StackPanel>
+            </Border>
+            
+            <Border x:Name="manualInputWarning"
+                    Background="#FFF4E6" 
+                    BorderBrush="#FFB74D" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Padding="12"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Text="? Manuelle Eingabe erforderlich" 
+                               FontWeight="Bold" 
+                               FontSize="14"
+                               Foreground="#E65100"/>
+                    <TextBlock TextWrapping="Wrap" 
+                               FontSize="12" 
+                               Margin="0,5,0,0"
+                               Foreground="#5D4037">
+                        <Run Text="Die Part Number konnte nicht automatisch dekodiert werden."/>
+                        <LineBreak/>
+                        <LineBreak/>
+                        <Run Text="Bitte geben Sie den EXAKTEN Widerstandswert fuer diese spezifische Herstellernummer ein."/>
+                        <LineBreak/>
+                        <Run Text="(NICHT den Bereich aus dem Serien-Datenblatt!)"/>
+                        <LineBreak/>
+                        <LineBreak/>
+                        <Run Text="? Suchen Sie die Part Number im Datenblatt und lesen Sie den genauen Wert ab."/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+            
+            <Border Background="#E3F2FD" 
+                    BorderBrush="#2196F3" 
+                    BorderThickness="1" 
+                    CornerRadius="4" 
+                    Padding="12"
+                    Margin="0,10,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Herstellernummer:" 
+                               FontWeight="Bold" 
+                               FontSize="14"
+                               Foreground="#0D47A1"
+                               Margin="0,0,10,0"/>
+                    <TextBlock x:Name="partNumberDisplay" 
+                               Text="[Part Number]" 
+                               FontSize="14"
+                               FontWeight="Bold"
+                               Foreground="#1565C0"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Label Content="Widerstandswert (Ohm) *"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBox x:Name="resistanceValueTextBox" 
+                             Grid.Column="0"
+                             ToolTip="z.B. 1, 10, 100, 1.5"/>
+                    
+                    <ComboBox x:Name="resistanceUnitComboBox" 
+                              Grid.Column="2">
+                        <ComboBoxItem Content="Ohm" IsSelected="True"/>
+                        <ComboBoxItem Content="kOhm"/>
+                        <ComboBoxItem Content="MOhm"/>
+                    </ComboBox>
+                </Grid>
+                
+                <Label Content="Toleranz (%)"/>
+                <ComboBox x:Name="toleranceComboBox">
+                    <ComboBoxItem Content="&#177;0.1%"/>
+                    <ComboBoxItem Content="&#177;0.5%"/>
+                    <ComboBoxItem Content="&#177;1%" IsSelected="True"/>
+                    <ComboBoxItem Content="&#177;2%"/>
+                    <ComboBoxItem Content="&#177;5%"/>
+                    <ComboBoxItem Content="&#177;10%"/>
+                    <ComboBoxItem Content="nicht vorhanden"/>
+                </ComboBox>
+                
+                <Label Content="Nennleistung (Power)"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBox x:Name="powerValueTextBox" 
+                             Grid.Column="0"
+                             ToolTip="z.B. 0.05, 0.1, 0.125, 0.25"/>
+                    
+                    <ComboBox x:Name="powerUnitComboBox" 
+                              Grid.Column="2">
+                        <ComboBoxItem Content="W" IsSelected="True"/>
+                        <ComboBoxItem Content="mW"/>
+                    </ComboBox>
+                </Grid>
+                
+                <Label Content="Gehaeuse groesse (Package)"/>
+                <ComboBox x:Name="packageComboBox" IsEditable="True">
+                    <ComboBoxItem Content="0201"/>
+                    <ComboBoxItem Content="0402"/>
+                    <ComboBoxItem Content="0603"/>
+                    <ComboBoxItem Content="0805"/>
+                    <ComboBoxItem Content="1206"/>
+                    <ComboBoxItem Content="1210"/>
+                    <ComboBoxItem Content="2010"/>
+                    <ComboBoxItem Content="2512"/>
+                </ComboBox>
+                
+                <Label Content="Temperaturkoeffizient"/>
+                <ComboBox x:Name="tempCoeffComboBox" IsEditable="True">
+                    <ComboBoxItem Content="&#177;25 ppm/&#176;C"/>
+                    <ComboBoxItem Content="&#177;50 ppm/&#176;C"/>
+                    <ComboBoxItem Content="&#177;100 ppm/&#176;C"/>
+                    <ComboBoxItem Content="&#177;200 ppm/&#176;C"/>
+                    <ComboBoxItem Content="nicht vorhanden" IsSelected="True"/>
+                </ComboBox>
+                
+                <Label Content="Max. Betriebstemperatur"/>
+                <ComboBox x:Name="maxTempComboBox" IsEditable="True">
+                    <ComboBoxItem Content="125&#176;C"/>
+                    <ComboBoxItem Content="150&#176;C" IsSelected="True"/>
+                    <ComboBoxItem Content="155&#176;C"/>
+                    <ComboBoxItem Content="175&#176;C"/>
+                </ComboBox>
+                
+                <Label Content="Max. Ueberlastspannung"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBox x:Name="maxVoltageTextBox" 
+                             Grid.Column="0"
+                             ToolTip="z.B. 50, 75, 100"/>
+                    
+                    <ComboBox x:Name="voltageUnitComboBox" 
+                              Grid.Column="2">
+                        <ComboBoxItem Content="V" IsSelected="True"/>
+                    </ComboBox>
+                </Grid>
+
+                <TextBlock Text="* Pflichtfelder" 
+                           FontSize="11" 
+                           FontStyle="Italic" 
+                           Foreground="Gray" 
+                           Margin="0,15,0,0"/>
+            </StackPanel>
+        </ScrollViewer>
+        
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Margin="0,20,0,0">
+            <Button Content="Abbrechen" 
+                    x:Name="cancelButton"
+                    Click="Cancel_Click"
+                    Background="#F5F5F5"
+                    Foreground="#333333"/>
+            
+            <Button Content="Uebernehmen" 
+                    x:Name="confirmButton"
+                    Click="Confirm_Click"
+                    Background="#4CAF50"
+                    Foreground="White"/>
+        </StackPanel>
+    </Grid>
+</Window>
