@@ -1,0 +1,102 @@
+@* NavBarPrimary - Hauptnavigation mit R&S Corporate Design *@
+<nav class="navbar navbar-expand-md navbar-light rs-navbar-primary">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".collapseNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        @if (Brand != null)
+        {
+            @Brand
+        }
+        else
+        {
+            <a class="navbar-logo" href="/"></a>
+        }
+
+        @if (!string.IsNullOrEmpty(Title))
+        {
+            <a class="navbar-brand" href="/">@Title</a>
+        }
+
+        <div class="navbar-collapse collapse collapseNavbar">
+            <ul class="navbar-nav w-100 justify-content-end align-items-center gap-2">
+                @NavItems
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<style>
+    .rs-navbar-primary {
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 1.2rem 0;
+        border-bottom: 4px solid #0099cc;
+        min-height: 90px;
+    }
+    
+    .rs-navbar-primary .navbar-logo {
+        display: inline-block;
+        width: 240px;
+        height: 60px;
+        background: url('_content/RohdeSchwarz.SHAPE.WebApplication.Theme/icons/rus-logo.svg') no-repeat left center;
+        background-size: contain;
+        margin-right: 2rem;
+    }
+    
+    .rs-navbar-primary .navbar-brand {
+        color: #003c7e !important;
+        font-weight: 600;
+        font-size: 1.5rem;
+        margin-right: auto;
+        letter-spacing: 0.3px;
+    }
+    
+    .rs-navbar-primary .navbar-brand:hover {
+        color: #0099cc !important;
+    }
+    
+    .rs-navbar-primary .navbar-toggler {
+        border-color: rgba(0, 60, 126, 0.2);
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .rs-navbar-primary .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(0, 60, 126, 0.8)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+    
+    .rs-navbar-primary .navbar-nav {
+        gap: 0.5rem;
+    }
+    
+    @@media (max-width: 768px) {
+        .rs-navbar-primary {
+            min-height: 70px;
+            padding: 0.8rem 0;
+        }
+        
+        .rs-navbar-primary .navbar-logo {
+            width: 50px;
+            height: 50px;
+            background: url('_content/RohdeSchwarz.SHAPE.WebApplication.Theme/icons/rus-logo-symbol.svg') no-repeat center;
+            background-size: contain;
+            margin-right: 1rem;
+        }
+        
+        .rs-navbar-primary .navbar-brand {
+            font-size: 1.1rem;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string? Title { get; set; }
+    
+    [Parameter]
+    public RenderFragment? Brand { get; set; }
+    
+    [Parameter]
+    public RenderFragment? NavItems { get; set; }
+}

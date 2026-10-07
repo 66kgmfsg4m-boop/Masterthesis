@@ -1,0 +1,619 @@
+@page "/compare"
+@rendermode InteractiveServer
+@inject ICompareStateService CompareState
+@inject IJSRuntime JS
+@inject PDFProcessor PdfProcessor
+@inject IServiceProvider ServiceProvider
+@inject NavigationManager Navigation
+@using DatasheetAnalyzer.Blazor.Components
+@using DatasheetAnalyzer.Core.Services
+@using Newtonsoft.Json.Linq
+@using Newtonsoft.Json
+@using static DatasheetAnalyzer.Core.Services.DMSCatalogService
+
+<PageTitle>Datenblatt-Vergleich</PageTitle>
+
+<style>
+    .cmp-container {
+        padding: 30px 24px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .cmp-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: 0 4px 20px rgba(0, 60, 126, 0.1);
+        margin-bottom: 24px;
+    }
+
+    .cmp-title {
+        color: #003c7e;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .cmp-subtitle {
+        color: #6c757d;
+        margin-bottom: 24px;
+    }
+
+    .cmp-file-row {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        padding: 16px;
+        background: #f5f7fa;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        border: 2px dashed #e0e5ea;
+    }
+
+    .cmp-file-label {
+        font-weight: 600;
+        color: #003c7e;
+        min-width: 80px;
+    }
+
+    .cmp-file-name {
+        flex: 1;
+        font-style: italic;
+        color: #6c757d;
+    }
+
+    .cmp-file-name.has-file {
+        font-style: normal;
+        color: #003c7e;
+        font-weight: 600;
+    }
+
+    .cmp-button {
+        background: linear-gradient(135deg, #003c7e, #004fa3);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 14px 32px;
+        font-weight: 700;
+        font-size: 16px;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 12px rgba(0, 60, 126, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .cmp-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0, 60, 126, 0.4);
+    }
+
+    .cmp-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .cmp-button.secondary {
+        background: white;
+        color: #003c7e;
+        border: 2px solid #003c7e;
+    }
+
+    .cmp-status {
+        background: #e7f1fb;
+        border-left: 4px solid #0099cc;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        color: #003c7e;
+        font-weight: 600;
+    }
+
+    .cmp-error {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+        padding: 12px 16px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+        color: #721c24;
+        font-weight: 600;
+    }
+
+    .cmp-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+
+    .cmp-table th {
+        background: #003c7e;
+        color: white;
+        padding: 12px 16px;
+        text-align: left;
+        font-weight: 700;
+        position: sticky;
+        top: 0;
+    }
+
+    .cmp-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #e0e5ea;
+        vertical-align: top;
+    }
+
+    .cmp-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    .cmp-row-diff {
+        background: #fff8e1 !important;
+    }
+
+    .cmp-row-diff:hover {
+        background: #fff3cd !important;
+    }
+
+    .cmp-cell-changed {
+        background: #fff3cd;
+        font-weight: 700;
+        color: #856404;
+    }
+
+    .cmp-cell-added {
+        background: #d4edda;
+        font-weight: 700;
+        color: #155724;
+    }
+
+    .cmp-cell-removed {
+        background: #f8d7da;
+        font-weight: 700;
+        color: #721c24;
+    }
+
+    .cmp-prop-name {
+        font-weight: 600;
+        color: #003c7e;
+    }
+
+    .cmp-filter-bar {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .cmp-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .cmp-badge-diff { background: #fff3cd; color: #856404; }
+    .cmp-badge-same { background: #d4edda; color: #155724; }
+</style>
+
+<div class="cmp-container">
+    <div class="cmp-card">
+        <h2 class="cmp-title">Datenblatt-Vergleich</h2>
+        <p class="cmp-subtitle">
+            Laden Sie genau <strong>zwei PDFs</strong> derselben Komponenten-Kategorie hoch,
+            um die extrahierten Properties direkt nebeneinander zu vergleichen.
+        </p>
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="cmp-error">@ErrorMessage</div>
+        }
+
+        @if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            <div class="cmp-status">@StatusMessage</div>
+        }
+
+        @if (!CompareState.HasResults)
+        {
+            <div class="cmp-file-row">
+                <span class="cmp-file-label">PDF 1:</span>
+                <span class="cmp-file-name @(FileA != null ? "has-file" : "")">
+                    @(FileA?.Name ?? "Keine Datei ausgewählt")
+                </span>
+                <InputFile id="fileA" accept=".pdf" OnChange="OnFileASelected" style="display:none" />
+                <label for="fileA" class="cmp-button secondary" style="cursor:pointer;">Datei wählen</label>
+            </div>
+
+            <div class="cmp-file-row">
+                <span class="cmp-file-label">PDF 2:</span>
+                <span class="cmp-file-name @(FileB != null ? "has-file" : "")">
+                    @(FileB?.Name ?? "Keine Datei ausgewählt")
+                </span>
+                <InputFile id="fileB" accept=".pdf" OnChange="OnFileBSelected" style="display:none" />
+                <label for="fileB" class="cmp-button secondary" style="cursor:pointer;">Datei wählen</label>
+            </div>
+
+            <div style="text-align:center; margin-top: 24px;">
+                <button class="cmp-button"
+                        @onclick="StartComparison"
+                        disabled="@(FileA == null || FileB == null || IsProcessing || !ServicesAvailable)">
+                    @if (IsProcessing)
+                    {
+                        <span>Analysiere... @ProgressText</span>
+                    }
+                    else
+                    {
+                        <span>Vergleich starten</span>
+                    }
+                </button>
+            </div>
+
+            @if (!ServicesAvailable)
+            {
+                <div class="cmp-error" style="margin-top:16px;">
+                    Azure-Services nicht verfügbar. Vergleich derzeit nicht möglich.
+                </div>
+            }
+        }
+        else
+        {
+            <div class="cmp-filter-bar">
+                <label>
+                    <input type="checkbox" @bind="ShowOnlyDifferences" />
+                    Nur Unterschiede anzeigen
+                </label>
+                <button class="cmp-button secondary" style="padding:8px 20px;font-size:14px;" @onclick="OnReset">
+                    Neuer Vergleich
+                </button>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table class="cmp-table">
+                    <thead>
+                        <tr>
+                            <th style="width:30%">Eigenschaft</th>
+                            <th style="width:30%">@CompareState.Results[0].FileName</th>
+                            <th style="width:30%">@CompareState.Results[1].FileName</th>
+                            <th style="width:10%">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in GetComparisonRows())
+                        {
+                            <tr class="@(row.IsDifferent ? "cmp-row-diff" : "")">
+                                <td class="cmp-prop-name">@row.PropertyName</td>
+                                <td class="@GetCellClass(row, isLeft: true)">@(row.ValueA ?? "—")</td>
+                                <td class="@GetCellClass(row, isLeft: false)">@(row.ValueB ?? "—")</td>
+                                <td>
+                                    @if (row.IsDifferent)
+                                    {
+                                        <span class="cmp-badge cmp-badge-diff">geändert</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="cmp-badge cmp-badge-same">gleich</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<IdentificationDialog @ref="IdentificationDialogRef"
+                     IdentificationData="@CurrentIdentification"
+                     IsSeriesDatasheet="@IsSeriesDatasheet"
+                     OnConfirmed="OnIdentificationConfirmed"
+                     OnCancelled="OnIdentificationCancelled" />
+
+@code {
+    private DMSCatalogService? CatalogService;
+    private DatasheetAnalysisService? AnalysisService;
+    private bool ServicesAvailable => CatalogService != null && AnalysisService != null;
+
+    private IBrowserFile? FileA;
+    private IBrowserFile? FileB;
+
+    private bool IsProcessing;
+    private string ProgressText = "";
+    private string StatusMessage = "";
+    private string ErrorMessage = "";
+    private bool ShowOnlyDifferences;
+
+    // Stage-1 / Identifikations-Flow
+    private PDFProcessor.PDFContent? PdfContentA;
+    private PDFProcessor.PDFContent? PdfContentB;
+    private JObject? CurrentIdentification;
+    private CatalogComponent? IdentifiedComponent;
+    private bool IsSeriesDatasheet;
+    private IdentificationDialog? IdentificationDialogRef;
+
+    protected override void OnInitialized()
+    {
+        try { CatalogService = ServiceProvider.GetService<DMSCatalogService>(); }
+        catch { CatalogService = null; }
+
+        try { AnalysisService = ServiceProvider.GetService<DatasheetAnalysisService>(); }
+        catch { AnalysisService = null; }
+
+        try { CatalogService?.LoadCatalogData(); }
+        catch { /* warmup may fail silently here */ }
+    }
+
+    private void OnFileASelected(InputFileChangeEventArgs e)
+    {
+        ErrorMessage = "";
+        FileA = e.File;
+        StateHasChanged();
+    }
+
+    private void OnFileBSelected(InputFileChangeEventArgs e)
+    {
+        ErrorMessage = "";
+        FileB = e.File;
+        StateHasChanged();
+    }
+
+    private async Task StartComparison()
+    {
+        if (FileA == null || FileB == null || !ServicesAvailable) return;
+
+        ErrorMessage = "";
+        IsProcessing = true;
+        ProgressText = "1/2: Verarbeite PDF 1...";
+        StatusMessage = "PDF 1 wird verarbeitet...";
+        StateHasChanged();
+
+        try
+        {
+            // PDF 1 verarbeiten + identifizieren
+            await using (var streamA = FileA.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024))
+            {
+                PdfContentA = await PdfProcessor.ProcessPdfAsync(streamA);
+            }
+
+            ProgressText = "1/2: Identifiziere PDF 1...";
+            StateHasChanged();
+
+            string identJson = await AnalysisService!.IdentifyComponentOnlyAsync(PdfContentA!);
+            CurrentIdentification = JObject.Parse(identJson);
+
+            // PDF 2 schon mal verarbeiten (parallel zur User-Bestaetigung)
+            ProgressText = "1/2: Verarbeite PDF 2...";
+            StateHasChanged();
+
+            await using (var streamB = FileB.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024))
+            {
+                PdfContentB = await PdfProcessor.ProcessPdfAsync(streamB);
+            }
+
+            // Component im Katalog suchen (analog zu Home.razor)
+            string componentCategory = CurrentIdentification["ComponentCategory"]?.Value<string>() ?? "";
+            IdentifiedComponent = CatalogService!.FindComponent(componentCategory);
+            if (IdentifiedComponent == null)
+            {
+                string componentName = CurrentIdentification["ComponentName"]?.Value<string>() ?? "";
+                if (!string.IsNullOrWhiteSpace(componentName))
+                    IdentifiedComponent = CatalogService.FindComponent(componentName);
+            }
+
+            IsSeriesDatasheet = IdentifiedComponent != null && IsMemoryComponent(IdentifiedComponent);
+
+            IsProcessing = false;
+            StatusMessage = "Bitte Identifikation bestätigen (gilt für beide PDFs).";
+            StateHasChanged();
+
+            IdentificationDialogRef?.Show();
+        }
+        catch (Exception ex)
+        {
+            IsProcessing = false;
+            ErrorMessage = $"Fehler bei Vorbereitung: {ex.Message}";
+            StatusMessage = "";
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnIdentificationConfirmed(JObject confirmedIdentification)
+    {
+        if (PdfContentA == null || PdfContentB == null || !ServicesAvailable) return;
+
+        IsProcessing = true;
+        ErrorMessage = "";
+        string confirmedCategory = confirmedIdentification["ComponentCategory"]?.Value<string>() ?? "";
+
+        try
+        {
+            // PDF 1: Extraktion mit der vom User bestaetigten Identifikation
+            ProgressText = "2/2: Extrahiere PDF 1...";
+            StatusMessage = "Properties aus PDF 1 werden extrahiert...";
+            StateHasChanged();
+
+            string resultJsonA = await AnalysisService!.AnalyzeWithConfirmedIdentificationAsync(
+                PdfContentA, confirmedIdentification);
+
+            // PDF 2: Identifikation pruefen -> muss gleiche Kategorie ergeben
+            ProgressText = "2/2: Identifiziere PDF 2...";
+            StateHasChanged();
+
+            string identJsonB = await AnalysisService.IdentifyComponentOnlyAsync(PdfContentB);
+            var identB = JObject.Parse(identJsonB);
+            string categoryB = identB["ComponentCategory"]?.Value<string>() ?? "";
+
+            if (!CategoriesMatch(confirmedCategory, categoryB))
+            {
+                IsProcessing = false;
+                ErrorMessage = $"Fehler: Die beiden PDFs gehören zu unterschiedlichen Kategorien " +
+                               $"('{confirmedCategory}' vs. '{categoryB}'). Vergleich abgebrochen.";
+                StatusMessage = "";
+                StateHasChanged();
+                return;
+            }
+
+            // PDF 2 mit derselben (bestaetigten) Kategorie analysieren, aber Part Number aus PDF 2 nehmen.
+            var identForB = (JObject)confirmedIdentification.DeepClone();
+            // PartNumber aus PDF 2 uebernehmen, falls vorhanden (sonst behaelt es User-Wert)
+            var partNumberB = identB["PartNumber"]?.Value<string>();
+            if (!string.IsNullOrWhiteSpace(partNumberB))
+                identForB["PartNumber"] = partNumberB;
+            // ManufacturerInfo / ComponentName ebenfalls aus PDF 2
+            var mfB = identB["ManufacturerInfo"]?.Value<string>();
+            if (!string.IsNullOrWhiteSpace(mfB)) identForB["ManufacturerInfo"] = mfB;
+            var cnB = identB["ComponentName"]?.Value<string>();
+            if (!string.IsNullOrWhiteSpace(cnB)) identForB["ComponentName"] = cnB;
+
+            ProgressText = "2/2: Extrahiere PDF 2...";
+            StatusMessage = "Properties aus PDF 2 werden extrahiert...";
+            StateHasChanged();
+
+            string resultJsonB = await AnalysisService.AnalyzeWithConfirmedIdentificationAsync(
+                PdfContentB, identForB);
+
+            var resultA = new ComparisonFileResult
+            {
+                FileName = FileA?.Name ?? "PDF 1",
+                Properties = JObject.Parse(resultJsonA)
+            };
+            var resultB = new ComparisonFileResult
+            {
+                FileName = FileB?.Name ?? "PDF 2",
+                Properties = JObject.Parse(resultJsonB)
+            };
+
+            CompareState.SetResults(resultA, resultB);
+
+            IsProcessing = false;
+            StatusMessage = "Vergleich abgeschlossen.";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            IsProcessing = false;
+            ErrorMessage = $"Fehler bei der Extraktion: {ex.Message}";
+            StatusMessage = "";
+            StateHasChanged();
+        }
+    }
+
+    private void OnIdentificationCancelled()
+    {
+        IsProcessing = false;
+        StatusMessage = "Vergleich abgebrochen.";
+        StateHasChanged();
+    }
+
+    private void OnReset()
+    {
+        CompareState.Reset();
+        FileA = null;
+        FileB = null;
+        PdfContentA = null;
+        PdfContentB = null;
+        CurrentIdentification = null;
+        IdentifiedComponent = null;
+        IsSeriesDatasheet = false;
+        StatusMessage = "";
+        ErrorMessage = "";
+        StateHasChanged();
+    }
+
+    private static bool CategoriesMatch(string a, string b)
+    {
+        if (string.IsNullOrWhiteSpace(a) || string.IsNullOrWhiteSpace(b))
+            return false;
+        return string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool IsMemoryComponent(CatalogComponent component)
+    {
+        var keywords = new[]
+        {
+            "Non-Volatile Memory Serial", "Non-Volatile Memory Parallel",
+            "NV Memory Serial", "NV Memory Parallel",
+            "EEPROM Serial", "EEPROM Parallel",
+            "Flash Serial", "Flash Parallel", "SRAM", "Memory",
+            "Interface IC"
+        };
+        return keywords.Any(k =>
+            component.DisplayName.Contains(k, StringComparison.OrdinalIgnoreCase) ||
+            component.InternalName.Contains(k, StringComparison.OrdinalIgnoreCase) ||
+            component.FullPath.Contains(k, StringComparison.OrdinalIgnoreCase));
+    }
+
+    // ---------- Vergleichs-Tabelle ----------
+
+    private record ComparisonRow(string PropertyName, string? ValueA, string? ValueB, bool IsDifferent);
+
+    private IEnumerable<ComparisonRow> GetComparisonRows()
+    {
+        if (!CompareState.HasResults) yield break;
+
+        var a = CompareState.Results[0].Properties;
+        var b = CompareState.Results[1].Properties;
+
+        // Vereinigung aller Property-Namen, ohne interne Meta-Felder.
+        var allNames = a.Properties().Select(p => p.Name)
+            .Concat(b.Properties().Select(p => p.Name))
+            .Where(n => !n.StartsWith("_", StringComparison.Ordinal))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var name in allNames)
+        {
+            var valA = a[name]?.ToString();
+            var valB = b[name]?.ToString();
+            bool diff = !string.Equals(NormalizeForCompare(valA), NormalizeForCompare(valB), StringComparison.OrdinalIgnoreCase);
+
+            if (ShowOnlyDifferences && !diff)
+                continue;
+
+            yield return new ComparisonRow(name, valA, valB, diff);
+        }
+    }
+
+    private static string NormalizeForCompare(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+
+        // 1) Unicode-Whitespace normalisieren:
+        //    - non-breaking space (U+00A0), narrow no-break (U+202F),
+        //      figure space (U+2007), thin space (U+2009), zero-width space (U+200B)
+        //      etc. -> normales Space.
+        var sb = new System.Text.StringBuilder(value.Length);
+        foreach (var ch in value)
+        {
+            if (ch == '\u00A0' || ch == '\u202F' || ch == '\u2007' || ch == '\u2009'
+                || ch == '\u200B' || ch == '\u200C' || ch == '\u200D' || ch == '\uFEFF')
+            {
+                sb.Append(' ');
+            }
+            else
+            {
+                sb.Append(ch);
+            }
+        }
+
+        // 2) Mehrfache Whitespaces zu einem Space zusammenfassen + trimmen.
+        var collapsed = System.Text.RegularExpressions.Regex
+            .Replace(sb.ToString(), @"\s+", " ")
+            .Trim();
+
+        // 3) Case-insensitive Vergleich macht der Aufrufer via OrdinalIgnoreCase.
+        return collapsed;
+    }
+
+    private static string GetCellClass(ComparisonRow row, bool isLeft)
+    {
+        if (!row.IsDifferent) return "";
+        var thisVal = isLeft ? row.ValueA : row.ValueB;
+        var otherVal = isLeft ? row.ValueB : row.ValueA;
+        if (string.IsNullOrWhiteSpace(thisVal) && !string.IsNullOrWhiteSpace(otherVal))
+            return "cmp-cell-removed";
+        if (!string.IsNullOrWhiteSpace(thisVal) && string.IsNullOrWhiteSpace(otherVal))
+            return "cmp-cell-added";
+        return "cmp-cell-changed";
+    }
+}

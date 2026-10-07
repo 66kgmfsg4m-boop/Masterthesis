@@ -1,0 +1,95 @@
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="rs-user-profile dropdown">
+    <button class="btn btn-primary dropdown-toggle rs-profile-button" 
+            type="button" 
+            id="userProfileDropdown" 
+            data-bs-toggle="dropdown" 
+            aria-expanded="false">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-circle me-2" viewBox="0 0 16 16">
+            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
+            <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/>
+        </svg>
+        <span class="rs-profile-name">@UserName</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end rs-profile-menu" aria-labelledby="userProfileDropdown">
+        <li><span class="dropdown-item-text"><strong>@UserName</strong></span></li>
+        <li><span class="dropdown-item-text text-muted small">@UserEmail</span></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="#">Profil</a></li>
+        <li><a class="dropdown-item" href="#">Einstellungen</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="/logout">Abmelden</a></li>
+    </ul>
+</div>
+
+<style>
+    .rs-profile-button {
+        min-width: 120px;
+        height: 45px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    
+    .rs-profile-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 153, 204, 0.3);
+    }
+    
+    .rs-profile-name {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .rs-profile-menu {
+        min-width: 250px;
+        border: 2px solid #0099cc;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+    }
+    
+    .rs-profile-menu .dropdown-item:hover {
+        background-color: rgba(0, 153, 204, 0.1);
+        color: #003c7e;
+    }
+    
+    @@media (max-width: 768px) {
+        .rs-profile-name {
+            display: none;
+        }
+        
+        .rs-profile-button {
+            min-width: 45px;
+        }
+    }
+</style>
+
+@code {
+    private string UserName = "Benutzer";
+    private string UserEmail = "";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            UserName = user.Identity.Name ?? "Benutzer";
+            UserEmail = user.FindFirst("email")?.Value ?? "";
+        }
+        else
+        {
+            // Fallback für Entwicklung
+            UserName = Environment.UserName;
+            UserEmail = $"{Environment.UserName}@rohde-schwarz.com";
+        }
+    }
+}

@@ -1,0 +1,36 @@
+@inherits LayoutComponentBase
+
+<PageTitle>Datasheet Analyzer</PageTitle>
+
+<div class="d-flex flex-column min-vh-100">
+    <header class="navbar navbar-expand-lg navbar-dark bg-primary mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Datasheet Analyzer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Navigation umschalten">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Start</NavLink>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <ThemeToggle UseGerman="true" />
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <main class="container flex-grow-1 pb-3">
+        @Body
+    </main>
+
+    <footer class="border-top py-2 mt-auto">
+        <div class="container-fluid">
+            <ResultCountFooter />
+        </div>
+    </footer>
+</div>

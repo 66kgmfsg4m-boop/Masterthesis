@@ -1,0 +1,62 @@
+@* Professioneller R&S Footer *@
+<div class="rs-footer">
+    <div class="rs-footer-content">
+        <span class="rs-footer-text">
+            © @DateTime.Now.Year <strong>Rohde & Schwarz</strong> | Datasheet Analyzer
+        </span>
+        <span class="rs-footer-divider">•</span>
+        <span class="rs-footer-version text-muted">v1.0</span>
+    </div>
+</div>
+
+<style>
+    .rs-footer {
+        background: linear-gradient(135deg, #003c7e 0%, #002855 100%);
+        color: rgba(255, 255, 255, 0.9);
+        padding: 12px 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+        font-size: 13px;
+        border-top: 2px solid #0099cc;
+    }
+    
+    .rs-footer-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .rs-footer-text {
+        color: rgba(255, 255, 255, 0.95);
+    }
+    
+    .rs-footer-text strong {
+        font-weight: 700;
+        color: #ffffff;
+    }
+    
+    .rs-footer-divider {
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: bold;
+    }
+    
+    .rs-footer-version {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 12px;
+    }
+    
+    @@media (max-width: 576px) {
+        .rs-footer {
+            font-size: 11px;
+            padding: 10px 16px;
+        }
+        
+        .rs-footer-content {
+            gap: 8px;
+        }
+    }
+</style>

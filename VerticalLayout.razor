@@ -1,0 +1,21 @@
+@* VerticalLayout - Haupt-Layout-Container *@
+<div class="rs-vertical-layout">
+    @ChildContent
+</div>
+
+<style>
+    .rs-vertical-layout {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+    
+    .rs-vertical-layout > *:nth-last-child(2) {
+        flex: 1; /* Body nimmt verfügbaren Platz */
+    }
+</style>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

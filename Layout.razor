@@ -1,0 +1,55 @@
+@inherits LayoutComponentBase
+@inject IOptions<DeploymentOptions> DeploymentOptions
+@inject ICurrentRecordService CurrentRecordService
+
+@{
+    var stage = DeploymentOptions?.Value?.DeploymentStage?.Trim()?.ToLower();
+    var envSuffix = (stage == "local" || stage == "dev" || stage == "qual")
+        ? $" ({stage.ToUpper()})"
+        : string.Empty;
+    var useGerman = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("de", StringComparison.OrdinalIgnoreCase);
+}
+
+<PageTitle>@($"Datasheet Analyzer{envSuffix}")</PageTitle>
+
+<VerticalLayout>
+    @if (stage == "local")
+    {
+        <div class="alert alert-success mb-0 py-1 text-center fw-bold" role="alert">LOCAL</div>
+    }
+    else if (stage == "dev")
+    {
+        <div class="alert alert-danger mb-0 py-1 text-center fw-bold" role="alert">DEV</div>
+    }
+    else if (stage == "qual")
+    {
+        <div class="alert alert-warning mb-0 py-1 text-center fw-bold" role="alert">QUAL</div>
+    }
+    <AnnouncementBanner />
+    <NavBarPrimary Title="Datasheet Analyzer">
+        <NavItems>
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Analyse</NavLink>
+            </li>
+            <li class="nav-item">
+                <NavLink class="nav-link" href="/compare">Vergleich</NavLink>
+            </li>
+            <li class="nav-item dropdown">
+                <CultureSelector />
+            </li>
+            <li class="nav-item dropdown">
+                <UserProfile />
+            </li>
+        </NavItems>
+    </NavBarPrimary>
+
+    <Breadcrumb />
+
+    <Body>
+        @Body
+    </Body>
+
+    <Footer>
+        <ResultCountFooter />
+    </Footer>
+</VerticalLayout>

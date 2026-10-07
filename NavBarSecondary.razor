@@ -1,0 +1,59 @@
+@* NavBarSecondary - Sekundäre Navigation *@
+<nav class="navbar navbar-expand-lg rs-navbar-secondary">
+    <div class="container-fluid">
+        <div class="navbar-nav">
+            @NavItems
+        </div>
+    </div>
+</nav>
+
+<style>
+    .rs-navbar-secondary {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid var(--rs-gray-200);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .rs-navbar-secondary .nav-link {
+        color: var(--rs-blue-primary);
+        font-weight: 500;
+        padding: 10px 16px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .rs-navbar-secondary .nav-link:hover {
+        background-color: rgba(0, 60, 126, 0.1);
+        color: var(--rs-blue-medium);
+    }
+    
+    .rs-navbar-secondary .nav-link.active {
+        background-color: var(--rs-blue-primary);
+        color: white;
+        font-weight: 600;
+    }
+    
+    [data-bs-theme="dark"] .rs-navbar-secondary {
+        background-color: var(--rs-gray-800);
+        border-bottom-color: var(--rs-gray-600);
+    }
+    
+    [data-bs-theme="dark"] .rs-navbar-secondary .nav-link {
+        color: var(--rs-cyan);
+    }
+    
+    [data-bs-theme="dark"] .rs-navbar-secondary .nav-link:hover {
+        background-color: rgba(0, 153, 204, 0.15);
+        color: #5db8db;
+    }
+    
+    [data-bs-theme="dark"] .rs-navbar-secondary .nav-link.active {
+        background-color: var(--rs-cyan);
+        color: var(--rs-gray-900);
+    }
+</style>
+
+@code {
+    [Parameter]
+    public RenderFragment? NavItems { get; set; }
+}

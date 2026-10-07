@@ -1,0 +1,31 @@
+@* Wiederverwendbare Karten-Komponente (ohne Auth/AuthorizeView). *@
+<div class="card">
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <div class="mb-2">
+                <span class="fs-2">@Icon</span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(Title))
+        {
+            <h5 class="card-title">@Title</h5>
+        }
+        @if (!string.IsNullOrEmpty(Text))
+        {
+            <p class="card-text">@Text</p>
+        }
+        @if (ChildContent != null)
+        {
+            @ChildContent
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

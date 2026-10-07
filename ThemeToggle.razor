@@ -1,0 +1,60 @@
+@* ThemeToggle: Wechsel Hell/Dunkel/Auto. Nutzt wwwroot/js/theme.js (localStorage + data-bs-theme). *@
+@inject IJSRuntime JS
+
+<button type="button"
+        class="btn btn-primary rs-theme-toggle"
+        title="@ThemeButtonTitle"
+        aria-label="@(UseGerman ? "Design wechseln (Hell/Dunkel)" : "Toggle theme (light/dark)")"
+        @onclick="ToggleTheme">
+    <span aria-hidden="true">@(_resolved == "dark" ? "🌙" : "☀️")</span>
+</button>
+
+<style>
+    .rs-theme-toggle {
+        min-width: 45px;
+        height: 45px;
+        font-size: 1.2rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    
+    .rs-theme-toggle:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 153, 204, 0.3);
+    }
+</style>
+
+@code {
+    [Parameter] public bool UseGerman { get; set; }
+
+    private string _resolved = "light";
+
+    private string ThemeButtonTitle =>
+        _resolved == "dark" ? "Dark Mode" : _resolved == "light" ? "Light Mode" : "Theme wechseln";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _resolved = await JS.InvokeAsync<string>("themeGetResolved");
+                StateHasChanged();
+            }
+            catch { /* theme.js ggf. noch nicht geladen */ }
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        try
+        {
+            _resolved = await JS.InvokeAsync<string>("themeToggle");
+            StateHasChanged();
+        }
+        catch { /* JS-Interop fehlgeschlagen */ }
+    }
+}

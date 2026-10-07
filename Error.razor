@@ -1,0 +1,14 @@
+@page "/Error/{StatusCode:int?}"
+<PageTitle>Fehler</PageTitle>
+
+<div class="alert alert-danger">
+    <h4>Ein Fehler ist aufgetreten.</h4>
+    @if (StatusCode.HasValue)
+    {
+        <p>Statuscode: @StatusCode</p>
+    }
+</div>
+
+@code {
+    [Parameter] public int? StatusCode { get; set; }
+}

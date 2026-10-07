@@ -1,0 +1,36 @@
+Logging:
+  MinimumLevel:
+    Default: Warning
+    Override:
+      Microsoft.Hosting.Lifetime: Information
+      DatasheetAnalyzer.Blazor: Information
+  WriteTo:
+    - Name: Console
+  Properties:
+    Application: DatasheetAnalyzer.Blazor
+AllowedHosts: "*"
+
+# DeploymentStage: "local" | "dev" | "qual" (optional, für Layout-Banner und Seitentitel)
+Deployment:
+  DeploymentStage: "local"
+
+# OpenID Connect (SHAPE) – Werte ggf. anpassen oder per Umgebungsvariable überschreiben
+OpenIdConnect:
+  Issuer: https://shape-keycloak-dev.cloud.rsint.net/realms/master
+  ClientId: templated_webapp
+
+EmployeeDataService:
+  DataSource: Keycloak
+  BaseAddress: https://shape-keycloak-dev.cloud.rsint.net/admin/realms/master/
+
+NotificationService:
+  BaseAddress: https://notificationservice-dev.cloud.rsint.net/
+
+# Azure Blob Storage für RemoteConfig (Prompts, azure-config, authorized-users).
+# ConnectionString und ContainerName aus Key Vault/Umgebung setzen – NICHT committen.
+# In der Cloud/Docker per Umgebungsvariablen setzen:
+#   AzureStorage__ConnectionString
+#   AzureStorage__ContainerName
+AzureStorage:
+  ConnectionString: ""
+  ContainerName: "source"

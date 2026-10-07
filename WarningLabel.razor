@@ -1,0 +1,6 @@
+@* Einfache Warnhinweis-Komponente. *@
+<span class="badge bg-warning text-dark">@(Message ?? "Hinweis")</span>
+
+@code {
+    [Parameter] public string? Message { get; set; }
+}

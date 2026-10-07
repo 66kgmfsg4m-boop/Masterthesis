@@ -1,0 +1,230 @@
+/* =============================================================
+   DATASHEET ANALYZER – ROHDE & SCHWARZ CORPORATE DESIGN
+   ============================================================= */
+
+/* ===== R&S Corporate Typography ===== */
+:root {
+    --rs-font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+    --rs-font-family-mono: 'Consolas', 'Courier New', monospace;
+}
+
+/* Globale Schriftart */
+body {
+    font-family: var(--rs-font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Überschriften - Technisch und professionell */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: var(--rs-font-family);
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+/* Monospace für Code und technische Daten */
+code, pre, .monospace {
+    font-family: var(--rs-font-family-mono);
+}
+
+/* ===== R&S Brand Colors (Corporate Design) ===== */
+:root {
+    /* Primärfarben */
+    --rs-blue-primary: #003c7e;        /* R&S Hauptblau */
+    --rs-blue-dark: #002855;           /* Dunkelblau */
+    --rs-blue-medium: #004fa3;         /* Mittleres Blau */
+    --rs-cyan: #0099cc;                /* Akzent Cyan */
+    
+    /* Grautöne */
+    --rs-gray-100: #f5f7fa;
+    --rs-gray-200: #e0e5ea;
+    --rs-gray-300: #c5cdd3;
+    --rs-gray-400: #a0a8b0;
+    --rs-gray-500: #6c757d;
+    --rs-gray-600: #495057;
+    --rs-gray-700: #343a40;
+    --rs-gray-800: #212529;
+    --rs-gray-900: #1a1d20;
+    
+    /* Status-Farben */
+    --rs-success: #28a745;
+    --rs-warning: #ffc107;
+    --rs-danger: #dc3545;
+    --rs-info: #17a2b8;
+    
+    /* Schatten */
+    --rs-shadow-sm: 0 2px 4px rgba(0, 60, 126, 0.08);
+    --rs-shadow-md: 0 4px 12px rgba(0, 60, 126, 0.12);
+    --rs-shadow-lg: 0 8px 24px rgba(0, 60, 126, 0.16);
+}
+
+/* ===== Bootstrap Overrides (R&S Theme) ===== */
+.btn-primary {
+    background: linear-gradient(135deg, var(--rs-blue-primary) 0%, var(--rs-blue-medium) 100%);
+    border-color: var(--rs-blue-primary);
+    box-shadow: var(--rs-shadow-sm);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--rs-blue-medium) 0%, var(--rs-blue-primary) 100%);
+    border-color: var(--rs-blue-medium);
+    transform: translateY(-1px);
+    box-shadow: var(--rs-shadow-md);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.bg-primary {
+    background: linear-gradient(135deg, var(--rs-blue-dark) 0%, var(--rs-blue-primary) 100%) !important;
+}
+
+.text-primary {
+    color: var(--rs-blue-primary) !important;
+}
+
+.border-primary {
+    border-color: var(--rs-blue-primary) !important;
+}
+
+/* ===== Cards mit R&S Styling ===== */
+.card {
+    border-radius: 8px;
+    border: 1px solid var(--rs-gray-200);
+    box-shadow: var(--rs-shadow-sm);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--rs-gray-100) 0%, var(--rs-gray-200) 100%);
+    border-bottom: 2px solid var(--rs-cyan);
+    font-weight: 600;
+}
+
+/* ===== Alerts mit R&S Branding ===== */
+.alert-primary {
+    background-color: rgba(0, 60, 126, 0.1);
+    border-color: var(--rs-blue-primary);
+    color: var(--rs-blue-primary);
+}
+
+.alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border-color: var(--rs-success);
+    color: #155724;
+}
+
+/* ===== Form Controls ===== */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--rs-cyan);
+    box-shadow: 0 0 0 0.25rem rgba(0, 153, 204, 0.25);
+}
+
+/* ===== Links ===== */
+a {
+    color: var(--rs-blue-primary);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--rs-blue-medium);
+    text-decoration: underline;
+}
+
+/* =============================================================
+   DARK MODE (Bootstrap 5.3 data-bs-theme)
+   ============================================================= */
+
+[data-bs-theme="dark"] {
+    color-scheme: dark;
+}
+
+[data-bs-theme="dark"] body {
+    background-color: var(--rs-gray-800);
+    color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .bg-light {
+    background-color: var(--rs-gray-700) !important;
+}
+
+[data-bs-theme="dark"] .card {
+    background-color: var(--rs-gray-700);
+    border-color: var(--rs-gray-600);
+}
+
+[data-bs-theme="dark"] .card-header {
+    background: linear-gradient(135deg, var(--rs-gray-800) 0%, var(--rs-gray-700) 100%);
+    border-bottom: 2px solid var(--rs-cyan);
+}
+
+[data-bs-theme="dark"] .table {
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.075);
+    --bs-table-border-color: var(--rs-gray-600);
+    color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: var(--rs-gray-800);
+    border-color: var(--rs-gray-600);
+    color: #dee2e6;
+}
+
+[data-bs-theme="dark"] .border,
+[data-bs-theme="dark"] .border-start,
+[data-bs-theme="dark"] .border-top {
+    border-color: var(--rs-gray-600) !important;
+}
+
+[data-bs-theme="dark"] a {
+    color: var(--rs-cyan);
+}
+
+[data-bs-theme="dark"] a:hover {
+    color: #5db8db;
+}
+
+/* =============================================================
+   UTILITY CLASSES
+   ============================================================= */
+
+.rs-gradient-blue {
+    background: linear-gradient(135deg, var(--rs-blue-dark) 0%, var(--rs-blue-primary) 100%);
+}
+
+.rs-gradient-light {
+    background: linear-gradient(135deg, var(--rs-gray-100) 0%, var(--rs-gray-200) 100%);
+}
+
+.rs-shadow-sm {
+    box-shadow: var(--rs-shadow-sm);
+}
+
+.rs-shadow-md {
+    box-shadow: var(--rs-shadow-md);
+}
+
+.rs-shadow-lg {
+    box-shadow: var(--rs-shadow-lg);
+}
+
+/* =============================================================
+   RESPONSIVE
+   ============================================================= */
+
+@@media (max-width: 768px) {
+    .card {
+        border-radius: 6px;
+    }
+    
+    .card-header {
+        font-size: 14px;
+    }
+}
+

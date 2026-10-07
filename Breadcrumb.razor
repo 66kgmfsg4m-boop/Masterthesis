@@ -1,0 +1,150 @@
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject IAnalyzeStateService State
+@inject IJSRuntime JS
+@implements IDisposable
+
+<nav aria-label="breadcrumb" class="rs-breadcrumb">
+    <div class="container-fluid">
+        <ol class="breadcrumb mb-0">
+            <!-- STARTSEITE -->
+            <li class="breadcrumb-item @(!State.HasResults ? "active" : "")">
+                @if (!State.HasResults)
+                {
+                    <span class="rs-breadcrumb-current">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                            <path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L8.354 1.146z"/>
+                        </svg>
+                        STARTSEITE
+                    </span>
+                }
+                else
+                {
+                    <button type="button" class="rs-breadcrumb-link" @onclick="OnBackToStart">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                            <path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L8.354 1.146z"/>
+                        </svg>
+                        STARTSEITE
+                    </button>
+                }
+            </li>
+            
+            <!-- ERGEBNISSE (nur wenn Analyse gelaufen ist) -->
+            @if (State.HasResults)
+            {
+                <li class="breadcrumb-item active">
+                    <span class="rs-breadcrumb-current">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="me-2" viewBox="0 0 16 16">
+                            <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5z"/>
+                        </svg>
+                        ERGEBNISSE
+                    </span>
+                </li>
+            }
+        </ol>
+    </div>
+</nav>
+
+<style>
+    .rs-breadcrumb {
+        background: #f8f9fa;
+        border-bottom: 2px solid #e0e5ea;
+        padding: 1rem 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    .rs-breadcrumb .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .rs-breadcrumb-link {
+        background: none;
+        border: none;
+        color: #003c7e;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.2s ease;
+        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    
+    .rs-breadcrumb-link:hover {
+        color: #0099cc;
+        background-color: rgba(0, 153, 204, 0.1);
+        text-decoration: none;
+    }
+    
+    .rs-breadcrumb-current {
+        color: #6c757d;
+        font-weight: 700;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+    }
+    
+    .breadcrumb-item + .breadcrumb-item::before {
+        content: "›";
+        color: #0099cc;
+        font-weight: 700;
+        font-size: 1.2rem;
+        padding: 0 0.5rem;
+    }
+    
+    .breadcrumb-item.active {
+        color: #212529;
+    }
+</style>
+
+@code {
+    protected override void OnInitialized()
+    {
+        State.OnStateChanged += OnStateChangedHandler;
+    }
+    
+    private async void OnStateChangedHandler()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    private async Task OnBackToStart()
+    {
+        try
+        {
+            // Debug-Logs
+            await JS.InvokeVoidAsync("console.log", "=== BREADCRUMB: OnBackToStart GESTARTET ===");
+            await JS.InvokeVoidAsync("console.log", $"State.HasResults VOR Reset: {State.HasResults}");
+            await JS.InvokeVoidAsync("console.log", $"State.CurrentJsonResult VOR Reset: {!string.IsNullOrEmpty(State.CurrentJsonResult)}");
+            
+            // State KOMPLETT zurücksetzen
+            State.Reset();
+            
+            // Warten bis Event gefeuert wurde
+            await Task.Delay(100);
+            
+            await JS.InvokeVoidAsync("console.log", $"State.HasResults NACH Reset: {State.HasResults}");
+            await JS.InvokeVoidAsync("console.log", "=== BREADCRUMB: OnBackToStart ABGESCHLOSSEN ===");
+            
+            // Force Re-Render von ALLEN Components
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"Fehler in OnBackToStart: {ex.Message}");
+        }
+    }
+    
+    public void Dispose()
+    {
+        State.OnStateChanged -= OnStateChangedHandler;
+    }
+}

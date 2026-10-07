@@ -1,0 +1,876 @@
+@page "/"
+@rendermode InteractiveServer
+@inject IAnalyzeStateService State
+@inject IJSRuntime JS
+@inject PDFProcessor PdfProcessor
+@inject JsonParser JsonParser
+@inject IServiceProvider ServiceProvider
+@inject NavigationManager Navigation
+@using DatasheetAnalyzer.Blazor.Components
+@using DatasheetAnalyzer.Core.Services
+@using Newtonsoft.Json.Linq
+@using Newtonsoft.Json
+@using static DatasheetAnalyzer.Core.Services.DMSCatalogService
+
+<PageTitle>Datasheet Analyzer</PageTitle>
+
+<style data-version="2025-01-23-v2">
+    /* Rohde & Schwarz Brand Colors - ANGEPASST AN HEADER! */
+    :root {
+        --rs-blue-header: #003c7e;      /* Exakt wie Header */
+        --rs-blue-dark: #002855;         /* Dunkelblau für Gradient */
+        --rs-blue-medium: #004fa3;       /* Mittleres Blau */
+        --rs-cyan: #0099cc;              /* Gedämpftes Cyan */
+        --rs-gray-light: #f5f7fa;        /* Helles Grau */
+        --rs-gray-medium: #e0e5ea;       /* Mittelgrau */
+        --rs-gray-dark: #6c757d;         /* Dunkelgrau */
+        --rs-white: #ffffff;             /* Weiß */
+        --rs-success: #28a745;           /* Erfolgsgrün */
+        --rs-danger: #dc3545;            /* Fehlerrot */
+    }
+    
+    /* Dashboard Container */
+    .rs-dashboard {
+        background: linear-gradient(135deg, var(--rs-blue-dark) 0%, var(--rs-blue-header) 100%);
+        min-height: calc(100vh - 180px);
+        padding: 40px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Upload Card */
+    .rs-upload-card {
+        background: var(--rs-white);
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 60, 126, 0.2);
+        padding: 50px 40px;
+        max-width: 700px;
+        width: 100%;
+    }
+    
+    /* Icon */
+    .rs-icon-container {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .rs-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--rs-blue-header) 0%, var(--rs-blue-medium) 100%);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 60, 126, 0.3);
+    }
+    
+    /* Headings */
+    .rs-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--rs-blue-header);
+        text-align: center;
+        margin-bottom: 16px;
+    }
+    
+    .rs-subtitle {
+        font-size: 16px;
+        color: var(--rs-gray-dark);
+        text-align: center;
+        margin-bottom: 40px;
+        line-height: 1.5;
+    }
+    
+    /* File Input - ZENTRIERT und schön angeordnet */
+    .rs-file-input-wrapper {
+        margin-bottom: 24px;
+        position: relative;
+    }
+    
+    .rs-file-input-container {
+        width: 100%;
+        min-height: 80px;
+        padding: 20px;
+        border: 2px dashed var(--rs-gray-medium);
+        border-radius: 8px;
+        background: var(--rs-gray-light);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .rs-file-input-wrapper input[type="file"] {
+        display: none;
+    }
+    
+    .rs-file-select-button {
+        height: 40px;
+        padding: 8px 24px;
+        font-size: 14px;
+        font-weight: 600;
+        background: var(--rs-blue-header);
+        border: none;
+        border-radius: 6px;
+        color: var(--rs-white);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .rs-file-select-button:hover {
+        background: var(--rs-blue-medium);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 60, 126, 0.3);
+    }
+    
+    .rs-file-name-display {
+        color: var(--rs-gray-dark);
+        font-size: 13px;
+        text-align: center;
+        font-style: italic;
+    }
+    
+    /* Success Message */
+    .rs-success-message {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 16px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .rs-success-icon {
+        color: var(--rs-success);
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+    
+    .rs-success-text {
+        color: #155724;
+        font-weight: 600;
+        word-break: break-word;
+    }
+    
+    /* Analyze Button (BIGGER!) - ANGEPASST AN HEADER */
+    .rs-analyze-button {
+        width: 100%;
+        height: 64px;
+        background: linear-gradient(135deg, var(--rs-blue-header) 0%, var(--rs-blue-medium) 100%);
+        border: none;
+        border-radius: 12px;
+        color: var(--rs-white);
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        box-shadow: 0 4px 16px rgba(0, 60, 126, 0.4);
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .rs-analyze-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 60, 126, 0.5);
+        background: linear-gradient(135deg, var(--rs-blue-medium) 0%, var(--rs-blue-header) 100%);
+    }
+    
+    .rs-analyze-button:active:not(:disabled) {
+        transform: translateY(0);
+    }
+    
+    .rs-analyze-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    /* Spinner */
+    .rs-spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: var(--rs-white);
+        border-radius: 50%;
+        animation: rs-spin 0.8s linear infinite;
+    }
+    
+    @@keyframes rs-spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    @@keyframes rs-progress {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    /* Results View - PREMIUM TECH DESIGN */
+    .rs-results-container {
+        background: linear-gradient(180deg, #f5f7fa 0%, #e8ecf1 100%);
+        min-height: calc(100vh - 250px);
+        padding: 0;
+    }
+    
+    .rs-results-header {
+        background: linear-gradient(135deg, #003c7e 0%, #004fa3 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border-bottom: 3px solid #0099cc;
+        box-shadow: 0 4px 20px rgba(0, 60, 126, 0.25);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .rs-results-header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 153, 204, 0.15));
+        pointer-events: none;
+    }
+    
+    .rs-results-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .rs-results-title svg {
+        width: 24px;
+        height: 24px;
+        color: #0099cc;
+        filter: drop-shadow(0 2px 4px rgba(0, 153, 204, 0.4));
+    }
+    
+    .rs-button-group {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .rs-button {
+        background: rgba(255, 255, 255, 0.95);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: #003c7e;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+        height: 40px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .rs-button svg {
+        color: #0099cc;
+    }
+    
+    .rs-button:hover:not(:disabled) {
+        background: white;
+        border-color: #0099cc;
+        color: #003c7e;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(0, 153, 204, 0.4);
+    }
+    
+    .rs-button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    
+    .rs-results-content {
+        padding: 2.5rem;
+        overflow: auto;
+        max-height: calc(100vh - 350px);
+    }
+    
+    .rs-results-box {
+        background: white;
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 8px 24px rgba(0, 60, 126, 0.12);
+        border: 2px solid #e0e5ea;
+        position: relative;
+    }
+    
+    .rs-results-box::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 6px;
+        height: 100%;
+        background: linear-gradient(180deg, #0099cc 0%, #003c7e 100%);
+        border-radius: 16px 0 0 16px;
+    }
+    
+    .rs-results-subtitle {
+        font-size: 1.375rem;
+        font-weight: 700;
+        color: #003c7e;
+        margin-bottom: 1.75rem;
+        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        padding-bottom: 1rem;
+        border-bottom: 3px solid #0099cc;
+        background: linear-gradient(90deg, rgba(0, 153, 204, 0.05), transparent);
+        padding: 1rem 1.5rem;
+        margin: -1rem -1rem 1.75rem -1rem;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    /* Status Card - PREMIUM DESIGN */
+    .rs-status-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: 2px solid #e0e5ea;
+        border-left: 6px solid #0099cc;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 16px rgba(0, 60, 126, 0.12);
+        margin-top: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .rs-status-card::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 153, 204, 0.05));
+        pointer-events: none;
+    }
+    
+    .rs-status-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #0099cc;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .rs-status-icon {
+        color: #0099cc;
+        font-size: 28px;
+        flex-shrink: 0;
+        filter: drop-shadow(0 2px 4px rgba(0, 153, 204, 0.3));
+    }
+    
+    .rs-status-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #003c7e;
+        font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin: 0;
+    }
+    
+    .rs-status-content {
+        padding: 1rem 1.25rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-radius: 10px;
+        border: 2px solid #e0e5ea;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .rs-status-text {
+        font-weight: 600;
+        color: #003c7e;
+        font-size: 1rem;
+    }
+    
+    .rs-error-box {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
+        border: 2px solid #ffc107;
+        border-radius: 10px;
+        padding: 1rem;
+        color: #856404;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+    }
+    
+    .rs-progress-bar-container {
+        margin-top: 1rem;
+        height: 8px;
+        background: #e0e5ea;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .rs-progress-bar {
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, #003c7e, #0099cc, #003c7e);
+        background-size: 200% 100%;
+        animation: rs-progress 1.5s ease-in-out infinite;
+    }
+    
+    @@keyframes rs-progress {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .rs-upload-card {
+            padding: 30px 20px;
+        }
+        
+        .rs-title {
+            font-size: 24px;
+        }
+        
+        .rs-results-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style>
+
+
+@if (!State.HasResults)
+{
+    <!-- Upload Dashboard -->
+    <div class="rs-dashboard">
+        <div class="rs-upload-card">
+            <div class="rs-icon-container">
+                <div class="rs-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="white" viewBox="0 0 16 16">
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/>
+                        <path d="M4.603 14.087a.8.8 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.7 7.7 0 0 1 1.482-.645 20 20 0 0 0 1.062-2.227 7.3 7.3 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.65-.823.192-.077.4-.12.602-.077a.7.7 0 0 1 .477.365c.088.164.12.356.127.538.007.188-.012.396-.047.614-.084.51-.27 1.134-.52 1.794a11 11 0 0 0 .98 1.686 5.8 5.8 0 0 1 1.334.05c.364.066.734.195.96.465.12.144.193.32.2.518.007.192-.047.382-.138.563a1.04 1.04 0 0 1-.354.416.86.86 0 0 1-.51.138c-.331-.014-.654-.196-.933-.417a5.7 5.7 0 0 1-.911-.95 11.7 11.7 0 0 0-1.997.406 11.3 11.3 0 0 1-1.021 1.51c-.29.35-.608.655-.926.787a.8.8 0 0 1-.58.029m1.379-1.901q-.25.115-.459.238c-.328.194-.541.383-.647.547-.094.145-.096.25-.04.361q.016.032.026.044l.035-.012c.137-.056.355-.235.635-.572a8 8 0 0 0 .45-.606m1.64-1.33a13 13 0 0 1 1.01-.193 12 12 0 0 1-.51-.858 21 21 0 0 1-.5 1.05zm2.446.45q.226.245.435.41c.24.19.407.253.498.256a.1.1 0 0 0 .07-.015.3.3 0 0 0 .094-.125.44.44 0 0 0 .059-.2.1.1 0 0 0-.026-.063c-.052-.062-.2-.152-.518-.209a4 4 0 0 0-.612-.053zM8.078 7.8a7 7 0 0 0 .2-.828q.046-.282.038-.465a.6.6 0 0 0-.032-.198.5.5 0 0 0-.145.04c-.087.035-.158.106-.196.283-.04.192-.03.469.046.822q.036.167.09.346z"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <h1 class="rs-title">Datenblatt-Analyse</h1>
+            <p class="rs-subtitle">Laden Sie ein PDF-Datenblatt hoch, um die technischen Parameter automatisch zu extrahieren</p>
+            
+            @if (!ServicesAvailable)
+            {
+                <div class="alert alert-warning" role="alert" style="border-radius: 10px;">
+                    <strong>Analyse-Funktion nicht verfügbar.</strong><br />
+                    Die App konnte die Azure-Konfiguration nicht laden
+                    (z.B. weil kein Internet/Azure-Zugriff besteht oder
+                    die <code>appsettings.json</code> keinen gültigen
+                    <code>AzureStorage:ConnectionString</code> enthält).<br />
+                    <span class="text-muted small">@State.StatusText</span>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(State.CurrentFileName))
+            {
+                <div class="rs-success-message">
+                    <svg class="rs-success-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                    </svg>
+                    <span class="rs-success-text">Datei ausgewählt: @State.CurrentFileName</span>
+                </div>
+            }
+            
+            <div class="rs-file-input-wrapper">
+                <div class="rs-file-input-container">
+                    <InputFile id="fileInput" 
+                             accept=".pdf" 
+                             OnChange="OnFileSelected" 
+                             style="display: none;" />
+                    
+                    <label for="fileInput" class="rs-file-select-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>
+                        </svg>
+                        Datei auswählen
+                    </label>
+                    
+                    <div class="rs-file-name-display">
+                        @if (string.IsNullOrEmpty(State.CurrentFileName))
+                        {
+                            <span>Keine Datei ausgewählt</span>
+                        }
+                        else
+                        {
+                            <span style="color: var(--rs-blue-header); font-weight: 600;">@State.CurrentFileName</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            
+            <button class="rs-analyze-button" 
+                    @onclick="StartAnalysis" 
+                    disabled="@(string.IsNullOrEmpty(State.CurrentFileName) || IsAnalyzing || !ServicesAvailable)">
+                @if (IsAnalyzing)
+                {
+                    <div class="rs-spinner"></div>
+                    <span>Verarbeite...</span>
+                }
+                else
+                {
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393"/>
+                    </svg>
+                    <span>Analyse starten</span>
+                }
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Falls bereits Ergebnisse vorhanden sind, zur Ergebnisseite navigieren -->
+    <script>window.location.href = '/results';</script>
+}
+
+<!-- Identifikations-Dialog -->
+<IdentificationDialog @ref="IdentificationDialogRef"
+                     IdentificationData="@CurrentIdentification"
+                     IsSeriesDatasheet="@IsSeriesDatasheet"
+                     OnConfirmed="OnIdentificationConfirmed"
+                     OnCancelled="OnIdentificationCancelled" />
+
+
+@code {
+private DMSCatalogService? CatalogService;
+private DatasheetAnalysisService? AnalysisService;
+private bool ServicesAvailable => CatalogService != null && AnalysisService != null;
+    
+private bool AnalysisStarted = false;
+private bool IsAnalyzing = false;
+private bool IsSeriesDatasheet = false; // Flag für Part Number Eingabe (wird bei Memory Components aktiviert)
+private IBrowserFile? SelectedFile;
+private PDFProcessor.PDFContent? PdfContent;
+private JObject? CurrentIdentification;
+private CatalogComponent? IdentifiedComponent;
+    
+private IdentificationDialog? IdentificationDialogRef;
+
+    /// <summary>
+    /// Prüft ob Component eine Memory-Komponente ist (dann Part Number Eingabe aktivieren)
+    /// </summary>
+    private bool IsMemoryComponent(CatalogComponent component)
+    {
+        var memoryKeywords = new[]
+        {
+            "Non-Volatile Memory Serial",
+            "Non-Volatile Memory Parallel",
+            "NV Memory Serial",
+            "NV Memory Parallel",
+            "EEPROM Serial",
+            "EEPROM Parallel",
+            "Flash Serial",
+            "Flash Parallel",
+            "SRAM",
+            "Memory"
+        };
+        
+        return memoryKeywords.Any(keyword =>
+            component.DisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+            component.InternalName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+            component.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+    }
+
+    protected override void OnInitialized()
+    {
+        // Robust gegen fehlende/fehlerhafte Azure-Konfiguration:
+        // GetService kann eine Exception werfen, wenn der Konstruktor des
+        // Service (z.B. RemoteConfigService) wegen Netzwerk-/Firewall-
+        // Problemen scheitert. Das wuerde sonst die ganze Seite mit
+        // HTTP 500 abreissen lassen.
+        try
+        {
+            CatalogService = ServiceProvider.GetService<DMSCatalogService>();
+        }
+        catch (Exception ex)
+        {
+            CatalogService = null;
+            State.StatusText = $"Katalog-Service nicht verfuegbar: {ex.Message}";
+        }
+
+        try
+        {
+            AnalysisService = ServiceProvider.GetService<DatasheetAnalysisService>();
+        }
+        catch (Exception ex)
+        {
+            AnalysisService = null;
+            State.StatusText = $"Analyse-Service nicht verfuegbar (Azure-Zugriff?): {ex.Message}";
+        }
+
+        if (!ServicesAvailable)
+        {
+            if (string.IsNullOrEmpty(State.StatusText))
+            {
+                State.StatusText = "Azure-Konfiguration fehlt oder Azure ist nicht erreichbar. " +
+                                   "Die Analyse-Funktion ist deaktiviert.";
+            }
+            return;
+        }
+
+        State.StatusText = "Bereit für Datenblatt-Analyse";
+        try
+        {
+            CatalogService!.LoadCatalogData();
+        }
+        catch (Exception ex)
+        {
+            State.StatusText = $"Warnung: Katalog nicht geladen - {ex.Message}";
+        }
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null || file.Size == 0) return;
+        
+        if (!file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            State.StatusText = "Fehler: Bitte nur PDF-Dateien auswählen.";
+            return;
+        }
+        
+        SelectedFile = file;
+        State.CurrentFileName = file.Name;
+        State.StatusText = $"Datei ausgewählt: {file.Name}";
+        StateHasChanged();
+    }
+
+    private async Task StartAnalysis()
+    {
+        if (SelectedFile == null || !ServicesAvailable)
+        {
+            State.StatusText = "Fehler: Keine Datei ausgewählt oder Services nicht verfügbar.";
+            return;
+        }
+
+        IsAnalyzing = true;
+        State.StatusText = $"Verarbeite PDF: {SelectedFile.Name}...";
+        StateHasChanged();
+
+        try
+        {
+            // Schritt 1: PDF verarbeiten
+            await using var stream = SelectedFile.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
+            PdfContent = await PdfProcessor.ProcessPdfAsync(stream);
+
+            // PDF-Text im State ablegen, damit der Chatbot auf der Ergebnisseite
+            // Fragen zum aktuellen (einzigen) PDF beantworten kann. Bewusst nur
+            // ein PDF pro Analyse - kein History-/Multi-PDF-Support.
+            State.PdfTextContent = PdfContent?.TextContent;
+            State.CurrentFileName = SelectedFile.Name;
+
+            // Schritt 2: Identifikation durchführen
+            State.StatusText = "Stage 1: Identifiziere Komponententyp...";
+            StateHasChanged();
+            
+            string identificationJson = await AnalysisService!.IdentifyComponentOnlyAsync(PdfContent);
+            CurrentIdentification = JObject.Parse(identificationJson);
+            
+            // ✅ VEREINFACHT: Prüfe ob es eine Memory-Komponente ist (dann immer Part Number ermöglichen)
+            string componentCategory = CurrentIdentification["ComponentCategory"]?.Value<string>() ?? "";
+            
+            // Debug-Logs
+            await JS.InvokeVoidAsync("console.log", $"📋 Component Category from AI: {componentCategory}");
+            
+            // ✅ Suche Component im Katalog (mit mehreren Fallback-Strategien)
+            IdentifiedComponent = CatalogService!.FindComponent(componentCategory);
+            
+            // Fallback 1: Suche auch mit ComponentName
+            if (IdentifiedComponent == null)
+            {
+                string componentName = CurrentIdentification["ComponentName"]?.Value<string>() ?? "";
+                if (!string.IsNullOrWhiteSpace(componentName))
+                {
+                    await JS.InvokeVoidAsync("console.log", $"🔄 Retry search with ComponentName: {componentName}");
+                    IdentifiedComponent = CatalogService!.FindComponent(componentName);
+                }
+            }
+            
+            // Fallback 2: Spezielle Behandlung für Memory Components
+            if (IdentifiedComponent == null && componentCategory.Contains("Memory", StringComparison.OrdinalIgnoreCase))
+            {
+                await JS.InvokeVoidAsync("console.log", "🔄 Memory Component detected - trying specialized search");
+                
+                // Versuche verschiedene Memory-Kategorien
+                var memoryVariants = new[] 
+                { 
+                    "Non-Volatile Memory Parallel",
+                    "Non-Volatile Memory Serial",
+                    "NV Memory Parallel",
+                    "NV Memory Serial",
+                    "EEPROM Parallel",
+                    "EEPROM Serial"
+                };
+                
+                foreach (var variant in memoryVariants)
+                {
+                    IdentifiedComponent = CatalogService!.FindComponent(variant);
+                    if (IdentifiedComponent != null)
+                    {
+                        await JS.InvokeVoidAsync("console.log", $"✅ Found via fallback: {variant}");
+                        break;
+                    }
+                }
+            }
+            
+            // ✅ NEUE LOGIK: Prüfe ob Memory-Komponente (dann immer Part Number Eingabe ermöglichen)
+            if (IdentifiedComponent != null)
+            {
+                await JS.InvokeVoidAsync("console.log", $"✅ Component found in catalog:");
+                await JS.InvokeVoidAsync("console.log", $"   DisplayName: {IdentifiedComponent.DisplayName}");
+                await JS.InvokeVoidAsync("console.log", $"   InternalName: {IdentifiedComponent.InternalName}");
+                await JS.InvokeVoidAsync("console.log", $"   FullPath: {IdentifiedComponent.FullPath}");
+                
+                // Prüfe ob es eine Memory-Komponente ist
+                IsSeriesDatasheet = IsMemoryComponent(IdentifiedComponent);
+                
+                await JS.InvokeVoidAsync("console.log", $"   RequiresPartNumber: {IsSeriesDatasheet}");
+                
+                if (IsSeriesDatasheet)
+                {
+                    await JS.InvokeVoidAsync("console.log", $"🔑 Memory Component detected: {IdentifiedComponent.DisplayName}");
+                    await JS.InvokeVoidAsync("console.log", "   → Part Number input WILL BE ENABLED in dialog");
+                }
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("console.log", $"❌ Component NOT found in catalog: {componentCategory}");
+                await JS.InvokeVoidAsync("console.log", "   Part Number input will be disabled");
+                IsSeriesDatasheet = false;
+            }
+            
+            // Schritt 3: Dialog anzeigen
+            IsAnalyzing = false;
+            State.StatusText = IsSeriesDatasheet 
+                ? "Bitte bestätigen und Part Number eingeben" 
+                : "Bitte bestätigen Sie die Identifikation";
+            StateHasChanged();
+            
+            if (IdentificationDialogRef != null)
+            {
+                IdentificationDialogRef.Show();
+            }
+        }
+        catch (Exception ex)
+        {
+            IsAnalyzing = false;
+            State.StatusText = $"Fehler bei PDF-Verarbeitung: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnIdentificationConfirmed(JObject confirmedIdentification)
+    {
+        if (PdfContent == null || !ServicesAvailable) return;
+        
+        IsAnalyzing = true;
+        AnalysisStarted = true;
+        
+        State.ResultLog = $"[{DateTime.Now:HH:mm:ss}] PDF-Analyse – {SelectedFile?.Name}\n";
+        State.ResultLog += new string('=', 80) + "\n\n";
+        
+        StateHasChanged();
+
+        try
+        {
+            AnalysisService!.TokenStatsCallback += (prompt, completion) =>
+            {
+                State.AddTokenUsage(prompt, completion);
+            };
+            
+            State.StatusText = "Stage 2: Extrahiere Properties...";
+            StateHasChanged();
+            
+            string finalResult = await AnalysisService.AnalyzeWithConfirmedIdentificationAsync(PdfContent, confirmedIdentification);
+            
+            // Setze BEIDE Felder - State prüft auf HasResults basierend auf diesen
+            State.CurrentJsonResult = finalResult;
+            State.ResultLog += "=== STAGE 2: EXTRAKTION ===\n";
+            State.ResultLog += finalResult + "\n";
+            State.ResultLog += new string('=', 80) + "\n";
+            
+            State.StatusText = "✓ Analyse abgeschlossen";
+            
+            // Warte kurz damit der State gesetzt wird
+            await Task.Delay(100);
+            
+            // Navigation zur Ergebnisseite
+            Navigation.NavigateTo("/results", false);
+        }
+        catch (Exception ex)
+        {
+            State.StatusText = $"Fehler bei Extraktion: {ex.Message}";
+            State.ResultLog += $"\nFEHLER: {ex.Message}\n";
+        }
+        finally
+        {
+            IsAnalyzing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnIdentificationCancelled()
+    {
+        IsAnalyzing = false;
+        State.StatusText = "Analyse abgebrochen";
+        StateHasChanged();
+    }
+
+    private async Task OnReset()
+    {
+        AnalysisStarted = false;
+        IsAnalyzing = false;
+        SelectedFile = null;
+        PdfContent = null;
+        CurrentIdentification = null;
+        
+        State.Reset();
+        State.StatusText = "Bereit für neue Analyse";
+        
+        StateHasChanged();
+    }
+}
+
+
+

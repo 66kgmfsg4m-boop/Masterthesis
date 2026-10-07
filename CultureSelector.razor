@@ -1,0 +1,65 @@
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="rs-culture-selector dropdown">
+    <button class="btn btn-primary dropdown-toggle rs-culture-button" 
+            type="button" 
+            id="cultureDropdown" 
+            data-bs-toggle="dropdown" 
+            aria-expanded="false">
+        <span class="fw-bold">@CurrentCulture</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="cultureDropdown">
+        <li><a class="dropdown-item @(CurrentCulture == "DE" ? "active" : "")" href="#" @onclick="@(() => SetCulture("de-DE"))">Deutsch</a></li>
+        <li><a class="dropdown-item @(CurrentCulture == "EN" ? "active" : "")" href="#" @onclick="@(() => SetCulture("en-US"))">English</a></li>
+    </ul>
+</div>
+
+<style>
+    .rs-culture-button {
+        min-width: 70px;
+        height: 45px;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+    
+    .rs-culture-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 153, 204, 0.3);
+    }
+    
+    .rs-culture-selector .dropdown-menu {
+        border: 2px solid #0099cc;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+    }
+    
+    .rs-culture-selector .dropdown-item.active {
+        background-color: #003c7e;
+        color: white;
+    }
+    
+    .rs-culture-selector .dropdown-item:hover {
+        background-color: rgba(0, 153, 204, 0.1);
+        color: #003c7e;
+    }
+</style>
+
+@code {
+    private string CurrentCulture = "DE";
+    
+    protected override void OnInitialized()
+    {
+        var culture = CultureInfo.CurrentUICulture;
+        CurrentCulture = culture.TwoLetterISOLanguageName.ToUpper();
+    }
+    
+    private void SetCulture(string cultureName)
+    {
+        var uri = new Uri(Navigation.Uri).GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+        var cultureQuery = $"?culture={Uri.EscapeDataString(cultureName)}";
+        Navigation.NavigateTo($"{uri}{cultureQuery}", forceLoad: true);
+    }
+}
+
