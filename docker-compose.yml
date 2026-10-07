@@ -1,0 +1,25 @@
+version: "3.9"
+
+# =====================================================================
+# Ein-Befehl-Start fuer den Empfaenger:
+#   1) .env.example -> .env kopieren und Werte eintragen
+#   2) docker compose up
+# Browser dann: http://localhost:8080
+# =====================================================================
+
+services:
+  datasheet-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: datasheet-analyzer:latest
+    container_name: datasheet-analyzer
+    ports:
+      - "8080:8080"
+    # Secrets kommen ausschliesslich aus .env (nicht ins Image bauen!)
+    env_file:
+      - .env
+    environment:
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_ENVIRONMENT: "Production"
+    restart: unless-stopped

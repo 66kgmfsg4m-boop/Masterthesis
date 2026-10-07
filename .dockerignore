@@ -1,0 +1,31 @@
+# Globale Docker-Ignores für schlanken Build-Context
+**/bin/
+**/obj/
+**/publish/
+publish/
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+.git/
+.gitignore
+*.user
+*.suo
+
+# Dokumentation und Skripte (im Image nicht benötigt)
+*.md
+docs/
+Flowcharts/
+*.drawio
+*.ps1
+!nuget.config
+
+# WPF-Altprojekt nicht benötigt
+CheckOrderConfirmationFromSupplier/
+AzureBlobUploader/
+
+# Sicherheit – keine lokalen Secrets ins Image
+appsettings.Development.yaml
+*.template
+.env

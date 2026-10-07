@@ -1,0 +1,17 @@
+FullPath;ComponentType;Category;DisplayName;InternalName;PropertyName;PropertyNumber
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;;
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;Function;1
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;PackageType;2
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;FMinHz;3
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;NumberOfPin;4
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;FMaxHz;5
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;Pitch;6
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;GainTypDb;7
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;VssSpecV;8
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;Op1DbDbm;9
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;IsupCdMaxA;10
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;Oip3TypDbm;11
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;PdissW;12
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;NfTypDb;13
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;SpecifiedHz;14
+/COMPONENT_CATALOG/rfComponents/rfAmplifier;COMPONENT;RF Components;RF Amplifier;RF Amplifier;RfinMaxOhm;15

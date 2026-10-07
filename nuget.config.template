@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Vorlage fuer nuget.config. Die echte nuget.config wird NICHT eingecheckt
+  (steht in .gitignore), weil sie den SHAPE-Feed-Token enthaelt.
+
+  Lokal einrichten:
+    1. Diese Datei nach "nuget.config" kopieren.
+    2. Username eintragen.
+    3. Token NICHT als ClearTextPassword hardcoden, sondern per
+       Umgebungsvariable setzen, z.B.:
+         dotnet nuget add source https://nuget.packages.rsint.net/api/nuget/rs_mes_nuget \
+           -n SHAPE -u %SHAPE_USER% -p %SHAPE_TOKEN% --store-password-in-clear-text
+
+  Im CI/Runner: Credentials als maskierte CI/CD-Variablen (SHAPE_USER,
+  SHAPE_TOKEN) hinterlegen und den Source per Kommando registrieren,
+  NICHT den Token in die Datei schreiben.
+-->
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+    <add key="SHAPE" value="https://nuget.packages.rsint.net/api/nuget/rs_mes_nuget" protocolVersion="2" />
+  </packageSources>
+
+  <packageSourceCredentials>
+    <SHAPE>
+      <add key="Username" value="%SHAPE_USER%" />
+      <add key="ClearTextPassword" value="%SHAPE_TOKEN%" />
+    </SHAPE>
+  </packageSourceCredentials>
+</configuration>
