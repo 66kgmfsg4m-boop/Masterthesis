@@ -8,8 +8,8 @@ namespace DatasheetAnalyzer.Core.Services
 {
     /// <summary>
     /// Service zum Laden und Verarbeiten der DMS-Katalogdaten aus CSV-Dateien.
-    /// Lädt Komponenten-Definitionen und Properties aus Azure Blob Storage.
-    /// Generiert dynamische Prompts für KI-basierte Extraktion basierend auf Katalog-Schema.
+    /// L�dt Komponenten-Definitionen und Properties aus Azure Blob Storage.
+    /// Generiert dynamische Prompts f�r KI-basierte Extraktion basierend auf Katalog-Schema.
     /// </summary>
     public class DMSCatalogService
     {
@@ -19,14 +19,6 @@ namespace DatasheetAnalyzer.Core.Services
         private Dictionary<string, List<ComponentProperty>> _componentProperties;
         private Dictionary<string, Dictionary<string, string>> _valueLists;
         private string? _cachedPitchGuidelines;
-
-        // Cache für generische, per Namenskonvention geladene Kataloggruppen-Guidelines.
-        // Wert = null bedeutet "Blob existiert nicht" (negativ gecacht, damit Azure nicht mehrfach angefragt wird).
-        private readonly Dictionary<string, string?> _cachedGenericGuidelines =
-            new(StringComparer.OrdinalIgnoreCase);
-
-        // Maximale Länge einer generischen Guideline, um Prompt-Bloat und Token-Kosten zu begrenzen.
-        private const int MaxGenericGuidelineLength = 12000;
 
         public DMSCatalogService(IRemoteConfigService remoteConfigService, ILogger<DMSCatalogService> logger)
         {
@@ -365,13 +357,8 @@ namespace DatasheetAnalyzer.Core.Services
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return null;
 
-            // ✅ SPECIAL MAPPING: Spezifische Memory-Typen → Generische Katalog-Kategorien
+            // ? SPECIAL MAPPING: Spezifische Memory-Typen ? Generische Katalog-Kategorien
             searchTerm = MapSpecificMemoryTypesToCatalog(searchTerm);
-
-            // ✅ SPECIAL MAPPING: Coil/Inductor-Synonyme -> Katalog-Knoten "Coil"
-            //   Der Baum kennt nur "Coil" (unter Inductance), das LLM klassifiziert
-            //   aber typischerweise als "Inductor" / "Inductance" / "Power Choke".
-            searchTerm = MapCoilSynonymsToCatalog(searchTerm);
 
             string normalizedSearch = Normalize(searchTerm);
 
@@ -384,40 +371,14 @@ namespace DatasheetAnalyzer.Core.Services
         }
 
         /// <summary>
-        /// Mappt Inductor/Inductance/Power Choke etc. auf den Katalog-Knoten "Coil".
-        /// </summary>
-        private string MapCoilSynonymsToCatalog(string searchTerm)
-        {
-            string lower = searchTerm.ToLowerInvariant();
-            var coilKeywords = new[]
-            {
-                "inductor", "inductance",
-                "power choke", "choke",
-                "wire wound", "wirewound",
-                "multilayer chip inductor",
-                "tunable coil", "wideband bias choke",
-                "spule", "drossel"
-            };
-            foreach (var kw in coilKeywords)
-            {
-                if (lower.Contains(kw))
-                {
-                    _logger.LogDebug("Mapping '{SearchTerm}' -> 'Coil' (Keyword: {Keyword})", searchTerm, kw);
-                    return "Coil";
-                }
-            }
-            return searchTerm;
-        }
-
-        /// <summary>
         /// Mappt spezifische Memory-Typen (F-RAM, MRAM, etc.) auf generische Katalog-Kategorien
         /// </summary>
         private string MapSpecificMemoryTypesToCatalog(string searchTerm)
         {
-            // Normalisiere für Case-Insensitive Vergleich
+            // Normalisiere f�r Case-Insensitive Vergleich
             string lower = searchTerm.ToLowerInvariant();
 
-            // ✅ PARALLEL MEMORY TYPES (Async, mit Address/Data Bus)
+            // ? PARALLEL MEMORY TYPES (Async, mit Address/Data Bus)
             var parallelMemoryKeywords = new[]
             {
                 "f-ram", "fram",                    // Ferroelectric RAM
@@ -429,7 +390,7 @@ namespace DatasheetAnalyzer.Core.Services
                 "async", "asynchronous"
             };
 
-            // ✅ SERIAL MEMORY TYPES (SPI, I2C)
+            // ? SERIAL MEMORY TYPES (SPI, I2C)
             var serialMemoryKeywords = new[]
             {
                 "serial eeprom",
@@ -439,23 +400,23 @@ namespace DatasheetAnalyzer.Core.Services
                 "serial memory"
             };
 
-            // Prüfe ob Parallel Memory
+            // Pr�fe ob Parallel Memory
             foreach (var keyword in parallelMemoryKeywords)
             {
                 if (lower.Contains(keyword))
                 {
-                    _logger.LogDebug("Mapping '{SearchTerm}' → 'Non-Volatile Memory Parallel' (Keyword: {Keyword})",
+                    _logger.LogDebug("Mapping '{SearchTerm}' ? 'Non-Volatile Memory Parallel' (Keyword: {Keyword})",
                         searchTerm, keyword);
                     return "Non-Volatile Memory Parallel";
                 }
             }
 
-            // Prüfe ob Serial Memory
+            // Pr�fe ob Serial Memory
             foreach (var keyword in serialMemoryKeywords)
             {
                 if (lower.Contains(keyword))
                 {
-                    _logger.LogDebug("Mapping '{SearchTerm}' → 'Non-Volatile Memory Serial' (Keyword: {Keyword})",
+                    _logger.LogDebug("Mapping '{SearchTerm}' ? 'Non-Volatile Memory Serial' (Keyword: {Keyword})",
                         searchTerm, keyword);
                     return "Non-Volatile Memory Serial";
                 }
@@ -464,13 +425,13 @@ namespace DatasheetAnalyzer.Core.Services
             // Generische Memory-Erkennung (Fallback)
             if (lower.Contains("nonvolatile") || lower.Contains("non-volatile") || lower.Contains("nv memory"))
             {
-                // Default: Parallel (da häufigster Fall)
-                _logger.LogDebug("Mapping '{SearchTerm}' → 'Non-Volatile Memory Parallel' (Generic Memory)",
+                // Default: Parallel (da h�ufigster Fall)
+                _logger.LogDebug("Mapping '{SearchTerm}' ? 'Non-Volatile Memory Parallel' (Generic Memory)",
                     searchTerm);
                 return "Non-Volatile Memory Parallel";
             }
 
-            // Keine Änderung
+            // Keine �nderung
             return searchTerm;
         }
 
@@ -513,20 +474,6 @@ namespace DatasheetAnalyzer.Core.Services
             return props;
         }
 
-        /// <summary>
-        /// Liefert fuer eine Kategorie (z.B. "Coil") die CSV-Properties sortiert
-        /// nach ORDNUM (PropertyNumber). Wird fuer die dynamische Kopplung
-        /// PDF-Property &lt;-&gt; DMS-Spalte via ORDNUM (siehe DmsLookupService) benutzt.
-        /// </summary>
-        public List<ComponentProperty> GetOrderedPropertiesForComponent(string componentGroup)
-        {
-            var props = GetPropertiesForComponent(componentGroup);
-            return props
-                .Where(p => int.TryParse(p.PropertyNumber, out _))
-                .OrderBy(p => int.Parse(p.PropertyNumber))
-                .ToList();
-        }
-
         public string GenerateDynamicPrompt(CatalogComponent component)
         {
             var properties = GetPropertiesForComponent(component.ComponentPath);
@@ -549,7 +496,7 @@ namespace DatasheetAnalyzer.Core.Services
             BuildPropertyList(promptBuilder, properties, propertyDefinitions);
             BuildForbiddenProperties(promptBuilder);
             
-            // ? Füge Pitch-Extraction Guidelines hinzu für relevante Komponenten
+            // ? F�ge Pitch-Extraction Guidelines hinzu f�r relevante Komponenten
             if (RequiresPitchGuidelines(component, properties))
             {
                 var pitchGuidelines = LoadPitchGuidelinesIfNeeded();
@@ -561,7 +508,7 @@ namespace DatasheetAnalyzer.Core.Services
                 }
             }
             
-            // ? NEU: Füge Memory-Extraction Guidelines hinzu für Memory-Komponenten
+            // ? NEU: F�ge Memory-Extraction Guidelines hinzu f�r Memory-Komponenten
             if (RequiresMemoryGuidelines(component, properties))
             {
                 var memoryGuidelines = LoadMemoryGuidelinesIfNeeded();
@@ -573,41 +520,6 @@ namespace DatasheetAnalyzer.Core.Services
                 }
             }
             
-            // ✅ NEU: Füge Coil/Inductor-Extraction Guidelines hinzu (kein Part Number Decoding!)
-            if (RequiresCoilGuidelines(component, properties))
-            {
-                var coilGuidelines = LoadCoilGuidelinesIfNeeded();
-                if (!string.IsNullOrEmpty(coilGuidelines))
-                {
-                    promptBuilder.AppendLine();
-                    promptBuilder.AppendLine(coilGuidelines);
-                    promptBuilder.AppendLine();
-                }
-            }
-
-            // ✅ NEU: Füge EMI-Filter-Extraction Guidelines hinzu (kein Part Number Decoding!)
-            if (RequiresEmiFilterGuidelines(component, properties))
-            {
-                var emiFilterGuidelines = LoadEmiFilterGuidelinesIfNeeded();
-                if (!string.IsNullOrEmpty(emiFilterGuidelines))
-                {
-                    promptBuilder.AppendLine();
-                    promptBuilder.AppendLine(emiFilterGuidelines);
-                    promptBuilder.AppendLine();
-                }
-            }
-
-            // ✅ NEU: Generische Kataloggruppen-Guidelines per Namenskonvention aus Azure Blob.
-            // Blob-Name: <slug(DisplayName)>_extraction_guidelines.txt
-            // Damit können Fachkolleg:innen neue Guidelines ohne Code-Änderung hinzufügen.
-            var genericGuidelines = LoadGenericGuidelineFor(component);
-            if (!string.IsNullOrEmpty(genericGuidelines))
-            {
-                promptBuilder.AppendLine();
-                promptBuilder.AppendLine(genericGuidelines);
-                promptBuilder.AppendLine();
-            }
-
             BuildJsonStructure(promptBuilder, component, properties);
             BuildExtractionRules(promptBuilder, properties);
             BuildMinTypMaxRules(promptBuilder);
@@ -653,19 +565,19 @@ namespace DatasheetAnalyzer.Core.Services
         private void BuildForbiddenProperties(StringBuilder builder)
         {
             builder.AppendLine("FORBIDDEN - DO NOT EXTRACT THESE:");
-            builder.AppendLine("  • FrequencyRange, Gain_20to34GHz, Gain_34to44GHz");
-            builder.AppendLine("  • GainFlatness, GainVariationOverTemperature");
-            builder.AppendLine("  • NoiseFigure_20to34GHz, NoiseFigure_34to44GHz");
-            builder.AppendLine("  • InputReturnLoss, OutputReturnLoss");
-            builder.AppendLine("  • OutputPower_P1dB, SaturatedOutputPower, OutputIP3");
-            builder.AppendLine("  • InputOutputImpedance, DieSize");
-            builder.AppendLine("  • SupplyCurrent, DrainBiasVoltage, GateBiasVoltageRange");
-            builder.AppendLine("  • ContinuousPowerDissipation, ESD_HBM");
-            builder.AppendLine("  • OutlineDimensions, PadConfiguration, Mounting");
-            builder.AppendLine("  • ThermalResistance, StorageTemperatureRange");
-            builder.AppendLine("  • TechnicalSpecifications, ElectricalCharacteristics");
-            builder.AppendLine("  • MechanicalCharacteristics, EnvironmentalData");
-            builder.AppendLine("  • ANY property NOT in the ALLOWED list");
+            builder.AppendLine("  � FrequencyRange, Gain_20to34GHz, Gain_34to44GHz");
+            builder.AppendLine("  � GainFlatness, GainVariationOverTemperature");
+            builder.AppendLine("  � NoiseFigure_20to34GHz, NoiseFigure_34to44GHz");
+            builder.AppendLine("  � InputReturnLoss, OutputReturnLoss");
+            builder.AppendLine("  � OutputPower_P1dB, SaturatedOutputPower, OutputIP3");
+            builder.AppendLine("  � InputOutputImpedance, DieSize");
+            builder.AppendLine("  � SupplyCurrent, DrainBiasVoltage, GateBiasVoltageRange");
+            builder.AppendLine("  � ContinuousPowerDissipation, ESD_HBM");
+            builder.AppendLine("  � OutlineDimensions, PadConfiguration, Mounting");
+            builder.AppendLine("  � ThermalResistance, StorageTemperatureRange");
+            builder.AppendLine("  � TechnicalSpecifications, ElectricalCharacteristics");
+            builder.AppendLine("  � MechanicalCharacteristics, EnvironmentalData");
+            builder.AppendLine("  � ANY property NOT in the ALLOWED list");
             builder.AppendLine();
         }
 
@@ -709,13 +621,7 @@ namespace DatasheetAnalyzer.Core.Services
             builder.AppendLine();
             builder.AppendLine("When extracting values from specification tables with Min/Typ/Max columns:");
             builder.AppendLine();
-            builder.AppendLine("IMPORTANT: This rule ONLY applies when a Min/Typ/Max table actually exists.");
-            builder.AppendLine("If the datasheet lists the value only ONCE (e.g. in a Features bullet list,");
-            builder.AppendLine("in a general Specifications section, or as a single stated value like");
-            builder.AppendLine("'Gain: 20 dB' or 'Noise figure: 0.65 dB'), then extract THAT value directly.");
-            builder.AppendLine("Do NOT return 'nicht klar erkennbar' just because there is no Min/Typ/Max column.");
-            builder.AppendLine();
-            builder.AppendLine("THE PROPERTY NAME TELLS YOU WHICH COLUMN TO READ (when the table exists):");
+            builder.AppendLine("THE PROPERTY NAME TELLS YOU WHICH COLUMN TO READ:");
             builder.AppendLine();
             builder.AppendLine("  ??????????????????????????????????????????????????????????????????????");
             builder.AppendLine("  ? Property Name       ? Read from Column   ? Example                 ?");
@@ -746,27 +652,25 @@ namespace DatasheetAnalyzer.Core.Services
             builder.AppendLine();
         }
 
-
         /// <summary>
-        /// Prüft ob Komponente Pitch-Property hat und daher spezielle Guidelines benötigt
+        /// Pr�ft ob Komponente Pitch-Property hat und daher spezielle Guidelines ben�tigt
         /// </summary>
         private bool RequiresPitchGuidelines(CatalogComponent component, List<ComponentProperty> properties)
         {
-            // Prüfe ob Pitch in Properties vorhanden
+            // Pr�fe ob Pitch in Properties vorhanden
             bool hasPitch = properties.Any(p => 
                 p.PropertyInternalName.Equals("Pitch", StringComparison.OrdinalIgnoreCase));
             
             if (!hasPitch)
                 return false;
             
-            // Komponenten, die typischerweise Pitch benötigen
+            // Komponenten, die typischerweise Pitch ben�tigen
             var pitchRelevantComponents = new[]
             {
                 "Amplifier", "RF Amplifier", "OP Amplifier", "Power Amplifier",
                 "Connector", "IC", "Microcontroller", "Processor",
                 "Non-Volatile Memory Serial", "Non-Volatile Memory Parallel",
-                "NV Memory", "Memory",
-                "Interface IC"  // Interface ICs (SOIC/TSSOP/QFN-Gehäuse) benötigen Pitch aus Mechanical Drawings
+                "NV Memory", "Memory"
             };
             
             return pitchRelevantComponents.Any(keyword => 
@@ -775,7 +679,7 @@ namespace DatasheetAnalyzer.Core.Services
         }
 
         /// <summary>
-        /// Lädt Pitch-Extraction Guidelines aus Azure Blob Storage (Cached)
+        /// L�dt Pitch-Extraction Guidelines aus Azure Blob Storage (Cached)
         /// Falls Azure nicht erreichbar, wird Fallback aus Embedded Resource verwendet
         /// </summary>
         private string LoadPitchGuidelinesIfNeeded()
@@ -802,8 +706,8 @@ namespace DatasheetAnalyzer.Core.Services
         }
 
         /// <summary>
-        /// Fallback: Embedded Pitch-Extraction Guidelines (wird verwendet wenn Azure nicht verfügbar)
-        /// TODO: Entfernen sobald Azure Blob Storage wieder verfügbar ist!
+        /// Fallback: Embedded Pitch-Extraction Guidelines (wird verwendet wenn Azure nicht verf�gbar)
+        /// TODO: Entfernen sobald Azure Blob Storage wieder verf�gbar ist!
         /// </summary>
         private string GetEmbeddedPitchGuidelines()
         {
@@ -820,24 +724,24 @@ namespace DatasheetAnalyzer.Core.Services
 ???????????????????????????????????????????????????????????????????????
 
 1. SECTION TITLES TO CHECK:
-   • ""Package Information""
-   • ""Package Dimensions""
-   • ""Mechanical Outline""
-   • ""Mechanical Drawing""
-   • ""Package and Pin Dimensions""
-   • ""Land Pattern""
+   � ""Package Information""
+   � ""Package Dimensions""
+   � ""Mechanical Outline""
+   � ""Mechanical Drawing""
+   � ""Package and Pin Dimensions""
+   � ""Land Pattern""
 
 2. VISUAL INDICATORS IN DRAWINGS:
-   • Package drawings showing pin layout (top view / bottom view)
-   • Dimension lines with arrows between pins: ? e ? or ? e
-   • Dimension tables near the drawing
-   • Symbol 'e' representing pin spacing
-   • Maßlinien (measurement lines) with arrows
+   � Package drawings showing pin layout (top view / bottom view)
+   � Dimension lines with arrows between pins: ? e ? or ? e
+   � Dimension tables near the drawing
+   � Symbol 'e' representing pin spacing
+   � Ma�linien (measurement lines) with arrows
 
 3. TYPICAL LOCATION IN PDF:
-   • Usually in middle/end of datasheet (pages 5-15)
-   • Often after ""Electrical Characteristics""
-   • Before or after ""Application Information""
+   � Usually in middle/end of datasheet (pages 5-15)
+   � Often after ""Electrical Characteristics""
+   � Before or after ""Application Information""
 
 ???????????????????????????????????????????????????????????????????????
 ?? WHAT IS PITCH
@@ -847,8 +751,8 @@ DEFINITION:
 Pin-to-Pin spacing = Center-to-center distance between TWO ADJACENT pins
 
 COMMON NOTATION:
-• Symbol: 'e' (in package drawings)
-• Format examples:
+� Symbol: 'e' (in package drawings)
+� Format examples:
   - ""0.50""
   - ""e = 0.5 mm""
   - ""pitch: 1.27mm""
@@ -857,7 +761,7 @@ COMMON NOTATION:
 IMPORTANT DISTINCTIONS:
 ? Pitch = PIN-TO-PIN spacing (e.g., 0.5mm)
 ? NOT row-to-row spacing (e.g., 7.5mm body width)
-? NOT package dimensions (e.g., 3.9mm × 4.9mm)
+? NOT package dimensions (e.g., 3.9mm � 4.9mm)
 
 ???????????????????????????????????????????????????????????????????????
 ? VALIDATION RULES
@@ -876,10 +780,10 @@ MANDATORY CHECKS:
    ? 3.9mm, 7.5mm, 10mm ? These are package dimensions, NOT pitch!
 
 4. Unit conversion:
-   • If value is in inches, convert to mm
-   • 0.1"" = 2.54mm
-   • 0.05"" = 1.27mm
-   • 0.025"" = 0.635mm
+   � If value is in inches, convert to mm
+   � 0.1"" = 2.54mm
+   � 0.05"" = 1.27mm
+   � 0.025"" = 0.635mm
 
 5. If unclear or not found:
    ? Return ""nicht gefunden"" (German!)
@@ -900,7 +804,7 @@ DIP      | 2.54mm (0.1"") | Through-hole standard      | e
 
 ? COMMON MISTAKES TO AVOID:
 ? SOIC: Confusing 0.65mm (pitch) with 3.9mm (body width)
-? QFN: Using package size (3×3mm) instead of pin spacing (0.5mm)
+? QFN: Using package size (3�3mm) instead of pin spacing (0.5mm)
 ? DIP: Confusing 2.54mm (pitch) with 7.62mm (row spacing)
 
 ???????????????????????????????????????????????????????????????????????
@@ -910,29 +814,29 @@ DIP      | 2.54mm (0.1"") | Through-hole standard      | e
 STEP-BY-STEP APPROACH:
 
 1. LOCATE MECHANICAL DRAWINGS:
-   • Scan through all images
-   • Focus on pages with package outlines
-   • Look for dimensioned technical drawings
+   � Scan through all images
+   � Focus on pages with package outlines
+   � Look for dimensioned technical drawings
 
 2. IDENTIFY DIMENSION LINES:
-   • Look for arrows: ? ? or ?
-   • Check for measurement lines between pins
-   • Find dimension tables near drawings
+   � Look for arrows: ? ? or ?
+   � Check for measurement lines between pins
+   � Find dimension tables near drawings
 
 3. READ DIMENSION VALUES:
-   • Focus on small values (0.3-5mm range)
-   • Check both horizontal and vertical dimensions
-   • Verify unit (mm vs inch)
+   � Focus on small values (0.3-5mm range)
+   � Check both horizontal and vertical dimensions
+   � Verify unit (mm vs inch)
 
 4. CROSS-REFERENCE:
-   • Compare dimension symbol 'e' in drawing with table
-   • Verify dimension label (e.g., ""e = pin pitch"")
-   • Check legend/notes for symbol definitions
+   � Compare dimension symbol 'e' in drawing with table
+   � Verify dimension label (e.g., ""e = pin pitch"")
+   � Check legend/notes for symbol definitions
 
 5. VALIDATE:
-   • Is value in realistic range (0.3-5mm)?
-   • Is it the smallest dimension (likely pin spacing)?
-   • Does it match package type expectations?
+   � Is value in realistic range (0.3-5mm)?
+   � Is it the smallest dimension (likely pin spacing)?
+   � Does it match package type expectations?
 
 ???????????????????????????????????????????????????????????????????????
 ?? IF PITCH IS NOT CLEARLY VISIBLE
@@ -967,7 +871,7 @@ REMEMBER:
         }
 
         /// <summary>
-        /// Prüft ob Komponente Memory-Guidelines benötigt
+        /// Pr�ft ob Komponente Memory-Guidelines ben�tigt
         /// WICHTIG: Sucht SPEZIFISCHE Memory-Typen (Serial/Parallel), nicht nur "Memory Components"
         /// </summary>
         private bool RequiresMemoryGuidelines(CatalogComponent component, List<ComponentProperty> properties)
@@ -976,7 +880,7 @@ REMEMBER:
             var memoryComponents = new[]
             {
                 "Non-Volatile Memory Serial",      // SPI/I2C Memory (z.B. AT25xxx)
-                "Non-Volatile Memory Parallel",    // Parallel Memory (z.B. AT28xxx)
+                "Non-Volatile Memory Parallel",    // Parallel Memory (z.B. AT28xxx, F-RAM)
                 "NV Memory Serial",
                 "NV Memory Parallel",
                 "EEPROM Serial",
@@ -986,7 +890,7 @@ REMEMBER:
                 "SRAM"
             };
             
-            // Prüfe ob DisplayName oder InternalName EXAKT eine spezifische Memory-Kategorie ist
+            // Pr�fe ob DisplayName oder InternalName EXAKT eine spezifische Memory-Kategorie ist
             bool isMemoryComponent = memoryComponents.Any(keyword =>
                 component.DisplayName.Equals(keyword, StringComparison.OrdinalIgnoreCase) ||
                 component.InternalName.Equals(keyword, StringComparison.OrdinalIgnoreCase) ||
@@ -995,35 +899,81 @@ REMEMBER:
             
             if (!isMemoryComponent)
             {
-                // Fallback: Prüfe auch FullPath (kann "/Memory Components/Non-Volatile Memory Serial" enthalten)
+                // Fallback: Pr�fe auch FullPath (kann "/Memory Components/Non-Volatile Memory Serial" enthalten)
                 isMemoryComponent = memoryComponents.Any(keyword =>
                     component.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
             }
             
             if (!isMemoryComponent)
+            {
+                _logger.LogDebug("Component {ComponentName} is NOT a memory component (skipping memory guidelines)",
+                    component.DisplayName);
                 return false;
+            }
             
-            // Prüfe ob Memory-spezifische Properties vorhanden sind
+            // ? FIX: Erweiterte Property-Pr�fung mit ALLEN m�glichen Varianten
             bool hasMemoryProperties = properties.Any(p =>
+                // Timing Properties
                 p.PropertyInternalName.StartsWith("tAA", StringComparison.OrdinalIgnoreCase) ||
                 p.PropertyInternalName.StartsWith("tRC", StringComparison.OrdinalIgnoreCase) ||
+                p.PropertyInternalName.StartsWith("Taa", StringComparison.OrdinalIgnoreCase) ||  // ? NEU: Lowercase Variant
+                
+                // Memory Size Properties (ALLE Varianten!)
                 p.PropertyInternalName.Equals("Capacity", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Equals("Size", StringComparison.OrdinalIgnoreCase) ||       // Size = Memory Capacity!
+                p.PropertyInternalName.Equals("Size", StringComparison.OrdinalIgnoreCase) ||
+                p.PropertyInternalName.Equals("SizeByte", StringComparison.OrdinalIgnoreCase) ||      // ? NEU
+                p.PropertyInternalName.Equals("Size [Byte]", StringComparison.OrdinalIgnoreCase) ||   // ? NEU: Mit Klammern
+                p.PropertyInternalName.Contains("Size", StringComparison.OrdinalIgnoreCase) ||        // ? NEU: Catch-All
+                
+                // Memory Organization
                 p.PropertyInternalName.Equals("Organization", StringComparison.OrdinalIgnoreCase) ||
+                
+                // Interface
                 p.PropertyInternalName.Equals("Interface", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("Width", StringComparison.OrdinalIgnoreCase));
+                
+                // Width Properties (ALLE Varianten!)
+                p.PropertyInternalName.Equals("Width", StringComparison.OrdinalIgnoreCase) ||
+                p.PropertyInternalName.Equals("WidthMax", StringComparison.OrdinalIgnoreCase) ||      // ? NEU
+                p.PropertyInternalName.Equals("Width (Max)", StringComparison.OrdinalIgnoreCase) ||   // ? NEU: Mit Klammern
+                p.PropertyInternalName.Contains("Width", StringComparison.OrdinalIgnoreCase) ||       // ? NEU: Catch-All
+                
+                // Function/Type Properties
+                p.PropertyInternalName.Equals("Function", StringComparison.OrdinalIgnoreCase) ||      // ? NEU
+                p.PropertyInternalName.Equals("Type", StringComparison.OrdinalIgnoreCase));            // ? NEU
             
             if (isMemoryComponent && hasMemoryProperties)
             {
-                _logger.LogDebug("Memory guidelines required for: {ComponentName} (Path: {FullPath})",
+                _logger.LogInformation("? Memory guidelines REQUIRED for: {ComponentName} (Path: {FullPath})",
                     component.DisplayName, component.FullPath);
+                
+                // Debug: Zeige welche Memory-Properties gefunden wurden
+                var memoryProps = properties.Where(p =>
+                    p.PropertyInternalName.Contains("Size", StringComparison.OrdinalIgnoreCase) ||
+                    p.PropertyInternalName.Contains("Width", StringComparison.OrdinalIgnoreCase) ||
+                    p.PropertyInternalName.Contains("Function", StringComparison.OrdinalIgnoreCase) ||
+                    p.PropertyInternalName.Contains("tAA", StringComparison.OrdinalIgnoreCase))
+                    .Select(p => p.PropertyInternalName)
+                    .ToList();
+                
+                if (memoryProps.Any())
+                {
+                    _logger.LogDebug("  Memory-specific properties found: {Properties}",
+                        string.Join(", ", memoryProps));
+                }
+            }
+            else if (isMemoryComponent && !hasMemoryProperties)
+            {
+                _logger.LogWarning("?? Component {ComponentName} is memory type but has NO memory-specific properties!",
+                    component.DisplayName);
+                _logger.LogDebug("  Available properties: {Properties}",
+                    string.Join(", ", properties.Select(p => p.PropertyInternalName)));
             }
             
             return hasMemoryProperties;
         }
 
         /// <summary>
-        /// Lädt Memory-Extraction Guidelines aus Azure Blob Storage (Cached)
+        /// L�dt Memory-Extraction Guidelines aus Azure Blob Storage (Cached)
         /// </summary>
         private string? _cachedMemoryGuidelines;
         
@@ -1051,7 +1001,7 @@ REMEMBER:
         }
 
         /// <summary>
-        /// Embedded Memory-Guidelines (Fallback wenn Azure nicht verfügbar)
+        /// Embedded Memory-Guidelines (Fallback wenn Azure nicht verf�gbar)
         /// </summary>
         private string GetEmbeddedMemoryGuidelines()
         {
@@ -1069,178 +1019,42 @@ REMEMBER:
 
 Look for these indicators:
 
-SERIAL MEMORY (SPI/I2C/UFS):
-  ? Pin count: 6-8 pins (VCC, GND, SCK, MOSI, MISO, CS) OR 153+ pins (UFS, eMMC)
-  ? Interface: SPI, I2C, Microwire, UFS, eMMC
-  ? Access time: µs range (microseconds) or MHz/GHz clock rates
-  ? Example: AT25xxx, 25LCxxx, M95xxx, THGBMDG5D1LBAIL (UFS)
-  ? Key features: Serial data transmission, embedded controllers
+SERIAL MEMORY (SPI/I2C):
+  ? Pin count: 6-8 pins (VCC, GND, SCK, MOSI, MISO, CS)
+  ? Interface: SPI, I2C, Microwire
+  ? Access time: �s range (microseconds)
+  ? Example: AT25xxx, 25LCxxx, M95xxx
 
 PARALLEL MEMORY:
   ? Pin count: 20-48+ pins (address bus A0-A15, data bus D0-D7)
   ? Interface: Parallel, Asynchronous
   ? Access time: ns range (nanoseconds)
-  ? Example: AT28xxx, 28Cxxx, MT29F2G08
+  ? Example: AT28xxx, 28Cxxx
 
 ???????????????????????????????????????????????????????????????
 ?? PROPERTY EXTRACTION RULES
 ???????????????????????????????????????????????????????????????
 
-0?? FUNKTION = MEMORY TECHNOLOGY TYPE (CLASSIFICATION, NOT EXTRACTION!)
-   ?????????????????????????????????????????????????????????????????????????????
-   ?? CRITICAL: ""Funktion"" is NOT extracted from PDF text!
-      You must CLASSIFY the memory technology based on datasheet content!
+1?? SIZE = MEMORY CAPACITY (NOT PHYSICAL DIMENSION!)
+   ???????????????????????????????????????????????????????????????
+   ?? CRITICAL: In Memory Components, ""Size"" means MEMORY SIZE!
    
-   AVAILABLE OPTIONS (choose ONE that best matches):
+   CORRECT EXAMPLES:
+   ? Size = ""1 Mbit""     (from ""1 Megabit EEPROM"")
+   ? Size = ""128 Kbit""   (from ""128K x 8"")
+   ? Size = ""256 Kbit""   (from ""32K x 8"")
+   ? Size = ""64 Kbit""    (from Organization: 8K x 8)
    
-   **FOR PARALLEL MEMORY:**
-   • ""NAND Flash SLC"" (Single-Level Cell)
-   • ""NAND Flash Single-Level Cell""
-   • ""NAND Flash MLC"" (Multi-Level Cell)
-   • ""NAND Flash Multi-Level Cell""
-   • ""NOR Flash""
-   • ""NOR Flash Single-Level Cell""
-   • ""EEPROM""
-   • ""FRAM"" (Ferroelectric RAM)
-   • ""Magnetoresistive RAM"" (MRAM)
-   • ""Ferroelectric RAM""
+   WRONG EXAMPLES:
+   ? Size = ""3.9 mm""     (that's package width!)
+   ? Size = ""8 mm""       (that's package length!)
+   ? Size = ""0.5 mm""     (that's pin pitch!)
    
-   **FOR SERIAL MEMORY:**
-   • ""Flash"" (Generic Flash Memory)
-   • ""EEPROM"" (Electrically Erasable Programmable Read-Only Memory)
-   • ""PROM"" (Programmable Read-Only Memory)
-   • ""ROM"" (Read-Only Memory)
-   • ""Flash"" (NAND Flash in Serial interface, e.g. UFS, eMMC)
-   • ""FRAM"" (Ferroelectric RAM with serial interface)
-   • ""MRAM"" (Magnetoresistive RAM with serial interface)
-   • ""eMMC"" (embedded Multi Media Card Flash IC)
-   
-   CLASSIFICATION RULES:
-   
-   1. **NAND Flash SLC** - Indicators:
-      • Title mentions ""NAND"" + (""SLC"" or ""Single-Level Cell"")
-      • Features: High endurance (100K+ cycles), fast program/erase
-      • Organization: Large capacity (≥1Gbit), page-based access
-      • NO ""MLC"" or ""TLC"" mentioned
-   
-   2. **NAND Flash MLC** - Indicators:
-      • Title mentions ""NAND"" + (""MLC"" or ""Multi-Level Cell"")
-      • Features: Lower cost per bit, higher density
-      • Moderate endurance (10K cycles)
-   
-   3. **NOR Flash** - Indicators:
-      • Title mentions ""NOR Flash"" or ""Parallel Flash""
-      • Features: Random access, XIP (execute-in-place)
-      • Organization: Byte/word addressable
-      • Typical sizes: 1-512 Mbit
-   
-   4. **EEPROM** - Indicators:
-      • Title mentions ""EEPROM"" (NOT Flash!)
-      • Features: Byte-level erase, high endurance (1M cycles)
-      • Organization: Small capacity (≤4Mbit)
-      • Serial interface (I2C/SPI) or Parallel
-   
-   5. **FRAM** - Indicators:
-      • Title mentions ""F-RAM"", ""FRAM"", or ""Ferroelectric""
-      • Features: Fast write (ns), virtually unlimited endurance
-      • NO erase cycles needed
-   
-   6. **Magnetoresistive RAM (MRAM)** - Indicators:
-      • Title mentions ""MRAM"" or ""Magnetoresistive""
-      • Features: Non-volatile, fast access, high endurance
-   
-   DECISION ALGORITHM:
-   ```
-   // FOR PARALLEL MEMORY:
-   IF title contains ""NAND"":
-       IF mentions ""SLC"" or ""Single-Level"": return ""NAND Flash SLC""
-       ELSE IF mentions ""MLC"" or ""Multi-Level"": return ""NAND Flash MLC""
-       ELSE: return ""NAND Flash SLC"" (default for NAND)
-   
-   ELSE IF title contains ""NOR"":
-       return ""NOR Flash""
-   
-   ELSE IF title contains ""EEPROM"":
-       return ""EEPROM""
-   
-   ELSE IF title contains ""FRAM"" or ""F-RAM"" or ""Ferroelectric"":
-       return ""FRAM""
-   
-   ELSE IF title contains ""MRAM"" or ""Magnetoresistive"":
-       return ""Magnetoresistive RAM""
-   
-   // FOR SERIAL MEMORY (NEW):
-   ELSE IF title contains ""UFS"" or ""Universal Flash Storage"":
-       return ""Flash"" (UFS is NAND Flash with serial interface)
-   
-   ELSE IF title contains ""eMMC"" or ""embedded Multi Media Card"":
-       return ""eMMC""
-   
-   ELSE IF title contains ""Serial EEPROM"" or (""EEPROM"" AND ""SPI""):
-       return ""EEPROM""
-   
-   ELSE IF title contains ""Serial Flash"" or (""Flash"" AND ""SPI""):
-       return ""Flash""
-   
-   ELSE IF title contains ""PROM"":
-       return ""PROM""
-   
-   ELSE IF title contains ""ROM"" (and NOT ""EEPROM"", NOT ""PROM""):
-       return ""ROM""
-   
-   ELSE:
-       return ""nicht vorhanden"" (unable to classify)
-   ```
-   
-   EXAMPLE CLASSIFICATIONS:
-   
-   **PARALLEL MEMORY:**
-   ? ""2Gb: x8, x16 NAND Flash Memory"" → ""NAND Flash SLC"" (no MLC mentioned)
-   ? ""128-Megabit CMOS 3.0 Volt Flash Memory"" → ""NOR Flash"" (parallel interface)
-   ? ""1-Mbit Parallel EEPROM"" → ""EEPROM""
-   ? ""4-Mbit F-RAM Memory"" → ""FRAM""
-   
-   **SERIAL MEMORY:**
-   ? ""UFS 2.1 Device with NAND Flash Memory"" → ""Flash"" (UFS = serial NAND)
-   ? ""128GB eMMC 5.1 Flash Memory"" → ""eMMC""
-   ? ""1-Mbit Serial EEPROM"" → ""EEPROM""
-   ? ""64-Mbit SPI Flash Memory"" → ""Flash""
-   ? ""256Kb I2C EEPROM"" → ""EEPROM""
-   
-   ⚠️ NEVER:
-   ? Return ""Memory"" (too generic!)
-   ? Return ""nicht vorhanden"" if classification is possible
-   ? Extract this from a table (it's a CLASSIFICATION task!)
-
-
-
-1?? SIZE / SIZEBYTE = MEMORY CAPACITY (NOT PHYSICAL DIMENSION!)
-???????????????????????????????????????????????????????????????
-?? CRITICAL: In Memory Components, ""SizeByte"" means MEMORY SIZE!
-   
-CORRECT EXAMPLES:
-? SizeByte = ""1 Mbit""     (from ""1 Megabit EEPROM"")
-? SizeByte = ""128 Kbit""   (from ""128K x 8"")
-? SizeByte = ""256 Kbit""   (from ""32K x 8"")
-? SizeByte = ""64 GB""      (from ""64GB eMMC"" or ""64GB UFS"")
-? SizeByte = ""128 GB""     (from ""128GB Universal Flash Storage"")
-   
-WRONG EXAMPLES:
-? SizeByte = ""3.9 mm""     (that's package width!)
-? SizeByte = ""8 mm""       (that's package length!)
-? SizeByte = ""0.5 mm""     (that's pin pitch!)
-   
-WHERE TO FIND:
-? First page title: ""64GB UFS 2.1 Device""
-? First page title: ""128GB eMMC 5.1""
-? Organization section: ""128K x 8""
-? Features section: ""256 Kbit of EEPROM""
-? DO NOT look in ""Package Dimensions"" section!
-   
-SERIAL MEMORY SPECIFIC:
-? UFS/eMMC: Capacity in GB (e.g., ""64 GB"", ""128 GB"", ""256 GB"")
-? SPI Flash: Capacity in Mbit (e.g., ""64 Mbit"", ""128 Mbit"")
-? I2C EEPROM: Capacity in Kbit (e.g., ""256 Kbit"", ""1 Mbit"")
+   WHERE TO FIND:
+   ? First page title: ""1-Mbit Serial EEPROM""
+   ? Organization section: ""128K x 8""
+   ? Features section: ""256 Kbit of EEPROM""
+   ? DO NOT look in ""Package Dimensions"" section!
 
 2?? WIDTH = DATA BUS WIDTH (NOT PHYSICAL DIMENSION!)
    ???????????????????????????????????????????????????????????????
@@ -1260,45 +1074,19 @@ SERIAL MEMORY SPECIFIC:
    ? If property ""Width_Max"" exists ? Read from MAX column
    ? Serial Memory: Usually 1 bit (single data line)
 
-3?? TIMING PARAMETERS (tAA, tRC, ClockRateHz, etc.)
-???????????????????????????????????????????????????????????????
+3?? TIMING PARAMETERS (tAA, tRC, etc.)
+   ???????????????????????????????????????????????????????????????
    
-**FOR PARALLEL MEMORY:**
-tAA = Address Access Time
-?? ONLY for PARALLEL Memory! Serial Memory: ""nicht relevant""
+   tAA = Address Access Time
+   ?? ONLY for PARALLEL Memory! Serial Memory: ""nicht relevant""
    
-EXTRACTION RULES:
-• tAA_Max → Read from MAX column (e.g., ""120 ns"")
-• tRC_Min → Read from MIN column (e.g., ""120 ns"")
-• Unit MUST be included (ns for Parallel, µs for Serial)
+   EXTRACTION RULES:
+   � tAA_Max ? Read from MAX column (e.g., ""120 ns"")
+   � tRC_Min ? Read from MIN column (e.g., ""120 ns"")
+   � Unit MUST be included (ns for Parallel, �s for Serial)
    
-IF Serial Memory AND property is ""tAA_Max"":
-? Return ""nicht relevant"" (Serial has no address access time!)
-   
-**FOR SERIAL MEMORY:**
-ClockRateHz = Serial Clock Frequency
-?? ONLY for SERIAL Memory! Parallel Memory: ""nicht relevant""
-   
-EXTRACTION RULES:
-• Look for ""Clock Frequency"", ""SCK Frequency"", ""Interface Speed""
-• Common values:
-  - SPI/I2C EEPROM: 100 KHz to 50 MHz
-  - UFS: 2.9 GHz (HS-G3), 5.8 GHz (HS-G4)
-  - eMMC: 200 MHz (HS200), 400 MHz (HS400)
-• Unit MUST be included: ""MHz"", ""GHz"", ""KHz""
-   
-WHERE TO FIND (Serial Memory):
-? ""Interface Specifications"" section
-? ""Clock Frequency"" in electrical characteristics
-? ""HS-G3 mode: 2.9 GHz"" (for UFS)
-? ""HS400 mode: 400 MHz"" (for eMMC)
-? ""Max SPI Clock: 50 MHz"" (for SPI Flash)
-   
-EXAMPLES:
-? ClockRateHz = ""2.9 GHz"" (UFS 2.1 HS-G3)
-? ClockRateHz = ""400 MHz"" (eMMC 5.1 HS400)
-? ClockRateHz = ""50 MHz"" (SPI Flash)
-? ClockRateHz = ""1 MHz"" (I2C EEPROM)
+   IF Serial Memory AND property is ""tAA_Max"":
+   ? Return ""nicht relevant"" (Serial has no address access time!)
 
 4?? CAPACITY / ORGANIZATION
    ???????????????????????????????????????????????????????????????
@@ -1367,314 +1155,6 @@ REMEMBER:
 ???????????????????????????????????????????????????????????????";
         }
 
-        /// <summary>
-        /// Prüft ob Komponente Coil/Inductor-Guidelines benötigt.
-        /// Coil-Datenblätter enthalten genau EINE Komponente → kein Part Number Decoding.
-        /// </summary>
-        private bool RequiresCoilGuidelines(CatalogComponent component, List<ComponentProperty> properties)
-        {
-            var coilKeywords = new[]
-            {
-                "Coil", "Inductor", "Spule", "Choke", "Drossel"
-            };
-
-            bool isCoilComponent = coilKeywords.Any(keyword =>
-                component.DisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                component.InternalName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                component.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
-
-            if (!isCoilComponent)
-                return false;
-
-            // Plausibilitätscheck: typische Coil-Properties vorhanden?
-            bool hasCoilProperties = properties.Any(p =>
-                p.PropertyInternalName.Contains("Inductance", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("Induktivit", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("DCR", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("ISat", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("IRms", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Equals("SRF", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Equals("Funktion", StringComparison.OrdinalIgnoreCase));
-
-            if (hasCoilProperties)
-            {
-                _logger.LogDebug("Coil guidelines required for: {ComponentName} (Path: {FullPath})",
-                    component.DisplayName, component.FullPath);
-            }
-
-            return hasCoilProperties;
-        }
-
-        private string? _cachedCoilGuidelines;
-
-        /// <summary>
-        /// Lädt Coil-Extraction Guidelines aus Azure Blob Storage (Cached) mit Embedded-Fallback.
-        /// </summary>
-        private string LoadCoilGuidelinesIfNeeded()
-        {
-            if (_cachedCoilGuidelines != null)
-                return _cachedCoilGuidelines;
-
-            try
-            {
-                _logger.LogDebug("Loading coil_extraction_guidelines.txt from Azure");
-                _cachedCoilGuidelines = _remoteConfigService.LoadBlobContent("coil_extraction_guidelines.txt");
-                _logger.LogInformation("Coil extraction guidelines loaded from Azure ({Length} characters)",
-                    _cachedCoilGuidelines.Length);
-                return _cachedCoilGuidelines;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not load coil_extraction_guidelines.txt from Azure - using embedded fallback");
-                _cachedCoilGuidelines = GetEmbeddedCoilGuidelines();
-                _logger.LogInformation("Coil extraction guidelines loaded from embedded resource ({Length} characters)",
-                    _cachedCoilGuidelines.Length);
-                return _cachedCoilGuidelines;
-            }
-        }
-
-        /// <summary>
-        /// Embedded Fallback der Coil-Guidelines.
-        /// Funktions-Klassifikation: INDUCTOR, INDUCTOR SHIELDED, MULTILAYER CHIP,
-        /// POWER CHOKE, POWER CHOKE SHIELDED, TUNABLE, WIDEBAND BIAS CHOKE, WIRE WOUND.
-        /// </summary>
-        private string GetEmbeddedCoilGuidelines()
-        {
-            return @"
-===============================================================
- COIL / INDUCTOR EXTRACTION GUIDELINES
-===============================================================
-
-CRITICAL: This datasheet describes a COIL / INDUCTOR component!
-   Coil datasheets describe EXACTLY ONE component variant
-   -> NO Part Number Decoding required
-   -> Extract ALL parameters DIRECTLY from the datasheet
-
-STEP 1: CLASSIFY THE COIL FUNCTION (Funktion)
---------------------------------------------------------------
-'Funktion' is a CLASSIFICATION (not a free-text extraction!)
-You MUST select EXACTLY ONE of the following allowed values:
-
-   ENGLISH (DMS value)     | German display (reference)
-   ------------------------+-----------------------------
-   INDUCTOR                | SPULE
-   INDUCTOR SHIELDED       | SPULE GESCHIRMT
-   MULTILAYER CHIP         | (Multilayer Chip Inductor)
-   POWER CHOKE             | LEISTUNGSDROSSEL
-   POWER CHOKE SHIELDED    | LEISTUNGSDROSSEL GESCHIRMT
-   TUNABLE                 | ABSTIMMBAR
-   WIDEBAND BIAS CHOKE     | BREITBAND DROSSEL
-   WIRE WOUND              | DRAHTGEWICKELT
-
-DECISION TREE:
-  1. 'Tunable' / 'Variable Inductor'        -> TUNABLE
-  2. 'Wideband Bias' / 'Bias Choke' /
-     'RF Bias' / 'Conical Inductor'         -> WIDEBAND BIAS CHOKE
-  3. 'Multilayer' / 'Chip Inductor' /
-     'Thin Film Inductor' (small SMD)       -> MULTILAYER CHIP
-  4. 'Wire Wound' / 'Wirewound'
-     (NOT Power Choke)                      -> WIRE WOUND
-  5. 'Power Inductor' / 'Power Choke' /
-     'Leistungsdrossel' / 'DC-DC Inductor'
-       a) AND 'Shielded' / 'Magnetic
-          Shielding' / 'Geschirmt'          -> POWER CHOKE SHIELDED
-       b) Otherwise                         -> POWER CHOKE
-  6. 'Shielded Inductor' (without 'Power')  -> INDUCTOR SHIELDED
-  7. Default / generic inductor             -> INDUCTOR
-
-STEP 2: PARAMETER EXTRACTION
---------------------------------------------------------------
-  Induktivitaet / L [H]   : 'Inductance', 'L', 'Nominal
-                            Inductance' (TYP value, e.g. 10 uH)
-  Toleranz [%]            : 'Tolerance' (e.g. +/-15%)
-  Widerstand / DCR [Ohm]  : 'DCR', 'DC Resistance', 'Rdc'
-                            (keep mOhm notation, e.g. 8.76 mOhm)
-  Guete / Q               : 'Q', 'Quality Factor' (MIN @ freq)
-  Frequenz (Q)            : Frequency at which Q was measured
-  f Nom (Typ) [Hz]        : Test frequency for L (100 kHz, 1 MHz)
-  I sat / Isat [A]        : 'Saturation Current' (-30% L)
-  I rms / Irms / Strom    : 'Rated Current', 'Temp. Rise Current'
-  SRF [Hz]                : 'Self Resonant Frequency' (MIN value)
-  Gehaeusetyp             : 'SMD' or 'THT' (Surface Mount -> SMD)
-  Hoehe [mm]              : MAX height (Z) from package drawing
-  Oberflaeche             : Termination/plating (Sn, Sn/Pb, AgPd)
-
-STEP 3: VALUE FORMATTING
---------------------------------------------------------------
-  * Keep ORIGINAL units (uH, nH, mOhm, A, MHz)
-  * Decimal separator: dot ('.'), NOT comma
-  * Do NOT silently convert units
-  * Tolerances: keep sign ('+/-15%')
-  * If value cannot be determined: 'nicht vorhanden'
-  * NEVER guess values!
-
-COMMON MISTAKES TO AVOID
---------------------------------------------------------------
-  X Using package length as Hoehe (use Z dimension!)
-  X Confusing Isat (saturation) with Irms (thermal/rated)
-  X Returning 'Choke' instead of one of the 8 enum values
-  X Reporting Q without its measurement frequency
-  X Trying to decode a part number (single-component datasheet!)
-
-END OF COIL EXTRACTION GUIDELINES
-===============================================================";
-        }
-
-        /// <summary>
-        /// Prüft ob Komponente EMI-Filter-Guidelines benötigt.
-        /// EMI-Filter-Datenblätter enthalten genau EINE Komponente → kein Part Number Decoding.
-        /// </summary>
-        private bool RequiresEmiFilterGuidelines(CatalogComponent component, List<ComponentProperty> properties)
-        {
-            var emiFilterKeywords = new[]
-            {
-                "EMI Filter", "EMI-Filter", "EMIFilter",
-                "Entstörfilter", "Entstoerfilter",
-                "Ferrite Bead", "Ferritperle",
-                "Common Mode Choke", "Gleichtaktdrossel",
-                "Feedthrough Filter", "Durchführungsfilter", "Durchfuehrungsfilter",
-                "LC Filter", "PI Filter",
-                "Power Line Filter", "Netzfilter",
-                "Signal Line Filter", "Signalfilter"
-            };
-
-            bool isEmiFilterComponent = emiFilterKeywords.Any(keyword =>
-                component.DisplayName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                component.InternalName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
-                component.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
-
-            if (!isEmiFilterComponent)
-                return false;
-
-            // Plausibilitätscheck: typische EMI-Filter-Properties vorhanden?
-            bool hasEmiFilterProperties = properties.Any(p =>
-                p.PropertyInternalName.Contains("Impedanz", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("Impedance", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("Insertion", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("Einfuegedaempfung", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("Einfügedämpfung", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Contains("DCR", StringComparison.OrdinalIgnoreCase) ||
-                p.PropertyInternalName.Equals("Funktion", StringComparison.OrdinalIgnoreCase));
-
-            if (hasEmiFilterProperties)
-            {
-                _logger.LogDebug("EMI-Filter guidelines required for: {ComponentName} (Path: {FullPath})",
-                    component.DisplayName, component.FullPath);
-            }
-
-            return hasEmiFilterProperties;
-        }
-
-        private string? _cachedEmiFilterGuidelines;
-
-        /// <summary>
-        /// Lädt EMI-Filter-Extraction Guidelines aus Azure Blob Storage (Cached) mit Embedded-Fallback.
-        /// </summary>
-        private string LoadEmiFilterGuidelinesIfNeeded()
-        {
-            if (_cachedEmiFilterGuidelines != null)
-                return _cachedEmiFilterGuidelines;
-
-            try
-            {
-                _logger.LogDebug("Loading emi_filter_extraction_guidelines.txt from Azure");
-                _cachedEmiFilterGuidelines = _remoteConfigService.LoadBlobContent("emi_filter_extraction_guidelines.txt");
-                _logger.LogInformation("EMI-Filter extraction guidelines loaded from Azure ({Length} characters)",
-                    _cachedEmiFilterGuidelines.Length);
-                return _cachedEmiFilterGuidelines;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not load emi_filter_extraction_guidelines.txt from Azure - using embedded fallback");
-                _cachedEmiFilterGuidelines = GetEmbeddedEmiFilterGuidelines();
-                _logger.LogInformation("EMI-Filter extraction guidelines loaded from embedded resource ({Length} characters)",
-                    _cachedEmiFilterGuidelines.Length);
-                return _cachedEmiFilterGuidelines;
-            }
-        }
-
-        /// <summary>
-        /// Embedded Fallback der EMI-Filter-Guidelines.
-        /// Funktions-Klassifikation: EMI FILTER, FERRITE BEAD, COMMON MODE CHOKE,
-        /// FEEDTHROUGH FILTER, LC FILTER, PI FILTER, POWER LINE FILTER, SIGNAL LINE FILTER.
-        /// </summary>
-        private string GetEmbeddedEmiFilterGuidelines()
-        {
-            return @"
-===============================================================
- EMI FILTER EXTRACTION GUIDELINES
-===============================================================
-
-CRITICAL: This datasheet describes an EMI FILTER component!
-   EMI-Filter datasheets describe EXACTLY ONE component variant
-   -> NO Part Number Decoding required
-   -> Extract ALL parameters DIRECTLY from the datasheet
-
-STEP 1: CLASSIFY THE EMI FILTER FUNCTION (Funktion)
---------------------------------------------------------------
-'Funktion' is a CLASSIFICATION (not a free-text extraction!)
-You MUST select EXACTLY ONE of the following allowed values:
-
-   ENGLISH (DMS value)     | German display (reference)
-   ------------------------+-----------------------------
-   EMI FILTER              | ENTSTOERFILTER
-   FERRITE BEAD            | FERRITPERLE
-   COMMON MODE CHOKE       | GLEICHTAKTDROSSEL
-   FEEDTHROUGH FILTER      | DURCHFUEHRUNGSFILTER
-   LC FILTER               | (LC-Filter)
-   PI FILTER               | (PI-Filter)
-   POWER LINE FILTER       | NETZFILTER
-   SIGNAL LINE FILTER      | SIGNALFILTER
-
-DECISION TREE:
-  1. 'Ferrite Bead' / 'Chip Bead' / 'BLM' series  -> FERRITE BEAD
-  2. 'Common Mode' / 'CMC' / 'Gleichtakt'         -> COMMON MODE CHOKE
-  3. 'Feedthrough' / 'Feed-thru'                  -> FEEDTHROUGH FILTER
-  4. 'Pi Filter' / 'PI-Type' / 'T-Filter'         -> PI FILTER
-  5. 'LC Filter' / 'LC-Type'                      -> LC FILTER
-  6. 'Power Line' / 'AC Line' / 'Netzfilter'      -> POWER LINE FILTER
-  7. 'Signal Line' / 'Data Line Filter'           -> SIGNAL LINE FILTER
-  8. Default / generic EMI suppression filter     -> EMI FILTER
-
-STEP 2: PARAMETER EXTRACTION
---------------------------------------------------------------
-  Impedanz / Z [Ohm]       : 'Impedance', 'Z @ 100MHz'
-                             ALWAYS include test frequency!
-  Frequenz (Z) [Hz]        : Frequency at which Z was measured
-  Einfuegedaempfung [dB]   : 'Insertion Loss', 'Attenuation', 'S21'
-  Frequenzbereich [Hz]     : Operating/attenuation band (min to max)
-  Widerstand / DCR [Ohm]   : 'DC Resistance', 'Rdc' (mOhm or Ohm)
-  Nennstrom / Irms [A]     : 'Rated Current' (mA or A)
-  Nennspannung [V]         : 'Rated Voltage' (keep AC/DC suffix)
-  Kapazitaet / C [F]       : Only LC/PI/Power Line filters (Cx, Cy)
-  Induktivitaet / L [H]    : Only LC/PI/CMC filters
-  Gehaeusetyp              : 'SMD' or 'THT' (Surface Mount -> SMD)
-  Hoehe [mm]               : MAX height (Z) from package drawing
-  Oberflaeche              : Termination/plating (Sn, Sn/Pb, Lead Free)
-
-STEP 3: VALUE FORMATTING
---------------------------------------------------------------
-  * Keep ORIGINAL units (Ohm, dB, MHz, mA, V)
-  * Decimal separator: dot ('.'), NOT comma
-  * Impedance MUST include test frequency ('600 Ohm @ 100 MHz')
-  * Ranges: 'min to max' ('150 kHz to 30 MHz')
-  * Keep AC/DC suffix on voltages ('250 V AC', '100 V DC')
-  * If value cannot be determined: 'nicht vorhanden'
-  * NEVER guess values!
-
-COMMON MISTAKES TO AVOID
---------------------------------------------------------------
-  X Reporting impedance without measurement frequency
-  X Confusing DCR (DC, mOhm) with AC impedance (RF, Ohm)
-  X Using package length/width as Hoehe (use Z dimension!)
-  X Returning 'Filter' instead of one of the 8 enum values
-  X Skipping Cx / Cy distinction on Power Line Filters
-  X Trying to decode a part number (single-component datasheet!)
-
-END OF EMI FILTER EXTRACTION GUIDELINES
-===============================================================";
-        }
-
         private Dictionary<string, string> LoadPropertyDefinitions()
         {
             var definitions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -1708,102 +1188,6 @@ END OF EMI FILTER EXTRACTION GUIDELINES
             }
 
             return definitions;
-        }
-
-        /// <summary>
-        /// Lädt eine kataloggruppen-spezifische Guideline per Namenskonvention aus Azure Blob Storage.
-        /// Blob-Name: "&lt;slug(DisplayName)&gt;_extraction_guidelines.txt"
-        /// z.B. "Voltage Regulator LDO" -> "voltage_regulator_ldo_extraction_guidelines.txt"
-        ///
-        /// Existiert die Datei nicht, wird das Ergebnis negativ gecacht (null) und der Prompt bleibt unverändert.
-        /// Damit kann eine neue Guideline ohne Code-Änderung nur durch Blob-Upload aktiviert werden.
-        /// </summary>
-        private string? LoadGenericGuidelineFor(CatalogComponent component)
-        {
-            if (component == null || string.IsNullOrWhiteSpace(component.DisplayName))
-                return null;
-
-            string slug = SlugifyForBlobName(component.DisplayName);
-            if (string.IsNullOrEmpty(slug))
-                return null;
-
-            string blobName = slug + "_extraction_guidelines.txt";
-
-            if (_cachedGenericGuidelines.TryGetValue(blobName, out var cached))
-            {
-                return cached;
-            }
-
-            try
-            {
-                _logger.LogDebug("Trying to load generic guideline '{BlobName}' from Azure", blobName);
-                string content = _remoteConfigService.LoadBlobContent(blobName);
-
-                if (string.IsNullOrWhiteSpace(content))
-                {
-                    _cachedGenericGuidelines[blobName] = null;
-                    _logger.LogDebug("Generic guideline '{BlobName}' is empty - ignored", blobName);
-                    return null;
-                }
-
-                if (content.Length > MaxGenericGuidelineLength)
-                {
-                    _logger.LogWarning(
-                        "Generic guideline '{BlobName}' is {Length} chars (limit {Limit}) - truncated",
-                        blobName, content.Length, MaxGenericGuidelineLength);
-                    content = content.Substring(0, MaxGenericGuidelineLength);
-                }
-
-                _cachedGenericGuidelines[blobName] = content;
-                _logger.LogInformation(
-                    "Generic guideline '{BlobName}' loaded from Azure ({Length} characters)",
-                    blobName, content.Length);
-                return content;
-            }
-            catch (Exception ex)
-            {
-                // Blob nicht vorhanden oder anderer Fehler -> negativ cachen und still ignorieren.
-                _cachedGenericGuidelines[blobName] = null;
-                _logger.LogDebug(ex,
-                    "No generic guideline found for '{DisplayName}' (Blob: {BlobName})",
-                    component.DisplayName, blobName);
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Wandelt einen Katalog-DisplayName in einen kleingeschriebenen, Blob-tauglichen Slug um.
-        /// - Buchstaben und Ziffern bleiben erhalten (kleingeschrieben)
-        /// - alle anderen Zeichen werden durch '_' ersetzt
-        /// - Mehrfach-Unterstriche werden zusammengefasst
-        /// Beispiel: "Voltage Regulator LDO" -> "voltage_regulator_ldo"
-        /// </summary>
-        private static string SlugifyForBlobName(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-                return string.Empty;
-
-            var sb = new StringBuilder(input.Length);
-            bool lastWasUnderscore = false;
-
-            foreach (char c in input)
-            {
-                if (char.IsLetterOrDigit(c))
-                {
-                    sb.Append(char.ToLowerInvariant(c));
-                    lastWasUnderscore = false;
-                }
-                else
-                {
-                    if (!lastWasUnderscore && sb.Length > 0)
-                    {
-                        sb.Append('_');
-                        lastWasUnderscore = true;
-                    }
-                }
-            }
-
-            return sb.ToString().Trim('_');
         }
 
         private string GetPropertyExplanation(string propertyName, Dictionary<string, string> definitions)
@@ -1842,29 +1226,28 @@ END OF EMI FILTER EXTRACTION GUIDELINES
         }
 
         /// <summary>
-        /// Prüft ob Komponente ein Series Datasheet ist (Part Number Decoding erforderlich)
+        /// Pr�ft ob Komponente ein Series Datasheet ist (Part Number Decoding erforderlich)
         /// Series Datasheets enthalten multiple Component-Varianten mit Part Number Chart
         /// </summary>
-        /// <param name="component">Zu prüfende Komponente</param>
-        /// <returns>True wenn Part Number Decoding benötigt wird</returns>
+        /// <param name="component">Zu pr�fende Komponente</param>
+        /// <returns>True wenn Part Number Decoding ben�tigt wird</returns>
         public bool IsSeriesDatasheet(CatalogComponent component)
         {
             if (component == null)
                 return false;
 
-            // Komponenten die IMMER Part Number Decoding benötigen
+            // Komponenten die IMMER Part Number Decoding ben�tigen
             var seriesComponents = new[]
             {
-                "Resistor",                          // Widerstände (Yageo, Vishay, etc.)
-                "Non-Volatile Memory Serial",        // Serial Memory (z.B. AT25xxx, M95xxx)
+                "Resistor",                          // Widerst�nde (Yageo, Vishay, etc.)
+                "Non-Volatile Memory Serial",        // ? NEU: Serial Memory (z.B. AT25xxx, M95xxx)
                 "Non-Volatile Memory Parallel",      // Parallel Memory (z.B. MT28EW512A, AT28xxx)
-                "NV Memory Serial",
+                "NV Memory Serial",                  // ? NEU: Abk�rzung f�r Serial Memory
                 "NV Memory Parallel",
-                "EEPROM Serial",
+                "EEPROM Serial",                     // ? NEU: Serial EEPROM
                 "EEPROM Parallel",
-                "Flash Serial",
-                "Flash Parallel",
-                "Interface IC"                       // ✅ NEU: Interface ICs (verschiedene Typen: Controller, Driver, Transceiver, etc.)
+                "Flash Serial",                      // ? NEU: Serial Flash
+                "Flash Parallel"
             };
 
             bool isSeriesComponent = seriesComponents.Any(keyword =>
@@ -1875,7 +1258,7 @@ END OF EMI FILTER EXTRACTION GUIDELINES
 
             if (!isSeriesComponent)
             {
-                // Fallback: Prüfe auch FullPath
+                // Fallback: Pr�fe auch FullPath
                 isSeriesComponent = seriesComponents.Any(keyword =>
                     component.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
             }

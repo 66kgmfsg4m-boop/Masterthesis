@@ -1,71 +1,81 @@
-using CheckOrderConfirmationFromSupplier.Services;
-using System;
-using System.Collections.Generic;
+using DatasheetAnalyzer.Core.Services;
+using Microsoft.Extensions.Logging;
 
-namespace CheckOrderConfirmationFromSupplier.Config
+namespace DatasheetAnalyzer.Core.Config;
+
+public class AzureConfig
 {
-    public class AzureConfig
+    private readonly IRemoteConfigService _remoteConfigService;
+    private readonly ILogger<AzureConfig> _logger;
+    private Dictionary<string, string>? _properties;
+    private bool _loadAttempted;
+    private Exception? _lastLoadError;
+
+    public AzureConfig(IRemoteConfigService remoteConfigService, ILogger<AzureConfig> logger)
     {
-        private Dictionary<string, string> _properties;
-        private readonly RemoteConfigService _remoteConfigService;
+        _remoteConfigService = remoteConfigService;
+        _logger = logger;
+        // Konfiguration NICHT im Konstruktor laden, damit die App auch bei
+        // fehlendem/blockiertem Azure-Zugriff (z.B. Firewall beim Endkunden)
+        // startet und die Web-UI ueberhaupt ausgeliefert werden kann.
+        // Die Properties werden erst beim ersten Zugriff geladen
+        // (siehe EnsureLoaded()).
+    }
 
-        public AzureConfig()
-        {
-            _remoteConfigService = new RemoteConfigService(Guid.NewGuid().ToString());
-            LoadConfiguration();
-        }
+    /// <summary>
+    /// Letzter Fehler beim Laden der Azure-Konfiguration (oder null, wenn ok).
+    /// Kann von der UI verwendet werden, um eine sprechende Meldung anzuzeigen.
+    /// </summary>
+    public Exception? LastLoadError => _lastLoadError;
 
-        private void LoadConfiguration()
+    /// <summary>
+    /// Versucht die Konfiguration zu laden, falls noch nicht geschehen.
+    /// Wirft KEINE Exception nach aussen - Fehler werden geloggt und
+    /// koennen ueber <see cref="LastLoadError"/> bzw.
+    /// <see cref="IsConfigurationValid"/> ausgewertet werden.
+    /// </summary>
+    public bool EnsureLoaded()
+    {
+        if (_loadAttempted) return _properties != null && _properties.Count > 0;
+        _loadAttempted = true;
+        try
         {
-            try
+            _properties = _remoteConfigService.LoadConfig("azure-config");
+            if (_properties == null || _properties.Count == 0)
             {
-                // Load Configuration directly from RemoteConfigService 
-                _properties = _remoteConfigService.LoadConfig("azure-config");
-
-                if (_properties == null || _properties.Count == 0)
-                {
-                    Console.WriteLine("Azure-Konfiguration konnte nicht geladen werden oder ist leer");
-                    throw new Exception("Azure-Konfiguration ist nicht verfügbar");
-                }
-
-                Console.WriteLine($"Azure-Konfiguration erfolgreich geladen: {_properties.Count} Einträge");
-                Console.WriteLine($"Azure Endpoint: {GetEndpoint()}");
-                Console.WriteLine($"Azure API Version: {GetApiVersion()}");
-                Console.WriteLine($"Azure Deployment Name: {GetDeploymentName()}");
+                _logger.LogError("Azure-Konfiguration konnte nicht geladen werden oder ist leer");
+                _lastLoadError = new InvalidOperationException("Azure-Konfiguration ist nicht verfÃ¼gbar");
+                return false;
             }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Fehler beim Laden der Azure-Konfiguration: {e.Message}");
-                throw new Exception($"Fehler beim Laden der Azure-Konfiguration: {e.Message}", e);
-            }
+            _logger.LogInformation("Azure-Konfiguration geladen: {Count} EintrÃ¤ge, Endpoint: {Endpoint}", _properties.Count, GetEndpoint());
+            return true;
         }
-
-        public string GetEndpoint()
+        catch (Exception ex)
         {
-            return _properties.ContainsKey("azure.endpoint") ? _properties["azure.endpoint"] : null;
+            _logger.LogError(ex, "Fehler beim Laden der Azure-Konfiguration (App laeuft im eingeschraenkten Modus weiter)");
+            _lastLoadError = ex;
+            _properties = null;
+            return false;
         }
+    }
 
-        public string GetApiKey()
-        {
-            return _properties.ContainsKey("azure.api.key") ? _properties["azure.api.key"] : null;
-        }
+    private string? Get(string key)
+    {
+        EnsureLoaded();
+        return _properties?.GetValueOrDefault(key);
+    }
 
-        public string GetApiVersion()
-        {
-            return _properties.ContainsKey("azure.api.version") ? _properties["azure.api.version"] : null;
-        }
+    public string? GetEndpoint() => Get("azure.endpoint");
+    public string? GetApiKey() => Get("azure.api.key");
+    public string? GetApiVersion() => Get("azure.api.version");
+    public string? GetDeploymentName() => Get("azure.deployment.name");
 
-        public string GetDeploymentName()
-        {
-            return _properties.ContainsKey("azure.deployment.name") ? _properties["azure.deployment.name"] : null;
-        }
-
-        public bool IsConfigurationValid()
-        {
-            return _properties != null &&
-                   !string.IsNullOrEmpty(GetEndpoint()) &&
-                   !string.IsNullOrEmpty(GetApiKey()) &&
-                   !string.IsNullOrEmpty(GetDeploymentName());
-        }
+    public bool IsConfigurationValid()
+    {
+        EnsureLoaded();
+        return _properties != null
+            && !string.IsNullOrEmpty(GetEndpoint())
+            && !string.IsNullOrEmpty(GetApiKey())
+            && !string.IsNullOrEmpty(GetDeploymentName());
     }
 }

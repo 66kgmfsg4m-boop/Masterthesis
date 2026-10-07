@@ -1,184 +1,148 @@
 using Azure.Storage.Blobs;
-using System;
-using System.Collections.Generic;
-using System.IO;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Text;
-using System.Threading.Tasks;
+using DatasheetAnalyzer.Core.Options;
 
-namespace CheckOrderConfirmationFromSupplier.Services
+namespace DatasheetAnalyzer.Core.Services;
+
+public class RemoteConfigService : IRemoteConfigService
 {
-    /// <summary>
-    /// SICHERHEITSHINWEIS: Diese Klasse ist DEPRECATED und sollte nicht mehr verwendet werden.
-    /// Verwenden Sie stattdessen die Version in DatasheetAnalyzer.Core mit Dependency Injection.
-    /// 
-    /// WARNUNG: Hardcodierte Credentials wurden aus Sicherheitsgründen entfernt!
-    /// Diese WPF-Version wird nicht mehr aktiv gewartet.
-    /// </summary>
-    [Obsolete("Diese Klasse ist veraltet. Verwenden Sie DatasheetAnalyzer.Core.Services.RemoteConfigService")]
-    public class RemoteConfigService
+    private readonly BlobContainerClient _containerClient;
+    private readonly string _clientId;
+    private readonly ILogger<RemoteConfigService> _logger;
+
+    public RemoteConfigService(
+        IOptions<AzureStorageOptions> options,
+        ILogger<RemoteConfigService> logger,
+        string? clientId = null)
     {
-        private readonly BlobContainerClient _containerClient;
-        private readonly string _clientId;
-
-        public RemoteConfigService(string clientId)
+        _logger = logger;
+        _clientId = clientId ?? Guid.NewGuid().ToString();
+        var opt = options?.Value ?? throw new ArgumentException("AzureStorageOptions must be configured.");
+        if (string.IsNullOrWhiteSpace(opt.ConnectionString))
+            throw new InvalidOperationException("AzureStorage:ConnectionString must be set.");
+        
+        // Validiere, dass keine Platzhalterwerte verwendet werden
+        if (opt.ConnectionString.Contains("DEIN_ACCOUNT") || opt.ConnectionString.Contains("DEIN_KEY"))
         {
-            _clientId = clientId;
-
-            // SICHERHEIT: Credentials wurden entfernt!
-            // Für die WPF-Anwendung erstellen Sie eine App.config mit:
-            // <appSettings>
-            //   <add key="AzureStorage:ConnectionString" value="DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"/>
-            //   <add key="AzureStorage:ContainerName" value="data"/>
-            // </appSettings>
-
-            string connectionString = System.Configuration.ConfigurationManager.AppSettings["AzureStorage:ConnectionString"];
-            string containerName = System.Configuration.ConfigurationManager.AppSettings["AzureStorage:ContainerName"] ?? "data";
-
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new InvalidOperationException(
-                    "Azure Storage ConnectionString ist nicht konfiguriert!\n\n" +
-                    "Für WPF-Anwendung: Erstellen Sie eine App.config mit:\n" +
-                    "<appSettings>\n" +
-                    "  <add key=\"AzureStorage:ConnectionString\" value=\"DefaultEndpointsProtocol=https;AccountName=storage3csd2rus;AccountKey=IHR_KEY;EndpointSuffix=core.windows.net\"/>\n" +
-                    "  <add key=\"AzureStorage:ContainerName\" value=\"data\"/>\n" +
-                    "</appSettings>\n\n" +
-                    "Oder verwenden Sie die neue Blazor-Anwendung (DatasheetAnalyzer.Blazor)");
-            }
-
-            var blobServiceClient = new BlobServiceClient(connectionString);
-            _containerClient = blobServiceClient.GetBlobContainerClient(containerName);
-
-            Console.WriteLine($"RemoteConfigService (WPF Legacy) mit Client-ID {clientId} initialisiert");
+            throw new InvalidOperationException(
+                "Azure Storage ConnectionString enthÃ¤lt Platzhalterwerte. " +
+                "Bitte setzen Sie echte Credentials Ã¼ber:\n" +
+                "1. Umgebungsvariable: AzureStorage__ConnectionString=<Ihre Connection String>\n" +
+                "2. Oder erstellen Sie eine appsettings.Development.yaml mit echten Werten (nicht committen!)");
         }
-
-        public Dictionary<string, string> LoadConfig(string configName)
+        
+        try
         {
-            string blobName = $"{configName}.properties";
-
-            Console.WriteLine("================== KONFIGURATION LADEN ==================");
-            Console.WriteLine($"Container: {_containerClient.Name}");
-            Console.WriteLine($"Lade Konfiguration aus Azure: {configName}");
-
-            var azureProps = LoadFromAzure(blobName, configName);
-            if (azureProps == null || azureProps.Count == 0)
-            {
-                throw new IOException($"Azure-Konfiguration leer oder nicht geladen: {blobName}");
-            }
-
-            Console.WriteLine($"? Konfiguration aus Azure geladen: {configName}");
-            return azureProps;
+            var blobServiceClient = new BlobServiceClient(opt.ConnectionString);
+            _containerClient = blobServiceClient.GetBlobContainerClient(opt.ContainerName);
+            _logger.LogInformation("RemoteConfigService mit Client-ID {ClientId} initialisiert", _clientId);
         }
-
-        public async Task<Dictionary<string, string>> LoadConfigAsync(string configName)
+        catch (FormatException ex)
         {
-            return await Task.Run(() => LoadConfig(configName));
+            _logger.LogError(ex, "UngÃ¼ltige Azure Storage ConnectionString");
+            throw new InvalidOperationException(
+                "UngÃ¼ltige Azure Storage ConnectionString. " +
+                "Bitte Ã¼berprÃ¼fen Sie das Format und die Credentials.", ex);
         }
+    }
 
-        private Dictionary<string, string> LoadFromAzure(string blobName, string configName)
+    public Dictionary<string, string> LoadConfig(string configName)
+    {
+        string blobName = string.IsNullOrEmpty(configName) ? ".properties" : $"{configName}.properties";
+        _logger.LogDebug("Lade Konfiguration aus Azure: {ConfigName} (Blob: {BlobName})", configName, blobName);
+        var azureProps = LoadFromAzure(blobName, configName);
+        if (azureProps == null || azureProps.Count == 0)
+            throw new IOException($"Azure-Konfiguration leer oder nicht geladen: {blobName}");
+        _logger.LogInformation("Konfiguration aus Azure geladen: {ConfigName}", configName);
+        return azureProps;
+    }
+
+    public async Task<Dictionary<string, string>> LoadConfigAsync(string configName)
+    {
+        return await Task.Run(() => LoadConfig(configName)).ConfigureAwait(false);
+    }
+
+    private Dictionary<string, string>? LoadFromAzure(string blobName, string configName)
+    {
+        try
         {
-            try
+            var blobClient = _containerClient.GetBlobClient(blobName);
+            if (!blobClient.Exists())
             {
-                Console.WriteLine($"Lade {configName} aus Azure Blob Storage...");
-                BlobClient blobClient = _containerClient.GetBlobClient(blobName);
-
-                if (blobClient.Exists())
-                {
-                    var properties = new Dictionary<string, string>();
-                    using (var stream = blobClient.OpenRead())
-                    using (var reader = new StreamReader(stream))
-                    {
-                        string line;
-                        while ((line = reader.ReadLine()) != null)
-                        {
-                            line = line.Trim();
-                            if (string.IsNullOrEmpty(line) || line.StartsWith("#"))
-                                continue;
-
-                            int separatorIndex = line.IndexOf('=');
-                            if (separatorIndex > 0)
-                            {
-                                string key = line.Substring(0, separatorIndex).Trim();
-                                string value = line.Substring(separatorIndex + 1).Trim();
-                                properties[key] = value;
-                            }
-                        }
-                    }
-                    Console.WriteLine($"? {configName} aus Azure geladen ({properties.Count} Properties)");
-                    return properties;
-                }
-                else
-                {
-                    Console.WriteLine($"? Fehler beim Laden aus Azure - Blob nicht gefunden: {blobName}");
-                    return null;
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"? Exception beim Laden aus Azure: {e.Message}");
+                _logger.LogWarning("Blob nicht gefunden: {BlobName}", blobName);
                 return null;
             }
-        }
-
-        public string LoadBlobContent(string blobName)
-        {
-            try
+            var properties = new Dictionary<string, string>();
+            using (var stream = blobClient.OpenRead())
+            using (var reader = new StreamReader(stream))
             {
-                Console.WriteLine($"Lade Blob '{blobName}' aus Azure Storage...");
-                BlobClient blobClient = _containerClient.GetBlobClient(blobName);
-
-                if (blobClient.Exists())
+                string? line;
+                while ((line = reader.ReadLine()) != null)
                 {
-                    using (var stream = new MemoryStream())
+                    line = line.Trim();
+                    if (string.IsNullOrEmpty(line) || line.StartsWith("#"))
+                        continue;
+                    int sep = line.IndexOf('=');
+                    if (sep > 0)
                     {
-                        blobClient.DownloadTo(stream);
-                        string content = Encoding.UTF8.GetString(stream.ToArray());
-                        Console.WriteLine($"? Blob '{blobName}' erfolgreich geladen.");
-                        return content;
+                        string key = line.Substring(0, sep).Trim();
+                        string value = line.Substring(sep + 1).Trim();
+                        properties[key] = value;
                     }
                 }
-                else
-                {
-                    Console.WriteLine($"? Fehler beim Laden aus Azure - Blob nicht gefunden: {blobName}");
-                    throw new IOException($"Blob nicht gefunden: {blobName}");
-                }
             }
-            catch (Exception e)
-            {
-                Console.WriteLine($"? Exception beim Laden von Blob '{blobName}': {e.Message}");
-                throw new IOException($"Fehler beim Laden von Blob '{blobName}'", e);
-            }
+            _logger.LogDebug("{ConfigName} aus Azure geladen ({Count} Properties)", configName, properties.Count);
+            return properties;
         }
-
-        public void DiagnoseConnection()
+        catch (Exception ex)
         {
-            Console.WriteLine("=== AZURE BLOB STORAGE DIAGNOSE (WPF Legacy) ===");
-            Console.WriteLine($"Client-ID: {_clientId}");
-            Console.WriteLine($"Container: {_containerClient.Name}");
-            Console.WriteLine($"Endpoint: {_containerClient.Uri}");
+            _logger.LogError(ex, "Exception beim Laden aus Azure: {BlobName}", blobName);
+            return null;
+        }
+    }
 
-            try
+    public string LoadBlobContent(string blobName)
+    {
+        try
+        {
+            var blobClient = _containerClient.GetBlobClient(blobName);
+            if (!blobClient.Exists())
             {
-                if (_containerClient.Exists())
-                {
-                    Console.WriteLine("? Verbindung zu Azure Blob Storage erfolgreich");
-                    Console.WriteLine("Verfügbare Blobs:");
-                    foreach (var blob in _containerClient.GetBlobs())
-                    {
-                        Console.WriteLine($"  - {blob.Name}");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("? Verbindungsfehler - Container nicht gefunden oder keine Berechtigung.");
-                }
+                _logger.LogWarning("Blob nicht gefunden: {BlobName}", blobName);
+                throw new IOException($"Blob nicht gefunden: {blobName}");
             }
-            catch (Exception e)
+            using var stream = new MemoryStream();
+            blobClient.DownloadTo(stream);
+            string content = Encoding.UTF8.GetString(stream.ToArray());
+            _logger.LogInformation("Blob {BlobName} erfolgreich geladen", blobName);
+            return content;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Laden von Blob {BlobName}", blobName);
+            throw new IOException($"Fehler beim Laden von Blob '{blobName}'", ex);
+        }
+    }
+
+    public void DiagnoseConnection()
+    {
+        _logger.LogInformation("Azure Blob Storage Diagnose â€“ Client-ID: {ClientId}", _clientId);
+        try
+        {
+            if (_containerClient.Exists())
             {
-                Console.WriteLine($"? Ausnahme bei Verbindungstest: {e.Message}");
-                Console.WriteLine(e.StackTrace);
+                _logger.LogInformation("Verbindung zu Azure Blob Storage erfolgreich");
+                foreach (var blob in _containerClient.GetBlobs())
+                    _logger.LogDebug("  Blob: {Name}", blob.Name);
             }
-            Console.WriteLine("=== ENDE DIAGNOSE ===");
+            else
+                _logger.LogWarning("Container nicht gefunden oder keine Berechtigung");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Ausnahme bei Verbindungstest");
         }
     }
 }
