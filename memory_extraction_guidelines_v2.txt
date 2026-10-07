@@ -1,0 +1,197 @@
+═══════════════════════════════════════════════════════════════════
+ MEMORY COMPONENT EXTRACTION GUIDELINES (Serial vs. Parallel)
+═══════════════════════════════════════════════════════════════════
+
+⚠️ CRITICAL: This datasheet is for a MEMORY COMPONENT!
+   The extraction rules are DIFFERENT from standard components!
+
+═══════════════════════════════════════════════════════════════════
+📋 STEP 1: DETERMINE MEMORY TYPE (Serial vs. Parallel)
+═══════════════════════════════════════════════════════════════════
+
+Look for these indicators:
+
+SERIAL MEMORY (SPI/I2C):
+  ✓ Pin count: 6-8 pins (VCC, GND, SCK, MOSI, MISO, CS)
+  ✓ Interface: SPI, I2C, Microwire
+  ✓ Access time: µs range (microseconds)
+  ✓ Example: AT25xxx, 25LCxxx, M95xxx
+
+PARALLEL MEMORY (Async, F-RAM, MRAM):
+  ✓ Pin count: 20-48+ pins (address bus A0-A15, data bus D0-D7)
+  ✓ Interface: Parallel, Asynchronous
+  ✓ Access time: ns range (nanoseconds)
+  ✓ Example: AT28xxx, 28Cxxx, FM25xxx (F-RAM), MR25xxx (MRAM)
+
+═══════════════════════════════════════════════════════════════════
+📦 PROPERTY EXTRACTION RULES
+═══════════════════════════════════════════════════════════════════
+
+1️⃣ SIZE [BYTE] = MEMORY CAPACITY IN BYTES (NOT Mbit/Kbit!)
+   ═══════════════════════════════════════════════════════════════
+   ⚠️ CRITICAL: DMS System expects SIZE IN BYTES (Integer)!
+   
+   CONVERSION TABLE:
+   ┌─────────────┬──────────────┬──────────────────┐
+   │ Datasheet   │ Calculation  │ Size [Byte]      │
+   ├─────────────┼──────────────┼──────────────────┤
+   │ 1 Mbit      │ 1024*1024/8  │ 131072           │
+   │ 4 Mbit      │ 4*1024*1024/8│ 524288           │
+   │ 8 Mbit      │ 8*1024*1024/8│ 1048576          │
+   │ 16 Mbit     │ 16*1024*1024/8│ 2097152         │
+   │ 32 Mbit     │ 32*1024*1024/8│ 4194304         │
+   │ 64 Mbit     │ 64*1024*1024/8│ 8388608         │
+   │ 128 Kbit    │ 128*1024/8   │ 16384            │
+   │ 256 Kbit    │ 256*1024/8   │ 32768            │
+   │ 512 Kbit    │ 512*1024/8   │ 65536            │
+   └─────────────┴──────────────┴──────────────────┘
+
+   EXTRACTION ALGORITHM:
+   Step 1: Find capacity in datasheet (e.g., "32 Mbit", "4 MB")
+   Step 2: Convert to BITS:
+           - If "Mbit": capacity * 1024 * 1024 bits
+           - If "Kbit": capacity * 1024 bits
+           - If "MB": capacity * 1024 * 1024 * 8 bits
+           - If "KB": capacity * 1024 * 8 bits
+   Step 3: Convert to BYTES: bits / 8
+   Step 4: Return INTEGER (e.g., "4194304")
+
+   WRONG EXAMPLES:
+   ✗ Size [Byte] = "32 Mbit"         (must be converted to bytes!)
+   ✗ Size [Byte] = "4 MB"             (must be converted to bytes!)
+   ✗ Size [Byte] = "3.9 mm"           (that's package width!)
+   
+   CORRECT EXAMPLES:
+   ✓ Size [Byte] = "4194304"          (from "32 Mbit" → 32*1024*1024/8)
+   ✓ Size [Byte] = "1048576"          (from "8 Mbit" → 8*1024*1024/8)
+   ✓ Size [Byte] = "32768"            (from "256 Kbit" → 256*1024/8)
+
+2️⃣ WIDTH (Max) = DATA BUS WIDTH (NOT PHYSICAL DIMENSION!)
+   ═══════════════════════════════════════════════════════════
+   Width = Number of data bits per word
+   
+   CORRECT EXAMPLES:
+   ✓ Width (Max) = "8 bit"      (from Organization: "8K x 8")
+   ✓ Width (Max) = "16 bit"     (from Organization: "16K x 16")
+   ✓ Width (Max) = "1 bit"      (Serial EEPROM with single data line)
+   
+   WRONG EXAMPLES:
+   ✗ Width (Max) = "3.9 mm"     (that's package body width!)
+   ✗ Width (Max) = "5.0 mm"     (that's package length!)
+   
+   WHERE TO FIND:
+   ✓ Organization: "128K x 8" → Second number = Width (8 bit)
+   ✓ If property "Width (Max)" exists → Read from MAX column
+   ✓ Serial Memory: Usually 1 bit (single data line)
+   ✓ Parallel Memory: Usually 8 bit or 16 bit
+
+3️⃣ FUNCTION = MEMORY TYPE (Exact Dropdown Values!)
+   ═══════════════════════════════════════════════════════════
+   
+   ⚠️ CRITICAL: DMS System has PREDEFINED dropdown values!
+   You MUST use EXACTLY these values (case-sensitive):
+   
+   ALLOWED FUNCTION VALUES:
+   ┌─────────────────────────┬───────────────────────────────┐
+   │ Exact Value             │ Use for                       │
+   ├─────────────────────────┼───────────────────────────────┤
+   │ FRAM                    │ Ferroelectric RAM (F-RAM)     │
+   │ NOR Flash               │ NOR Flash Memory              │
+   │ NAND Flash SLC          │ NAND Flash Single-Level Cell  │
+   │ NAND Flash MLC          │ NAND Flash Multi-Level Cell   │
+   │ EEPROM                  │ EEPROM (Serial or Parallel)   │
+   │ MRAM                    │ Magnetoresistive RAM          │
+   │ Ferroelectric RAM       │ Alias for FRAM                │
+   └─────────────────────────┴───────────────────────────────┘
+
+   EXTRACTION RULES:
+   - Look for memory type in title or features section
+   - Match EXACTLY to dropdown values above
+   - If "F-RAM" or "FeRAM" in datasheet → Use "FRAM"
+   - If "MRAM" in datasheet → Use "MRAM"
+   - If "EEPROM" in datasheet → Use "EEPROM"
+   - If "NOR Flash" in datasheet → Use "NOR Flash"
+   - If "Ferroelectric" in datasheet → Use "Ferroelectric RAM" or "FRAM"
+
+   WRONG EXAMPLES:
+   ✗ Function = "Ferroelectric Memory"  (not in dropdown!)
+   ✗ Function = "F-RAM"                 (use "FRAM" instead)
+   ✗ Function = "Serial EEPROM"         (just use "EEPROM")
+   
+   CORRECT EXAMPLES:
+   ✓ Function = "FRAM"                  (for F-RAM datasheet)
+   ✓ Function = "EEPROM"                (for EEPROM datasheet)
+   ✓ Function = "NOR Flash"             (for NOR Flash datasheet)
+
+4️⃣ TIMING PARAMETERS (tAA, tRC, etc.)
+   ═══════════════════════════════════════════════════════════
+   
+   tAA (Max) = Address Access Time
+   ⚠️ ONLY for PARALLEL Memory! Serial Memory: "nicht relevant"
+   
+   EXTRACTION RULES:
+   • tAA (Max) → Read from MAX column (e.g., "120 ns")
+   • tRC (Min) → Read from MIN column (e.g., "120 ns")
+   • Unit MUST be included (ns for Parallel, µs for Serial)
+   
+   IF Serial Memory AND property is "tAA (Max)":
+   ✓ Return "nicht relevant" (Serial has no address access time!)
+   
+   IF Parallel Memory AND property is "tAA (Max)":
+   ✓ Read from specification table, MAX column
+   ✓ Include unit (e.g., "120 ns")
+
+5️⃣ INTERFACE
+   ═══════════════════════════════════════════════════════════
+   
+   SERIAL MEMORY:
+   ✓ "SPI", "I2C", "Microwire", "2-Wire"
+   
+   PARALLEL MEMORY:
+   ✓ "Parallel", "Asynchronous", "Address/Data Bus"
+
+═══════════════════════════════════════════════════════════════════
+⚠️ COMMON MISTAKES TO AVOID
+═══════════════════════════════════════════════════════════════════
+
+✗ MISTAKE #1: Not converting Size to Bytes
+   WRONG: Size [Byte] = "32 Mbit"
+   RIGHT: Size [Byte] = "4194304" (calculated: 32*1024*1024/8)
+
+✗ MISTAKE #2: Confusing Size with Package Dimensions
+   WRONG: Size [Byte] = "3.9 mm" (from Package Drawing body width)
+   RIGHT: Size [Byte] = "4194304" (from title "32-Mbit F-RAM")
+
+✗ MISTAKE #3: Confusing Width with Package Width
+   WRONG: Width (Max) = "5.0 mm" (from Package Drawing)
+   RIGHT: Width (Max) = "8 bit" (from Organization "4M x 8")
+
+✗ MISTAKE #4: Wrong Function value (not in dropdown)
+   WRONG: Function = "Ferroelectric Memory" (not in dropdown!)
+   RIGHT: Function = "FRAM" (exact dropdown value)
+
+✗ MISTAKE #5: Using custom Function value
+   WRONG: Function = "F-RAM" (custom value)
+   RIGHT: Function = "FRAM" (dropdown value)
+
+═══════════════════════════════════════════════════════════════════
+✅ EXTRACTION CHECKLIST
+═══════════════════════════════════════════════════════════════════
+
+1. ✓ Determine Memory Type: Serial or Parallel?
+2. ✓ Size [Byte]: CONVERT to BYTES (e.g., "4194304" not "32 Mbit")
+3. ✓ Width (Max): Look in ORGANIZATION (NOT Package Drawing!)
+4. ✓ Function: Use EXACT dropdown value ("FRAM", "NOR Flash", "EEPROM")
+5. ✓ Timing: Read correct MIN/TYP/MAX column (include unit!)
+6. ✓ Interface: SPI/I2C (Serial) or Parallel?
+
+═══════════════════════════════════════════════════════════════════
+ END OF MEMORY EXTRACTION GUIDELINES
+═══════════════════════════════════════════════════════════════════
+
+REMEMBER:
+⚠️ Size [Byte] = MEMORY CAPACITY IN BYTES (e.g., "4194304") - NOT "32 Mbit"!
+⚠️ Width (Max) = DATA BUS WIDTH (bit) - NOT package width!
+⚠️ Function = EXACT dropdown value ("FRAM", "NOR Flash", "EEPROM")
+⚠️ tAA (Max) only for Parallel Memory (Serial: "nicht relevant")
+═══════════════════════════════════════════════════════════════════

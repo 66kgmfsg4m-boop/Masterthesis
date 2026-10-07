@@ -1,0 +1,365 @@
+# Part Number Decoding - Non-Volatile Memory (Parallel + Serial + eMMC/UFS)
+
+================================================================
+ STAGE 2 of 2: DECODE A SPECIFIC PART NUMBER
+================================================================
+
+Component category: {COMPONENT_CATEGORY}
+Part Number to decode: {PART_NUMBER}
+
+Part Number Chart structure (from Stage 1, may be empty/ChartFound=false):
+{PART_NUMBER_STRUCTURE}
+
+================================================================
+ YOUR TASK
+================================================================
+
+1. PARSE the given part number into segments.
+   - If the chart from Stage 1 is present and ChartFound = true:
+     match the part number against the chart segment by segment.
+   - If ChartFound = false (no formal decoder table in datasheet):
+     derive the variant from the part number itself plus
+     ordering tables, marking tables, "Features" / "Product Lineup"
+     and any package/capacity info you find in the document.
+     For well-known prefixes (W25Q, MX25, AT25, S25FL, KLM,
+     KLU, THGB, THGAF, H26M, H28S, MTFC, ...) use the manufacturer's
+     standard naming convention.
+
+2. EXTRACT the variant-specific properties listed below and
+   return them in the EXACT shape:
+
+      {
+        "PartNumber": "{PART_NUMBER}",
+        "DecodedSegments": { ... human-readable breakdown ... },
+        "ExtractedProperties": {
+          "Function":   "...",
+          "SizeByte":   "...",
+          "Width":      "...",
+          "PackageType":"...",
+          "NumberOfPin":"...",
+          "Pitch":      "...",
+          "VccVddTypV": "...",
+          "ClockRateHz": "...",
+          "Interface_internal": "...",
+          "Interface_external": "..."
+        },
+        "DecodingSuccess": true | false,
+        "DecodingConfidence": "High" | "Medium" | "Low",
+        "Notes": "..."
+      }
+
+   * Use empty string OR "nicht vorhanden" for fields you truly
+     cannot determine - never invent values.
+   * DO NOT add other keys. The caller filters on this exact set.
+
+================================================================
+ PROPERTY-BY-PROPERTY RULES
+================================================================
+
+----------------------------------------------------------------
+ Function (DMS dropdown - MUST be exactly one of the listed values)
+----------------------------------------------------------------
+
+If COMPONENT_CATEGORY contains "Serial" (or eMMC / UFS / SPI Flash):
+  Allowed values: EEPROM, PROM, ROM, Flash, FRAM, MRAM, eMMC
+
+  Decision tree (first match wins):
+    1. Datasheet contains "MRAM" or "Magnetoresistive"             -> "MRAM"
+    2. Contains "FRAM", "F-RAM" or "Ferroelectric"                 -> "FRAM"
+    3. Contains "eMMC", "e-MMC", "embedded MultiMediaCard",
+       "Managed NAND", "UFS" / "Universal Flash Storage",
+       "JEDEC eMMC"                                                -> "eMMC"
+    4. Contains "NAND", "NOR Flash", "Serial NOR", "Serial Flash",
+       "SPI Flash", "QSPI", "Quad SPI Flash", "Octal SPI",
+       or "Flash Memory"                                            -> "Flash"
+    5. Contains "EEPROM" (and NOT Flash/NAND/NOR)                   -> "EEPROM"
+    6. Contains "OTP", "One Time Programmable" or "PROM"            -> "PROM"
+    7. Contains only "ROM" / "Mask ROM"                             -> "ROM"
+    8. Otherwise                                                    -> "nicht vorhanden"
+
+  NEVER write "NAND Flash SLC", "NOR Flash", "Serial NOR Flash",
+  "QSPI NAND", "UFS 2.1" etc. as Function for Serial - those
+  values are REJECTED by the DMS dropdown.
+
+If COMPONENT_CATEGORY contains "Parallel":
+  Allowed values: NOR Flash, NAND Flash SLC, NAND Flash MLC,
+                  EEPROM, MRAM, FRAM
+  Decision tree:
+    1. MRAM/Magnetoresistive   -> "MRAM"
+    2. FRAM/F-RAM/Ferroelectric -> "FRAM"
+    3. NAND + MLC/Multi-Level   -> "NAND Flash MLC"
+    4. NAND (no MLC)            -> "NAND Flash SLC"
+    5. NOR / Parallel NOR       -> "NOR Flash"
+    6. EEPROM (no Flash)        -> "EEPROM"
+    7. Otherwise                -> "nicht vorhanden"
+
+----------------------------------------------------------------
+ SizeByte (memory capacity, MUST be in BYTES: KB / MB / GB)
+----------------------------------------------------------------
+
+Memory datasheets often state capacity in BIT (Mb, Mbit, Kbit, Gb, Gbit).
+SizeByte requires BYTES. Conversion: 8 bit = 1 byte.
+
+  Mbit / Bytes
+    32  Kbit  ->   4 KB
+    64  Kbit  ->   8 KB
+    128 Kbit  ->  16 KB
+    256 Kbit  ->  32 KB
+    512 Kbit  ->  64 KB
+    1   Mbit  -> 128 KB
+    2   Mbit  -> 256 KB
+    4   Mbit  -> 512 KB
+    8   Mbit  ->   1 MB
+    16  Mbit  ->   2 MB
+    32  Mbit  ->   4 MB
+    64  Mbit  ->   8 MB
+    128 Mbit  ->  16 MB
+    256 Mbit  ->  32 MB
+    512 Mbit  ->  64 MB
+    1   Gbit  -> 128 MB
+    2   Gbit  -> 256 MB
+    4   Gbit  -> 512 MB
+
+  eMMC / UFS density codes (Samsung naming, also used by SK hynix /
+  Kioxia variants):
+        4G = 4   GB     AG = 16  GB     CG = 64  GB     EG = 256 GB
+        8G = 8   GB     BG = 32  GB     DG = 128 GB     FG = 512 GB
+
+  Output format:  "<integer> <unit>", unit IN { "KB", "MB", "GB" }.
+  Examples (good):
+        "32 KB", "8 MB", "64 MB", "128 MB", "64 GB", "128 GB"
+  Examples (BAD):
+        "16 Mbit"            (bit unit in SizeByte field)
+        "16777216"           (raw bytes without unit)
+        "64 Gigabit"         (no Gigabit in this property)
+
+----------------------------------------------------------------
+ Width (data bus / I/O width, in bit)
+----------------------------------------------------------------
+
+  Parallel memory:
+        x8  -> "8 bit"
+        x16 -> "16 bit"
+        x32 -> "32 bit"
+  Standard SPI / I2C EEPROM       -> "1 bit"
+  Dual SPI                        -> "2 bit"
+  Quad SPI / QSPI                 -> "4 bit"
+  Octal SPI                       -> "8 bit"
+  eMMC                            -> "8 bit"  (DAT0..DAT7)
+  UFS                             -> "1 bit"  (M-PHY differential lane;
+                                              report 1 bit unless the
+                                              datasheet explicitly states
+                                              the parallel data width)
+
+----------------------------------------------------------------
+ PackageType
+----------------------------------------------------------------
+
+  Use the canonical short form, e.g.
+    "SOIC-8", "SOIC-16", "WSON-8", "VSOP-8", "DFN-8",
+    "TSSOP-8", "TSSOP-20",
+    "TSOP-48", "TSOP-56",
+    "FBGA-24", "FBGA-48", "FBGA-63", "FBGA-64",
+    "LBGA-64", "LBGA-100",
+    "FBGA-153" (eMMC standard), "FBGA-153 (UFS)".
+
+  If you have only the package code (e.g. "SM", "PC", "MHB"),
+  resolve it via the chart from Stage 1.
+
+----------------------------------------------------------------
+ NumberOfPin
+----------------------------------------------------------------
+
+  Integer (no unit). Read from package designation:
+        "SOIC-8"   -> 8
+        "TSOP-56"  -> 56
+        "FBGA-153" -> 153
+        "WSON-8"   -> 8
+        "LBGA-64"  -> 64
+
+----------------------------------------------------------------
+ Pitch
+----------------------------------------------------------------
+
+  Pitch is a MECHANICAL property and lives in the package outline
+  drawing (last pages). Do NOT try to derive it from the part number.
+  If you cannot find an explicit pitch value, return "nicht gefunden".
+
+  Format: "<value> mm" (e.g. "0.50 mm", "0.80 mm", "1.27 mm").
+
+----------------------------------------------------------------
+ VccVddTypV (typical supply voltage, in volt)
+----------------------------------------------------------------
+
+  Take the typical Vcc/Vdd value from the "Recommended Operating
+  Conditions" or DC characteristics:
+        "1.8 V", "2.5 V", "3.0 V", "3.3 V", "5.0 V"
+  For wide-range parts, write the typical, e.g. "1.8/3.3 V".
+
+----------------------------------------------------------------
+ ClockRateHz (max read/SCK frequency, MUST be a number with unit)
+----------------------------------------------------------------
+
+  For Serial Flash / EEPROM use the highest documented SCK / SPI
+  clock for the chosen variant:
+        "104 MHz", "133 MHz", "166 MHz" (Octal/QSPI),
+        "8 MHz", "10 MHz", "20 MHz" (slow EEPROMs).
+  For eMMC use the maximum bus clock at HS400, e.g. "200 MHz".
+  For UFS use the maximum gear lane rate, e.g. "5832 MHz" (HS-G3 / HS-G4).
+  For parallel NOR/NAND, use the address access derived clock if
+  no explicit clock is given.
+
+----------------------------------------------------------------
+ Interface_internal / Interface_external
+----------------------------------------------------------------
+
+  Internal = the underlying memory technology
+  External = how the host talks to the chip
+
+  Examples:
+    SPI Serial NOR Flash      -> internal "NOR Flash"        external "SPI" / "QSPI"
+    SPI NAND Flash            -> internal "NAND Flash SLC"   external "SPI"
+    Serial EEPROM             -> internal "EEPROM"           external "SPI" or "I2C"
+    Serial F-RAM              -> internal "FRAM"             external "SPI"
+    eMMC                      -> internal "NAND Flash"       external "eMMC 5.1"
+    UFS                       -> internal "NAND Flash"       external "UFS 2.1" / "UFS 3.0"
+    Parallel NOR              -> internal "NOR Flash"        external "Parallel"
+    Parallel NAND             -> internal "NAND Flash SLC"   external "Parallel"
+
+================================================================
+ OUTPUT EXAMPLES
+================================================================
+
+Example 1 - Serial Flash with chart found
+-----------------------------------------
+PartNumber:     W25Q128JVSIQ
+Datasheet:      Winbond W25Q128JV 128M-bit Serial Flash with QSPI
+
+{
+  "PartNumber": "W25Q128JVSIQ",
+  "DecodedSegments": {
+    "Family":       "W25Q  - Winbond Serial Flash with QSPI",
+    "Density":      "128   - 128 Mbit",
+    "Generation":   "JV    - 3rd generation",
+    "Package":      "SI    - SOIC-8 208 mil",
+    "Temp":         "Q     - Industrial -40C..+85C"
+  },
+  "ExtractedProperties": {
+    "Function":            "Flash",
+    "SizeByte":            "16 MB",
+    "Width":               "4 bit",
+    "PackageType":         "SOIC-8",
+    "NumberOfPin":         "8",
+    "Pitch":               "1.27 mm",
+    "VccVddTypV":          "3.3 V",
+    "ClockRateHz":         "133 MHz",
+    "Interface_internal":  "NOR Flash",
+    "Interface_external":  "QSPI"
+  },
+  "DecodingSuccess": true,
+  "DecodingConfidence": "High",
+  "Notes": "All segments decoded from chart."
+}
+
+Example 2 - eMMC without chart (chart-less fallback)
+----------------------------------------------------
+PartNumber:     KLM8G1GETF-B041
+Datasheet:      Samsung 8GB e-MMC 5.1 NAND Flash
+
+{
+  "PartNumber": "KLM8G1GETF-B041",
+  "DecodedSegments": {
+    "Manufacturer": "KL    - Samsung",
+    "Application":  "M     - eMMC",
+    "Density":      "8G    - 8 GB",
+    "Generation":   "1     - 1st gen of this die",
+    "Package":      "ETF   - 153-ball FBGA, 11.5 x 13.0 mm",
+    "Speed/Suffix": "-B041"
+  },
+  "ExtractedProperties": {
+    "Function":            "eMMC",
+    "SizeByte":            "8 GB",
+    "Width":               "8 bit",
+    "PackageType":         "FBGA-153",
+    "NumberOfPin":         "153",
+    "Pitch":               "0.50 mm",
+    "VccVddTypV":          "3.3 V",
+    "ClockRateHz":         "200 MHz",
+    "Interface_internal":  "NAND Flash",
+    "Interface_external":  "eMMC 5.1"
+  },
+  "DecodingSuccess": true,
+  "DecodingConfidence": "Medium",
+  "Notes": "No formal Part Number Decoder in datasheet; values derived from features list and package drawing."
+}
+
+Example 3 - UFS device
+----------------------
+PartNumber:     KLUDG4UHGB-B0C1
+Datasheet:      Samsung UFS 2.1 64GB
+
+{
+  "PartNumber": "KLUDG4UHGB-B0C1",
+  "DecodedSegments": {
+    "Manufacturer": "KL    - Samsung",
+    "Application":  "U     - UFS",
+    "Density":      "DG    - 128 GB",
+    "Package":      "GB    - 153-ball FBGA"
+  },
+  "ExtractedProperties": {
+    "Function":            "eMMC",
+    "SizeByte":            "128 GB",
+    "Width":               "1 bit",
+    "PackageType":         "FBGA-153",
+    "NumberOfPin":         "153",
+    "Pitch":               "0.50 mm",
+    "VccVddTypV":          "1.8/3.3 V",
+    "ClockRateHz":         "5832 MHz",
+    "Interface_internal":  "NAND Flash",
+    "Interface_external":  "UFS 2.1"
+  },
+  "DecodingSuccess": true,
+  "DecodingConfidence": "Medium",
+  "Notes": "UFS mapped to DMS dropdown 'eMMC'; clock rate is HS-G3 lane rate."
+}
+
+Example 4 - Parallel NOR Flash with chart
+-----------------------------------------
+PartNumber:     MT28EW512ABA1HPC-0SIT
+Datasheet:      Micron 512Mb Parallel NOR Flash
+
+{
+  "PartNumber": "MT28EW512ABA1HPC-0SIT",
+  "DecodedSegments": { /* ... full breakdown ... */ },
+  "ExtractedProperties": {
+    "Function":            "NOR Flash",
+    "SizeByte":            "64 MB",
+    "Width":               "16 bit",
+    "PackageType":         "LBGA-64",
+    "NumberOfPin":         "64",
+    "Pitch":               "0.80 mm",
+    "VccVddTypV":          "3.0 V",
+    "ClockRateHz":         "nicht vorhanden",
+    "Interface_internal":  "NOR Flash",
+    "Interface_external":  "Parallel"
+  },
+  "DecodingSuccess": true,
+  "DecodingConfidence": "High",
+  "Notes": "Decoded from chart MT28EW family."
+}
+
+================================================================
+ CRITICAL RULES (READ AGAIN BEFORE ANSWERING)
+================================================================
+
+1. Function MUST be a single value from the DMS dropdown for the
+   given COMPONENT_CATEGORY. Wrong-list values are silently
+   rejected by the importer.
+2. SizeByte MUST be in BYTES (KB / MB / GB). NEVER in bits.
+3. Always return valid JSON, no markdown fences, no commentary.
+4. Use "nicht vorhanden" / "nicht gefunden" only when there is
+   really no information for the field. Never block the result
+   because of one unknown property.
+5. Do not invent values. If chart is missing AND the datasheet
+   does not contain enough info, lower DecodingConfidence to
+   "Low" and explain in Notes.

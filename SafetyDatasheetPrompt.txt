@@ -1,0 +1,19 @@
+You work at Rohde & Schwarz in the occupational safety department. 
+A pdf document is uploaded - it is a Safety Data Sheet for a composite/mixture.
+Analyze its content and extract the relevant information in JSON (keep the answers in the original language). 
+
+Fields to extract:
+- Document Type: Safety Data Sheet
+- Component Name (Section 1: Trade Name)
+- Description (Section 1: Description)
+- UN-Nummer (6 characters starting with UN)
+- Storage class (Lagerklasse/Lagerung)
+- Composition (Section 3: Mixture; with percentages if available, CAS numbers)
+- Dangerous goods number (Gefahrgutnummer)
+- Water hazard class (Wassergefährdungsklasse; classification hazardous to water; Section:15)
+- SVHC (Substance of Very High Concern; give only yes or no)
+- List of all Hazard Statements (H-Sätze and EUH-Sätze and P-Sätze; the code starts with H or EUH or P)
+- Signal Word
+- List of pictograms
+
+Return only a compact JSON object. If a field is missing, return 'nicht vorhanden'.

@@ -1,0 +1,128 @@
+Analyze this technical document and identify the component type using step-by-step reasoning.
+
+═══════════════════════════════════════════════════════════════
+STEP-BY-STEP ANALYSIS INSTRUCTIONS
+═══════════════════════════════════════════════════════════════
+
+STEP 1: DOCUMENT TYPE IDENTIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Determine if this is:
+- MIXTURE: Safety Data Sheet (SDS) - Look for: Section 1-16, GHS symbols, H-phrases
+- COMPONENT: Technical Data Sheet - Look for: electrical specs, pin diagrams, schematics
+
+STEP 2: COMPONENT CATEGORY ANALYSIS (Chain-of-Thought)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Think through this systematically:
+
+A) SEARCH FOR KEYWORDS:
+   □ RF/Microwave: "RF Amplifier", "Microwave", "Power Amplifier", "LNA", "PA"
+   □ Audio: "Audio Amplifier", "Class-D", "Class-AB", "Speaker Driver"
+   □ Instrumentation: "Instrumentation Amplifier", "INA", "Precision"
+   □ Passive: "Resistor", "Capacitor", "Inductor"
+   □ Active: "Transistor", "MOSFET", "Diode", "IC"
+   □ Connectors: "Connector", "Mil-Spec", "RF Connector", "Adapter"
+
+B) APPLY DECISION LOGIC:
+   IF found "Operational Amplifier" OR "OpAmp" → Category = "OP Amplifier"
+   ELSE IF found "RF" AND "Amplifier" → Category = "RF Amplifier"
+   ELSE IF found "Audio" AND "Amplifier" → Category = "Audio Amplifier"
+   ELSE IF found "Instrumentation" AND "Amplifier" → Category = "Instrumentation Amplifier"
+   ELSE IF found "Amplifier" ONLY → Category = "Amplifier" (⚠ FLAG AS GENERIC)
+   
+   CRITICAL RULE: NEVER use generic "Amplifier" if you can be more specific!
+
+C) VERIFY YOUR CHOICE:
+   □ Does the category match the keywords found?
+   □ Is it the MOST SPECIFIC category possible?
+   □ Did you check ALL amplifier types before deciding?
+
+STEP 2.5: HIGHLIGHTED / USER-MARKED PART NUMBER (HIGHEST PRIORITY)
+────────────────────────────────────────────────────────────────────
+Before doing any generic part-number extraction, ACTIVELY scan the
+document for a part number that has been visually marked by the user.
+
+Signals to look for (in order of priority):
+  1. Yellow (or any coloured) HIGHLIGHT behind a part number in a
+     part-number / ordering-information table.
+  2. Coloured cell background, bold+coloured text, or a hand-drawn
+     circle / arrow / underline pointing at exactly ONE row of a
+     part-number matrix.
+  3. A single row of an otherwise uniform table that is visually
+     distinct from all other rows (different background colour,
+     highlight rectangle, sticker, annotation).
+
+RULES:
+  - If EXACTLY ONE such highlighted / marked part number is found:
+      → Use that part number as the SINGLE "PartNumber".
+      → Do NOT return "PartNumbers" as an array.
+      → Do NOT treat the datasheet as a generic series datasheet.
+      → Set "IsSeriesDatasheet": false in the output.
+      → Set "PartNumberSource": "USER_HIGHLIGHT".
+  - If the highlighted number is a short/abbreviated code (e.g.
+     "016008C-N45XJR_" with a trailing underscore or wildcard),
+     apply part-number decoding using the datasheet's own
+     "Part Numbering" / "Ordering Information" legend to reconstruct
+     the full, canonical manufacturer part number.
+  - If NO highlight is present but the datasheet is a series
+     datasheet with a part-number matrix, fall back to STEP 3
+     (return all variants as "PartNumbers" and set
+     "IsSeriesDatasheet": true).
+  - NEVER silently pick a different row than the highlighted one.
+     The user's highlight is authoritative.
+
+STEP 3: PART NUMBER EXTRACTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Search in these locations (in order):
+1. Title page (top of document)
+2. "Part Number" or "P/N" sections
+3. "Ordering Information" tables
+4. "Part Numbering" sections
+
+Rules:
+- If MULTIPLE part numbers found (series datasheet):
+  → Return as array: "PartNumbers": ["LM358", "LM358A", "LM358B"]
+- If ONLY ONE part number:
+  → Return as string: "PartNumber": "LM358"
+
+STEP 4: FINAL VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Before returning your answer, verify:
+□ DocumentType is either "COMPONENT" or "MIXTURE"
+□ ComponentCategory is SPECIFIC (not generic)
+□ At least one PartNumber was found
+□ ManufacturerInfo is present
+
+═══════════════════════════════════════════════════════════════
+OUTPUT FORMAT
+═══════════════════════════════════════════════════════════════
+
+Return ONLY a JSON object (no markdown, no explanations):
+
+IF SINGLE PART NUMBER:
+{
+  "DocumentType": "COMPONENT" or "MIXTURE",
+  "ComponentCategory": "SPECIFIC category name",
+  "ComponentName": "Name of the component",
+  "ManufacturerInfo": "Manufacturer name",
+  "PartNumber": "single part number",
+  "IsSeriesDatasheet": false,
+  "PartNumberSource": "USER_HIGHLIGHT" | "TITLE" | "ORDERING_INFO" | "DECODED",
+  "ConfidenceLevel": "HIGH" or "MEDIUM" or "LOW"
+}
+
+IF MULTIPLE PART NUMBERS (series datasheet):
+{
+  "DocumentType": "COMPONENT" or "MIXTURE",
+  "ComponentCategory": "SPECIFIC category name",
+  "ComponentName": "Name of the component",
+  "ManufacturerInfo": "Manufacturer name",
+  "PartNumbers": ["part1", "part2", "part3"],
+  "ConfidenceLevel": "HIGH" or "MEDIUM" or "LOW"
+}
+
+CONFIDENCE LEVEL GUIDELINES:
+- HIGH: All keywords match clearly, category is unambiguous
+- MEDIUM: Some ambiguity, but most likely correct
+- LOW: Uncertain, may need user verification
+
+Be precise and thorough in your analysis.

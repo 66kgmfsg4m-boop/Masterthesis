@@ -1,0 +1,6 @@
+tAA_Max=Maximum Address Access Time (MAX column, nur Parallel!)
+tRC_Min=Minimum Read Cycle Time (MIN column)
+Capacity=Memory Capacity (64 Kbit, 1 Mbit)
+Width=Data Bus Width in bits
+Width_Max=Maximum Data Bus Width (MAX column)
+Interface=Interface Type (SPI, I2C, Parallel)

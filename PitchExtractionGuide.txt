@@ -1,0 +1,278 @@
+# PITCH EXTRACTION FROM TECHNICAL DRAWINGS - ENHANCED INSTRUCTIONS
+
+═══════════════════════════════════════════════════════════════
+CRITICAL: PITCH EXTRACTION FROM TECHNICAL DRAWINGS
+═══════════════════════════════════════════════════════════════
+
+Pitch = PIN-TO-PIN SPACING (dimension "e" or "e1")
+
+The PITCH value is usually ONLY visible in TECHNICAL DRAWINGS, 
+NOT in specification tables!
+
+═══════════════════════════════════════════════════════════════
+STEP-BY-STEP EXTRACTION PROCESS
+═══════════════════════════════════════════════════════════════
+
+Step 1: SEARCH IN TECHNICAL DRAWINGS
+───────────────────────────────────────────────────────────────
+   Look for:
+   • Dimension arrows between adjacent pins
+   • Dimension labeled "e" or "e1" 
+   • Pin pattern diagrams
+   • Terminal pattern sections
+   • Package outline drawings
+   
+   Example from your image:
+   ┌─────────────────────────────────┐
+   │  ⊕ |0.100 M| C|A|B              │
+   │  ├─── 0.30 ─┤                   │  ← NOT this (tolerance)
+   │                                  │
+   │  ⊕ |0.050 M| C                  │
+   │  ├─── 0.50 ─┤                   │  ← THIS IS PITCH "e"!
+   │                                  │
+   │  [Pin diagram with spacing]      │
+   │                                  │
+   │  Terminal Pattern: ⊕|0.10/M|C|A|B│
+   └─────────────────────────────────┘
+
+Step 2: IDENTIFY CORRECT DIMENSION
+───────────────────────────────────────────────────────────────
+   ✓ CORRECT (Pitch):
+      • Dimension "e" = 0.50 mm
+      • Dimension "e1" = 0.65 mm
+      • Pin-to-pin spacing = 1.27 mm
+      • Terminal pitch = 2.54 mm
+   
+   ✗ WRONG (NOT Pitch):
+      • Package width = 2.50 mm  (total width, NOT pitch!)
+      • Terminal width = 0.30 mm  (pin width, NOT spacing!)
+      • Row spacing = 0.08 mm     (row-to-row, NOT pin-to-pin!)
+      • Package length = 3.00 mm  (total length, NOT pitch!)
+
+Step 3: VERIFY WITH COMMON VALUES
+───────────────────────────────────────────────────────────────
+   Standard pitch values (most common):
+   • 0.40 mm (QFN, fine pitch)
+   • 0.50 mm (QFN, QFP - MOST COMMON!)
+   • 0.65 mm (SOIC, QFP)
+   • 0.80 mm (QFP, PLCC)
+   • 1.00 mm (connectors)
+   • 1.27 mm (SO, SOIC wide)
+   • 2.00 mm (connectors)
+   • 2.54 mm (DIP, headers - 0.1 inch)
+   
+   If extracted value NOT in this list → VERIFY CAREFULLY!
+
+Step 4: CHECK MULTIPLE PAGES
+───────────────────────────────────────────────────────────────
+   Mechanical drawings often on SEPARATE PAGE!
+   
+   • Page 1: Specifications table (NO pitch!)
+   • Page 2: Package outline (pitch here!)
+   • Page 3: Pin configuration (pitch here!)
+   
+   → ANALYZE ALL PAGES if pitch not found!
+
+═══════════════════════════════════════════════════════════════
+VISUAL EXTRACTION GUIDE
+═══════════════════════════════════════════════════════════════
+
+What to look for in technical drawings:
+
+1. DIMENSION ARROWS
+───────────────────────────────────────────────────────────────
+      Pin 1    Pin 2    Pin 3
+        ○        ○        ○
+        │←─ e ─→│        │
+        │        │←─ e ─→│
+   
+   Arrow labeled "e" shows pin-to-pin distance!
+
+2. DIMENSION TABLES IN DRAWINGS
+───────────────────────────────────────────────────────────────
+   Symbol   Min    Nom    Max
+   ──────────────────────────
+   e        0.45   0.50   0.55    ← THIS IS PITCH!
+   D        2.40   2.50   2.60    ← Package width (NOT pitch!)
+   b        0.18   0.25   0.30    ← Terminal width (NOT pitch!)
+
+3. TERMINAL PATTERN NOTATION
+───────────────────────────────────────────────────────────────
+   Terminal Pattern: ⊕|0.10/M|C|A|B
+                        ^^^^
+                        This is tolerance, NOT pitch!
+   
+   Look for separate "e = 0.50" dimension!
+
+4. PIN NUMBERING WITH SPACING
+───────────────────────────────────────────────────────────────
+   If you see pins numbered 1, 2, 3... with arrows between:
+   • Measure the REPEATING distance
+   • This is usually the pitch
+   • Verify with dimension label "e"
+
+═══════════════════════════════════════════════════════════════
+COMMON MISTAKES TO AVOID
+═══════════════════════════════════════════════════════════════
+
+❌ WRONG: Extracting package width as pitch
+   Example: Package outline shows "2.50 SQ"
+   → This is total package size, NOT pitch!
+
+❌ WRONG: Extracting tolerance dimension
+   Example: Dimension shows "0.30" near pin
+   → This is tolerance zone, NOT pitch!
+
+❌ WRONG: Extracting row-to-row spacing
+   Example: Distance between top and bottom row
+   → This is body width, NOT pin-to-pin pitch!
+
+❌ WRONG: Extracting terminal width
+   Example: Terminal width "b = 0.25"
+   → This is pin thickness, NOT spacing!
+
+✅ CORRECT: Look for dimension "e" or "e1"
+   Example: Drawing shows "e = 0.50" with arrows between pins
+   → This IS the pitch!
+
+═══════════════════════════════════════════════════════════════
+PACKAGE-SPECIFIC GUIDELINES
+═══════════════════════════════════════════════════════════════
+
+QFN (Quad Flat No-lead):
+──────────────────────────────────────────────────────────────
+   • Typical pitch: 0.40mm, 0.50mm, 0.65mm
+   • Dimension: "e" (pin-to-pin on same side)
+   • Drawing: Usually shows top view with dimension arrows
+   • Location: "Package Information" or "Mechanical Data" page
+
+QFP (Quad Flat Package):
+──────────────────────────────────────────────────────────────
+   • Typical pitch: 0.50mm, 0.65mm, 0.80mm, 1.00mm
+   • Dimension: "e" (pin-to-pin)
+   • Drawing: Side view or top view with arrows
+   • Location: Usually last page of datasheet
+
+SOIC / SO (Small Outline):
+──────────────────────────────────────────────────────────────
+   • Typical pitch: 0.65mm, 1.27mm
+   • Dimension: "e" (pin-to-pin, NOT row spacing!)
+   • CRITICAL: Do NOT confuse with "E" (body width!)
+      - "e" = pin-to-pin (pitch) ✓
+      - "E" = body width ✗
+   • Drawing: Shows both "e" and "E" - choose lowercase!
+
+DIP (Dual In-line Package):
+──────────────────────────────────────────────────────────────
+   • Typical pitch: 2.54mm (0.1 inch)
+   • Dimension: "e" or written as "0.1 inch spacing"
+   • Drawing: Usually obvious in pin pattern
+
+Connectors:
+──────────────────────────────────────────────────────────────
+   • Typical pitch: 1.00mm, 1.27mm, 2.00mm, 2.54mm
+   • Dimension: "pitch" or "p" or "e"
+   • Drawing: Often shows contact pattern with spacing
+
+═══════════════════════════════════════════════════════════════
+IMAGE ANALYSIS STRATEGY
+═══════════════════════════════════════════════════════════════
+
+When analyzing PDF images/scans:
+
+1. LOCATE MECHANICAL DRAWING PAGE
+   • Usually titled: "Package Outline", "Mechanical Data", "Dimensions"
+   • Usually at END of datasheet
+   • Look for page with dimension arrows and measurements
+
+2. IDENTIFY PIN PATTERN
+   • Top view showing all pins/terminals
+   • Side view showing pin spacing
+   • Detail view of terminal pattern
+
+3. READ DIMENSION LABELS
+   • Look for small text near arrows
+   • Dimension format: "e = 0.50" or "e 0.50"
+   • Unit is usually "mm"
+
+4. CROSS-REFERENCE WITH TABLE
+   • Some datasheets have dimension table
+   • Symbol "e" in table = pitch value
+   • Columns: Symbol, Min, Typ, Max
+
+5. CONTEXT CLUES
+   • If you see multiple repeated dimensions (0.50, 0.50, 0.50...)
+     between pins → This is likely the pitch!
+   • If package type is QFN/QFP → pitch is usually 0.40-0.80mm
+   • If package type is SOIC → pitch is usually 0.65mm or 1.27mm
+   • If package type is DIP → pitch is usually 2.54mm
+
+═══════════════════════════════════════════════════════════════
+VALIDATION RULES
+═══════════════════════════════════════════════════════════════
+
+After extracting pitch value, validate:
+
+✓ Check 1: Is value in common range?
+   → 0.40mm to 2.54mm for most ICs
+   → 1.00mm to 2.54mm for connectors
+
+✓ Check 2: Does it match package type?
+   → QFN: 0.40-0.65mm
+   → QFP: 0.50-1.00mm
+   → SOIC: 0.65mm or 1.27mm
+   → DIP: 2.54mm
+
+✓ Check 3: Is it labeled as "e" or "pitch"?
+   → If labeled "D" or "E" = package width (WRONG!)
+   → If labeled "b" = terminal width (WRONG!)
+   → If labeled "e" = pitch (CORRECT!)
+
+✓ Check 4: Verify with pin count
+   → If pitch = 0.50mm and 16 pins on one side
+   → Total span = 15 × 0.50 = 7.5mm
+   → Does this match package width? (Sanity check)
+
+═══════════════════════════════════════════════════════════════
+EXAMPLES FROM YOUR IMAGE
+═══════════════════════════════════════════════════════════════
+
+From the technical drawing you provided:
+
+TOP SECTION (Red circle):
+──────────────────────────────────────────────────────────────
+   ⊕ |0.100 M| C|A|B
+   ├─── 0.30 ─┤
+   
+   ⊕ |0.050 M| C
+   ├─── 0.50 ─┤          ← THIS IS PITCH! (e = 0.50mm)
+
+INTERPRETATION:
+   • 0.30 = Tolerance zone (NOT pitch!)
+   • 0.50 = Pin-to-pin spacing (PITCH!)
+   • The arrows show distance between pin centers
+   
+   ✓ CORRECT EXTRACTION: "Pitch": "0.50 mm"
+
+BOTTOM SECTION:
+──────────────────────────────────────────────────────────────
+   ├─── 2.50 SQ ──┤      ← Package width (NOT pitch!)
+   ├─ 0.32 ─┤            ← Terminal dimension (NOT pitch!)
+   ├ 0.08 ┤              ← Another tolerance (NOT pitch!)
+   
+   2× ⊕|0.10/M|C|A|B     ← Terminal pattern (NOT pitch value!)
+
+═══════════════════════════════════════════════════════════════
+FINAL INSTRUCTION
+═══════════════════════════════════════════════════════════════
+
+If you CANNOT find pitch in tables:
+1. Analyze ALL pages for mechanical drawings
+2. Look for dimension "e" with arrows between pins
+3. Use common values as hint (0.40, 0.50, 0.65, 1.27, 2.54)
+4. If still not found: mark as "nicht vorhanden"
+
+DO NOT GUESS!
+If dimension is unclear or ambiguous → "nicht vorhanden"
+
+═══════════════════════════════════════════════════════════════

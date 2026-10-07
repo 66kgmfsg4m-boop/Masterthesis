@@ -1,0 +1,224 @@
+# Series Datasheet Instructions - Non-Volatile Memory (Parallel + Serial + eMMC/UFS)
+
+================================================================
+ STAGE 1 of 2: PART NUMBER CHART EXTRACTION
+================================================================
+
+This datasheet covers a memory family with MULTIPLE variants
+(different density, package, voltage, interface, ...). The
+specifications vary based on the **PART NUMBER**.
+
+This file is used for BOTH:
+  * "Non-Volatile Memory Parallel" (Parallel NOR/NAND, parallel EEPROM, ...)
+  * "Non-Volatile Memory Serial"   (SPI/QSPI Serial NOR, Serial EEPROM,
+                                    Serial F-RAM/MRAM, eMMC, UFS, ...)
+
+Your job in STAGE 1 is to extract the PART NUMBER STRUCTURE only.
+DO NOT extract concrete property values yet (Size, Width, tAA, Pitch, ...).
+Those come in STAGE 2 once a specific part number is known.
+
+================================================================
+ WHAT TO LOOK FOR
+================================================================
+
+A "Part Number Chart" / "Ordering Information" / "Part Numbering"
+section that breaks down the part number into segments and lists
+the meaning + possible values of each segment.
+
+Typical locations:
+  * First 1-3 pages (cover / overview)         -> SPI Flash, EEPROM, FRAM, MRAM
+  * Last 5-10 pages (ordering info appendix)   -> Parallel NOR/NAND
+  * "Ordering Information", "Part Numbering",
+    "Device Nomenclature", "Part Number Construction",
+    "Marking and Pin Configuration",
+    "Ordering Code" tables                      -> all manufacturers
+  * For eMMC/UFS: "Product Family", "Product Lineup",
+    "Ordering Information" or marking tables on cover page
+
+================================================================
+ SUPPORTED PART NUMBER FORMATS (examples - not exhaustive)
+================================================================
+
+PARALLEL MEMORY
+---------------
+  Micron Parallel NOR    : MT28EW512ABA1HPC-0SIT
+  Cypress Parallel NOR   : S29GL256N10TFI010
+  Atmel Parallel EEPROM  : AT28C256E-15PU
+  Everspin MRAM Parallel : MR4A16BCMA35
+  Cypress FRAM Parallel  : CY15B104Q-LHXI
+
+SERIAL MEMORY (SPI / QSPI / I2C)
+--------------------------------
+  Microchip SPI Flash    : SST26VF064B-104I/SM
+  Winbond  SPI Flash     : W25Q128JVSIQ, W25Q256JVEIQ
+  Macronix SPI/QSPI Flash: MX25L12835FM2I-10G, MX25U25645GMI00
+  Adesto/Renesas SPI Fl. : AT25SF641B-MHB-T, AT25SL128A-MHB-T
+  Cypress S25 SPI Flash  : S25FL128SAGMFV001
+  Microchip I2C EEPROM   : 24LC256-I/SN, AT24C64D-MAHM-T
+  ST/MX SPI EEPROM       : M95M02-DRMN6TP, M95P32-IXMNT
+  Cypress Serial F-RAM   : FM25V20A-G, FM25V05-G
+  Everspin Serial MRAM   : MR25H40CDF, MR25H10CDC
+
+eMMC / UFS (managed NAND)
+-------------------------
+  Samsung eMMC           : KLM8G1GETF-B041, KLMCG8GENA-B0C1
+  Samsung UFS            : KLUDG4UHGB-B0C1, KLUEG8UHDB-C2D1
+  Kioxia/Toshiba eMMC    : THGBMNG7C2LBAIL, THGBMJG7C2LBAU7
+  Kioxia/Toshiba UFS     : THGAF8G9D4LBAB7, THGJFGT0T26BAIL
+  SK hynix eMMC          : H26M52001FMR, H26M64103FMR
+  SK hynix UFS           : H28S8Q302BMR, H28U7Q302CMR
+  Micron eMMC/UFS        : MTFC8GAKAJCN-1M WT, MTFC32GAPALNA-IT
+
+================================================================
+ OUTPUT FORMAT (REQUIRED)
+================================================================
+
+Return a JSON object with exactly these top-level fields:
+
+{
+  "ChartFound": true | false,
+  "IsSeriesDatasheet": true,
+  "PartNumberFormat": "<an example part number from the datasheet>",
+  "ChartLocation": "<page number / section name>",
+  "PartNumberStructure": {
+    "Segments": [
+      {
+        "Position": "1-2",
+        "Name": "Manufacturer",
+        "Value": "MT",
+        "Meaning": "Micron Technology",
+        "Fixed": true
+      },
+      {
+        "Position": "3-5",
+        "Name": "PartFamily",
+        "Value": "28E",
+        "Meaning": "Embedded Parallel NOR Flash",
+        "PossibleValues": { "28E": "Embedded Parallel NOR Flash" }
+      },
+      {
+        "Position": "7-9",
+        "Name": "Density",
+        "Value": "512",
+        "Meaning": "512 Mbit",
+        "PossibleValues": {
+          "128": "128 Mbit",
+          "256": "256 Mbit",
+          "512": "512 Mbit",
+          "01G": "1 Gbit"
+        },
+        "MapsToProperty": "SizeByte"
+      },
+      {
+        "Position": "10",
+        "Name": "Configuration",
+        "Value": "1",
+        "Meaning": "x8/x16",
+        "PossibleValues": { "1": "x8/x16", "8": "x8 only", "F": "x16 only" },
+        "MapsToProperty": "Width"
+      },
+      {
+        "Position": "15-16",
+        "Name": "PackageCode",
+        "Value": "PC",
+        "Meaning": "64-ball LBGA, 11mm x 13mm",
+        "PossibleValues": {
+          "JS": "56-pin TSOP, 14mm x 20mm",
+          "PC": "64-ball LBGA, 11mm x 13mm"
+        },
+        "MapsToProperty": "PackageType"
+      }
+      // ... continue for all segments in the part number
+    ]
+  }
+}
+
+Rules:
+  - ChartFound = true ONLY if you actually found a documented
+    part-number-decoder structure (table or breakdown diagram).
+  - If you only see a single ordering example without a real
+    decoder table -> ChartFound = false.
+  - Never invent values. Only put values in PossibleValues that
+    are documented in the datasheet.
+  - Use the canonical property names in MapsToProperty
+    (SizeByte, Width, PackageType, NumberOfPin, VccVddTypV,
+     ClockRateHz, Pitch, Function, Interface_internal, Interface_external).
+
+================================================================
+ SPECIAL HINTS PER COMPONENT FAMILY
+================================================================
+
+eMMC / UFS (managed NAND with controller)
+-----------------------------------------
+  * Density code is usually a one- or two-character group near the
+    end of the part number. Typical mappings (Samsung scheme,
+    others are similar):
+        4G  = 4   GB
+        8G  = 8   GB
+        AG  = 16  GB
+        BG  = 32  GB
+        CG  = 64  GB
+        DG  = 128 GB
+        EG  = 256 GB
+        FG  = 512 GB
+  * Capacity is given in BYTES (GB), NOT in bits.
+  * Function (DMS dropdown for "Non-Volatile Memory Serial") = "eMMC"
+    -> UFS variants are also mapped to "eMMC" because that's the
+       closest DMS dropdown value. Do NOT invent "UFS" as Function.
+  * Package: typically "153-ball FBGA" (eMMC standard) or
+    "153-ball BGA" (UFS 2.x). NumberOfPin = 153 in that case.
+  * Interface_internal = "NAND Flash"
+    Interface_external = "eMMC 5.1" / "UFS 2.1" / "UFS 3.0" / "JEDEC eMMC"
+
+SERIAL FLASH (SPI / QSPI / OctalSPI)
+------------------------------------
+  * Density code is typically a numeric block ("64", "128", "256", "512")
+    -> ALWAYS in MEGABIT (Mb / Mbit), never bytes.
+        "64"  = 64 Mbit  =  8 MB
+        "128" = 128 Mbit = 16 MB
+        "256" = 256 Mbit = 32 MB
+        "512" = 512 Mbit = 64 MB
+  * Function (DMS dropdown for "Non-Volatile Memory Serial") = "Flash"
+    -> "Serial NOR Flash", "QSPI", "SPI NAND" all map to "Flash".
+  * Package: SOIC-8 / SOIC-16 / WSON-8 / VSOP-8 / BGA-24 / KGD.
+  * Width  : 1 (Std SPI), 2 (Dual), 4 (Quad), 8 (Octal) - take the MAX
+             advertised, e.g. QSPI -> Width = "4 bit".
+
+SERIAL EEPROM
+-------------
+  * Density code: "01" / "02" / "04" / "08" / "16" / "32" / "64" / "128"
+    -> all in KILOBIT, except 256 / 512 / M02 / M04 in Microchip's
+       Mbit naming (M02 = 2 Mbit, M04 = 4 Mbit, ...).
+  * Function = "EEPROM".
+  * Width = "1 bit" for SPI EEPROM, "1 bit" for I2C EEPROM
+    (data line is single).
+
+SERIAL F-RAM / MRAM
+-------------------
+  * Function = "FRAM" / "MRAM" (NEVER "Flash").
+  * Density: usually given in bits (Kb / Mb).
+
+PARALLEL NOR / NAND
+-------------------
+  * For "Non-Volatile Memory Parallel" the DMS Function dropdown
+    accepts: "NOR Flash", "NAND Flash SLC", "NAND Flash MLC",
+             "EEPROM", "MRAM", "FRAM".
+  * Decision tree:
+       NAND + MLC/Multi-Level   -> "NAND Flash MLC"
+       NAND (no MLC mention)    -> "NAND Flash SLC"
+       NOR / Parallel NOR       -> "NOR Flash"
+       Magnetoresistive / MRAM  -> "MRAM"
+       Ferroelectric / FRAM     -> "FRAM"
+       EEPROM (no Flash kw)     -> "EEPROM"
+
+================================================================
+ CRITICAL REMINDERS
+================================================================
+
+* STAGE 1 = STRUCTURE ONLY. Do not extract concrete property
+  values yet. Stage 2 does that.
+* Always return valid JSON. No markdown, no code fences.
+* If the document does not contain a real part-number decoder
+  but only a single ordering example or a marking table, set
+  "ChartFound": false (Stage 2 will then fall back to deriving
+  properties directly from the part number + features list).

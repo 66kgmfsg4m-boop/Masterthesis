@@ -1,0 +1,212 @@
+===============================================================
+ COIL / INDUCTOR EXTRACTION GUIDELINES
+===============================================================
+
+CRITICAL: This datasheet describes a COIL / INDUCTOR component!
+   Coil datasheets describe EXACTLY ONE component variant
+   -> NO Part Number Decoding required
+   -> Extract ALL parameters DIRECTLY from the datasheet
+
+===============================================================
+ STEP 1: CLASSIFY THE COIL FUNCTION (Funktion)
+===============================================================
+
+"Funktion" is a CLASSIFICATION (not a free-text extraction!)
+You MUST select EXACTLY ONE of the following allowed values:
+
+   +--------------------------+------------------------------+
+   | ENGLISH (DMS value)      | German display (reference)   |
+   +--------------------------+------------------------------+
+   | INDUCTOR                 | SPULE                        |
+   | INDUCTOR SHIELDED        | SPULE GESCHIRMT              |
+   | MULTILAYER CHIP          | (Multilayer Chip Inductor)   |
+   | POWER CHOKE              | LEISTUNGSDROSSEL             |
+   | POWER CHOKE SHIELDED     | LEISTUNGSDROSSEL GESCHIRMT   |
+   | TUNABLE                  | ABSTIMMBAR                   |
+   | WIDEBAND BIAS CHOKE      | BREITBAND DROSSEL            |
+   | WIRE WOUND               | DRAHTGEWICKELT               |
+   +--------------------------+------------------------------+
+
+CLASSIFICATION DECISION TREE:
+
+  1. Title contains "Tunable" / "Variable Inductor"
+     -> "TUNABLE"
+
+  2. Title contains "Wideband Bias" / "Bias Choke" /
+     "RF Bias" / "Conical Inductor"
+     -> "WIDEBAND BIAS CHOKE"
+
+  3. Title contains "Multilayer" / "Chip Inductor" /
+     "Thin Film Inductor" AND small SMD package
+     (0402/0603/0805/1206)
+     -> "MULTILAYER CHIP"
+
+  4. Title contains "Wire Wound" / "Wirewound"
+     AND NOT a Power Choke
+     -> "WIRE WOUND"
+
+  5. Title contains "Power Inductor" / "Power Choke" /
+     "Leistungsdrossel" / "DC-DC Inductor"
+       a) AND mentions "Shielded" / "Magnetic Shielding" /
+          "Geschirmt"
+          -> "POWER CHOKE SHIELDED"
+       b) Otherwise
+          -> "POWER CHOKE"
+
+  6. Title contains "Shielded Inductor" (without "Power")
+     -> "INDUCTOR SHIELDED"
+
+  7. Default / generic inductor
+     -> "INDUCTOR"
+
+KEY HINTS:
+  * High Isat (>1A) + Low DCR (mOhm range) ...... POWER CHOKE
+  * Magnetic shielding mentioned ................ *_SHIELDED
+  * Multilayer ferrite / chip body .............. MULTILAYER CHIP
+  * Conical / broadband (MHz-GHz) ............... WIDEBAND BIAS CHOKE
+  * Adjustable core / tuning screw .............. TUNABLE
+  * Air-core wound on bobbin .................... WIRE WOUND
+
+===============================================================
+ STEP 2: PARAMETER EXTRACTION RULES
+===============================================================
+
+Map DMS properties to typical datasheet labels.
+Always KEEP the original unit and value as written.
+
+  Induktivitaet / L / [H]
+    Labels: "Inductance", "L", "Nominal Inductance"
+    Examples: 10 uH, 4.7 uH, 100 nH
+    Read TYP value (or as labelled).
+
+  Toleranz / [%]
+    Labels: "Tolerance", "Ind. Tolerance"
+    Examples: +/-10%, +/-15%, +/-20%
+
+  Widerstand / DCR / [Ohm]
+    Labels: "DCR", "DC Resistance", "Rdc", "Widerstand"
+    Read TYP or MAX as labelled.
+    Keep mOhm notation (e.g. "8.76 mOhm").
+
+  Guete / Q
+    Labels: "Q", "Quality Factor"
+    Often MIN value at given frequency.
+
+  Frequenz (Q)
+    Frequency at which Q was measured
+    Examples: 100 MHz, 7.96 MHz
+
+  f Nom (Typ) / [Hz]
+    Test/measurement frequency for L
+    Examples: 100 kHz, 1 MHz, 25 MHz
+    Labels: "Test Frequency", "Measurement Frequency"
+
+  I sat / Isat / [A]
+    Labels: "Saturation Current", "Isat"
+    Current at which L drops by ~30 %.
+    Examples: 4 A, 16 A, 25 A
+
+  I rms / Irms / Strom / I rated / [A]
+    Labels: "Rated Current", "Irms", "Temp. Rise Current"
+    Current causing ~40 K temperature rise.
+    Examples: 2 A, 16 A
+
+  SRF / [Hz]
+    Labels: "Self Resonant Frequency", "SRF", "fres"
+    Examples: 13 MHz, 100 MHz, 2 GHz
+    Always MIN value (worst case).
+
+  Gehaeusetyp / Package
+    Mounting type / package family.
+    Allowed: "SMD", "THT", "SMT"
+    Map "Surface Mount" -> "SMD"
+    Map "Through Hole" -> "THT"
+
+  Hoehe / Height / [mm]
+    Component max height in mm - the VERTICAL (Z) dimension
+    measured PERPENDICULAR to the mounting surface (PCB).
+    Read MAX from package drawing.
+    Examples: 1.0 mm, 4.5 mm, 14.5 mm
+
+    HOW TO IDENTIFY THE HEIGHT DIMENSION:
+    * Multi-view drawings (top / front / side view) show
+      length (X), width (Y) and height (Z).
+    * Height is ALWAYS the SIDE / FRONT view dimension
+      going UP from the PCB / seating plane - NOT any
+      dimension of the TOP view.
+    * If a dimension is labelled next to a vertical arrow
+      in the side view (e.g. "14,5 max."), that is Hoehe.
+    * The TOP view typically shows footprint width and
+      length (e.g. "21,8 max." for footprint width) -
+      these are NOT Hoehe.
+    * If multiple candidates exist, pick the one whose
+      arrow is vertical in the SIDE view; ignore any
+      dimensions inside the TOP view.
+
+  X MISTAKE: Taking a footprint dimension (length/width)
+    from the TOP view as Hoehe (e.g. 21.8 mm instead of
+    14.5 mm for a THT coil).
+    OK FIX: Hoehe = vertical arrow in SIDE / FRONT view.
+
+  Oberflaeche / Surface
+    Termination / plating.
+    Examples: "Sn", "Sn/Pb", "AgPd", "Tin Plated", "Lead Free"
+
+===============================================================
+ STEP 3: VALUE FORMATTING RULES
+===============================================================
+
+  * Keep ORIGINAL units exactly as written: uH, nH, mOhm, A, MHz
+  * Decimal separator: dot ("."), NOT comma
+  * Use "u" / micro consistently - do NOT silently convert
+    units (e.g. don't change "10 uH" into "10000 nH")
+  * For ranges -> "min to max" (e.g. "1 uH to 100 uH")
+  * For tolerances -> keep the sign: "+/-15%", "+/-20%"
+  * Inductance ALWAYS at the specified test frequency
+    (typically 100 kHz or 1 MHz)
+  * If value cannot be determined: "nicht vorhanden"
+    (NEVER guess!)
+
+===============================================================
+ COMMON MISTAKES TO AVOID
+===============================================================
+
+  X MISTAKE: Using package length (e.g. "10 mm") as Hoehe.
+    OK FIX: Hoehe = MAX height (Z dimension) from package drawing.
+
+  X MISTAKE: Reporting Isat instead of Irms (or vice versa).
+    OK FIX: Isat = saturation, Irms = thermal/rated current.
+            They are DIFFERENT values - extract BOTH if listed.
+
+  X MISTAKE: Returning "Choke" or "Inductor (Power)" for Funktion.
+    OK FIX: Funktion MUST be one of the 8 allowed enum values.
+
+  X MISTAKE: Skipping DCR because it appears only in tables per
+    part number variant.
+    OK FIX: Take the row matching the inductance value of THIS
+            datasheet (single-component datasheet).
+
+  X MISTAKE: Reporting Q without its measurement frequency.
+    OK FIX: Always extract BOTH "Q" and "Frequenz (Q)" together.
+
+===============================================================
+ EXTRACTION CHECKLIST (Coil)
+===============================================================
+
+  [ ] Funktion classified into ONE of the 8 allowed enum values
+  [ ] Inductance with unit (uH/nH) at correct test frequency
+  [ ] Tolerance with sign (+/-%)
+  [ ] DCR (mOhm or Ohm) - TYP or MAX as labelled
+  [ ] Q value WITH its measurement frequency
+  [ ] f Nom (test frequency for L)
+  [ ] Isat (saturation current) in A
+  [ ] Irms / rated current in A
+  [ ] SRF in MHz/GHz (MIN value)
+  [ ] Gehaeusetyp = SMD or THT
+  [ ] Hoehe in mm (MAX, from drawing)
+  [ ] Oberflaeche / termination plating
+  [ ] No Part Number Decoding (single-component datasheet!)
+
+===============================================================
+ END OF COIL EXTRACTION GUIDELINES
+===============================================================

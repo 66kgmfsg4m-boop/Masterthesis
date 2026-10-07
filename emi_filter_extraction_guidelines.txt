@@ -1,0 +1,197 @@
+===============================================================
+ EMI FILTER EXTRACTION GUIDELINES
+===============================================================
+
+CRITICAL: This datasheet describes an EMI FILTER component!
+   EMI-Filter datasheets describe EXACTLY ONE component variant
+   -> NO Part Number Decoding required
+   -> Extract ALL parameters DIRECTLY from the datasheet
+
+===============================================================
+ STEP 1: CLASSIFY THE EMI FILTER FUNCTION (Funktion)
+===============================================================
+
+"Funktion" is a CLASSIFICATION (not a free-text extraction!)
+You MUST select EXACTLY ONE of the following allowed values:
+
+   +--------------------------+------------------------------+
+   | ENGLISH (DMS value)      | German display (reference)   |
+   +--------------------------+------------------------------+
+   | EMI FILTER               | ENTSTOERFILTER               |
+   | FERRITE BEAD             | FERRITPERLE                  |
+   | COMMON MODE CHOKE        | GLEICHTAKTDROSSEL            |
+   | FEEDTHROUGH FILTER       | DURCHFUEHRUNGSFILTER         |
+   | LC FILTER                | (LC-Filter)                  |
+   | PI FILTER                | (PI-Filter)                  |
+   | POWER LINE FILTER        | NETZFILTER                   |
+   | SIGNAL LINE FILTER       | SIGNALFILTER                 |
+   +--------------------------+------------------------------+
+
+CLASSIFICATION DECISION TREE:
+
+  1. Title contains "Ferrite Bead" / "Chip Bead" /
+     "Ferritperle" / "BLM" series
+     -> "FERRITE BEAD"
+
+  2. Title contains "Common Mode" / "CMC" / "CMCC" /
+     "Gleichtakt"
+     -> "COMMON MODE CHOKE"
+
+  3. Title contains "Feedthrough" / "Feed-thru" /
+     "Durchfuehrung"
+     -> "FEEDTHROUGH FILTER"
+
+  4. Title contains "Pi Filter" / "PI-Type" / "T-Filter"
+     -> "PI FILTER"
+
+  5. Title contains "LC Filter" / "LC-Type"
+     -> "LC FILTER"
+
+  6. Title contains "Power Line Filter" / "AC Line Filter" /
+     "Netzfilter" / "Mains Filter"
+     -> "POWER LINE FILTER"
+
+  7. Title contains "Signal Line" / "Data Line Filter" /
+     "Signal Filter"
+     -> "SIGNAL LINE FILTER"
+
+  8. Default / generic EMI suppression filter
+     -> "EMI FILTER"
+
+KEY HINTS:
+  * SMD ferrite chip body (0402/0603/0805/1206) ... FERRITE BEAD
+  * Two windings on common core ................... COMMON MODE CHOKE
+  * Coaxial / through-the-bulkhead ................ FEEDTHROUGH FILTER
+  * 3+ stage L-C-L / C-L-C arrangement ............ PI FILTER
+  * Single L-C stage .............................. LC FILTER
+  * 50/60 Hz mains application .................... POWER LINE FILTER
+  * Low current / data line ....................... SIGNAL LINE FILTER
+
+===============================================================
+ STEP 2: PARAMETER EXTRACTION RULES
+===============================================================
+
+Map DMS properties to typical datasheet labels.
+Always KEEP the original unit and value as written.
+
+  Impedanz / Z / [Ohm]
+    Labels: "Impedance", "Z", "Z @ 100MHz"
+    EMI filters specify impedance AT a specific frequency!
+    Examples: 600 Ohm @ 100 MHz, 120 Ohm @ 100 MHz
+    Read TYP value (or as labelled).
+
+  Frequenz (Z) / [Hz]
+    Frequency at which impedance was measured/specified.
+    Examples: 100 MHz, 1 GHz, 10 MHz
+
+  Einfuegedaempfung / Insertion Loss / [dB]
+    Labels: "Insertion Loss", "Attenuation", "S21"
+    Examples: -30 dB @ 100 MHz, 40 dB @ 30 MHz
+    If a range is specified -> use median frequency.
+
+  Frequenzbereich / Frequency Range / [Hz]
+    Operating / attenuation frequency band.
+    Examples: 1 MHz to 1 GHz, 150 kHz to 30 MHz
+    Format: "min to max"
+
+  Widerstand / DCR / Rdc / [Ohm]
+    Labels: "DC Resistance", "DCR", "Rdc"
+    Read TYP or MAX as labelled.
+    Keep mOhm notation (e.g. "50 mOhm").
+
+  Nennstrom / I rated / Irms / [A]
+    Labels: "Rated Current", "DC Current", "Irms"
+    Examples: 200 mA, 3 A, 10 A
+
+  Nennspannung / U rated / [V]
+    Labels: "Rated Voltage", "Working Voltage", "DC Voltage"
+    Examples: 50 V, 250 V AC, 100 V DC
+    Keep AC/DC suffix if specified.
+
+  Kapazitaet / C / [F]
+    (Only for LC / PI / Power Line Filters)
+    Labels: "Capacitance", "C", "Cx", "Cy"
+    Examples: 100 nF, 4.7 uF
+    For X/Y caps keep the label (e.g. "Cx = 0.47 uF, Cy = 4.7 nF").
+
+  Induktivitaet / L / [H]
+    (Only for LC / PI / Common Mode Chokes)
+    Labels: "Inductance", "L"
+    Examples: 10 mH (CMC), 100 uH (LC)
+
+  Gehaeusetyp / Package
+    Mounting type / package family.
+    Allowed: "SMD", "THT", "SMT"
+    Map "Surface Mount" -> "SMD"
+    Map "Through Hole" / "Chassis Mount" -> "THT"
+
+  Hoehe / Height / [mm]
+    Component max height in mm.
+    Read MAX from package drawing.
+    Examples: 0.6 mm (0603 bead), 4.5 mm, 25 mm (line filter)
+
+  Oberflaeche / Surface
+    Termination / plating.
+    Examples: "Sn", "Sn/Pb", "Tin Plated", "Lead Free"
+
+===============================================================
+ STEP 3: VALUE FORMATTING RULES
+===============================================================
+
+  * Keep ORIGINAL units exactly as written: Ohm, dB, MHz, mA, V
+  * Decimal separator: dot ("."), NOT comma
+  * For impedance ALWAYS include the test frequency
+    (e.g. "600 Ohm @ 100 MHz" - NEVER just "600 Ohm")
+  * For ranges -> "min to max" (e.g. "150 kHz to 30 MHz")
+  * Keep AC/DC suffix on voltages ("250 V AC", "100 V DC")
+  * If value cannot be determined: "nicht vorhanden"
+    (NEVER guess!)
+
+===============================================================
+ COMMON MISTAKES TO AVOID
+===============================================================
+
+  X MISTAKE: Reporting impedance without test frequency.
+    OK FIX: EMI filters MUST always state "Z @ frequency".
+            Example: "600 Ohm @ 100 MHz" - NOT "600 Ohm".
+
+  X MISTAKE: Confusing DC Resistance (DCR) with AC impedance.
+    OK FIX: DCR is at DC (mOhm range, e.g. 50 mOhm).
+            Impedanz is at the specified RF frequency.
+
+  X MISTAKE: Using package dimensions as Hoehe.
+    OK FIX: Hoehe = MAX height (Z dimension) from package
+            drawing - NOT the package length/width.
+
+  X MISTAKE: Returning "Filter" or "Choke" for Funktion.
+    OK FIX: Funktion MUST be one of the 8 allowed enum values.
+
+  X MISTAKE: Skipping Cx / Cy distinction on Power Line Filters.
+    OK FIX: Always extract BOTH X-cap and Y-cap separately
+            when the datasheet lists them.
+
+  X MISTAKE: Trying to decode a part number for variants.
+    OK FIX: EMI-Filter datasheets describe a SINGLE component.
+            Extract directly - no part number decoding!
+
+===============================================================
+ EXTRACTION CHECKLIST (EMI Filter)
+===============================================================
+
+  [ ] Funktion classified into ONE of the 8 allowed enum values
+  [ ] Impedanz WITH measurement frequency (Z @ MHz)
+  [ ] Insertion Loss [dB] (with frequency or range)
+  [ ] Frequenzbereich (operating/attenuation band)
+  [ ] DCR / Rdc (mOhm or Ohm) - TYP or MAX as labelled
+  [ ] Nennstrom (rated current) in A or mA
+  [ ] Nennspannung (rated voltage) with AC/DC suffix
+  [ ] Capacitance (only LC / PI / Power Line types)
+  [ ] Inductance (only LC / PI / CMC types)
+  [ ] Gehaeusetyp = SMD or THT
+  [ ] Hoehe in mm (MAX, from drawing)
+  [ ] Oberflaeche / termination plating
+  [ ] No Part Number Decoding (single-component datasheet!)
+
+===============================================================
+ END OF EMI FILTER EXTRACTION GUIDELINES
+===============================================================

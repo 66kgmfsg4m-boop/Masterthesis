@@ -1,0 +1,265 @@
+═══════════════════════════════════════════════════════════════════════
+ SPECIAL INSTRUCTIONS FOR PITCH EXTRACTION (Technical Drawings)
+═══════════════════════════════════════════════════════════════════════
+
+⚠ CRITICAL: Pitch is often ONLY visible in mechanical drawings/package diagrams!
+   Do NOT skip the "Package Information and Dimensions" section!
+
+───────────────────────────────────────────────────────────────────────
+📍 WHERE TO FIND PITCH
+───────────────────────────────────────────────────────────────────────
+
+1. SECTION TITLES TO CHECK:
+   • "Package Information"
+   • "Package Dimensions"
+   • "Mechanical Outline"
+   • "Mechanical Drawing"
+   • "Package and Pin Dimensions"
+   • "Land Pattern"
+
+2. VISUAL INDICATORS IN DRAWINGS:
+   • Package drawings showing pin layout (top view / bottom view)
+   • Dimension lines with arrows between pins: ← e → or ↕ e
+   • Dimension tables near the drawing
+   • Symbol 'e' representing pin spacing
+   • Maßlinien (measurement lines) with arrows
+
+3. TYPICAL LOCATION IN PDF:
+   • Usually in middle/end of datasheet (pages 5-15)
+   • Often after "Electrical Characteristics"
+   • Before or after "Application Information"
+
+───────────────────────────────────────────────────────────────────────
+🎯 WHAT IS PITCH
+───────────────────────────────────────────────────────────────────────
+
+DEFINITION:
+Pin-to-Pin spacing = Center-to-center distance between TWO ADJACENT pins
+
+COMMON NOTATION:
+• Symbol: 'e' (in package drawings)
+• Format examples:
+  - "0.50"
+  - "e = 0.5 mm"
+  - "pitch: 1.27mm"
+  - "pin spacing = 0.065" (inches)
+
+IMPORTANT DISTINCTIONS:
+✓ Pitch = PIN-TO-PIN spacing (e.g., 0.5mm)
+✗ NOT row-to-row spacing (e.g., 7.5mm body width)
+✗ NOT package dimensions (e.g., 3.9mm × 4.9mm)
+
+───────────────────────────────────────────────────────────────────────
+✅ VALIDATION RULES
+───────────────────────────────────────────────────────────────────────
+
+MANDATORY CHECKS:
+1. Value MUST be between 0.3mm and 5.0mm
+   → If outside this range, it's likely NOT the pitch!
+
+2. If multiple dimensions exist:
+   → Choose the SMALLER value (pin-to-pin, NOT row-to-row)
+   → Example: 0.5mm (pitch) vs 3.9mm (body width) → Use 0.5mm
+
+3. Common realistic values:
+   ✓ 0.4mm, 0.5mm, 0.65mm, 0.8mm, 1.0mm, 1.27mm, 2.0mm, 2.54mm
+   ✗ 3.9mm, 7.5mm, 10mm → These are package dimensions, NOT pitch!
+
+4. Unit conversion:
+   • If value is in inches, convert to mm
+   • 0.1" = 2.54mm
+   • 0.05" = 1.27mm
+   • 0.025" = 0.635mm
+
+5. If unclear or not found:
+→ Return "nicht gefunden" (German!)
+→ NEVER guess or extrapolate!
+
+───────────────────────────────────────────────────────────────────────
+📦 PACKAGE-SPECIFIC HINTS
+───────────────────────────────────────────────────────────────────────
+
+Package  | Typical Pitch | Where to Look               | Symbol
+---------|---------------|----------------------------|--------
+QFN      | 0.4 or 0.5mm  | Bottom view, dimension 'e' | e
+QFP      | 0.5-0.8mm     | Side view, pin-to-pin      | e
+SOIC     | 0.65 or 1.27  | Side view, pin spacing     | e
+SOP      | 0.65 or 0.8   | Pin spacing on one side    | e
+SSOP     | 0.5 or 0.65   | Pin-to-pin (fine pitch)    | e
+DIP      | 2.54mm (0.1") | Through-hole standard      | e
+SOT      | varies        | Check dimension table      | e
+
+⚠ COMMON MISTAKES TO AVOID:
+❌ SOIC: Confusing 0.65mm (pitch) with 3.9mm (body width)
+❌ QFN: Using package size (3×3mm) instead of pin spacing (0.5mm)
+❌ DIP: Confusing 2.54mm (pitch) with 7.62mm (row spacing)
+
+───────────────────────────────────────────────────────────────────────
+👁 VISION ANALYSIS STRATEGY (For Image-Based PDFs)
+───────────────────────────────────────────────────────────────────────
+
+STEP-BY-STEP APPROACH:
+
+1. LOCATE MECHANICAL DRAWINGS:
+   • Scan through all images
+   • Focus on pages with package outlines
+   • Look for dimensioned technical drawings
+
+2. IDENTIFY DIMENSION LINES:
+   • Look for arrows: ← → or ↕
+   • Check for measurement lines between pins
+   • Find dimension tables near drawings
+
+3. READ DIMENSION VALUES:
+   • Focus on small values (0.3-5mm range)
+   • Check both horizontal and vertical dimensions
+   • Verify unit (mm vs inch)
+
+4. CROSS-REFERENCE:
+   • Compare dimension symbol 'e' in drawing with table
+   • Verify dimension label (e.g., "e = pin pitch")
+   • Check legend/notes for symbol definitions
+
+5. VALIDATE:
+   • Is value in realistic range (0.3-5mm)?
+   • Is it the smallest dimension (likely pin spacing)?
+   • Does it match package type expectations?
+
+───────────────────────────────────────────────────────────────────────
+❓ DECISION TREE: WHAT TO EXTRACT AS PITCH
+───────────────────────────────────────────────────────────────────────
+
+Found multiple dimensions?
+│
+├─ YES: Which is SMALLER?
+│   │
+│   ├─ 0.5mm vs 3.9mm → Use 0.5mm (pin-to-pin)
+│   ├─ 1.27mm vs 7.5mm → Use 1.27mm (pin spacing)
+│   └─ 0.65mm vs 0.8mm → Check which is labeled 'e'
+│
+└─ NO: Is single value realistic?
+    │
+    ├─ Between 0.3-5mm → ✓ USE IT
+    ├─ < 0.3mm → ✗ Too small, likely error
+    ├─ > 5mm → ✗ Likely package dimension
+    └─ Unit is inch? → Convert to mm first
+
+───────────────────────────────────────────────────────────────────────
+🚫 IF PITCH IS NOT CLEARLY VISIBLE
+───────────────────────────────────────────────────────────────────────
+
+ACCEPTABLE RESPONSES:
+✓ "nicht gefunden" (when no mechanical drawing exists)
+✓ "nicht klar erkennbar" (when drawing is too blurry)
+✓ "mehrdeutig" (when multiple values are equally likely)
+
+UNACCEPTABLE RESPONSES:
+✗ Guessing based on package size
+✗ Extrapolating from pin count
+✗ Using body width as pitch
+✗ Inventing a "typical" value without evidence
+
+PRINCIPLE:
+→ "nicht gefunden" is BETTER than a WRONG value!
+→ Precision is more important than recall!
+
+───────────────────────────────────────────────────────────────────────
+📊 CONFIDENCE SCORING FOR PITCH
+───────────────────────────────────────────────────────────────────────
+
+HIGH CONFIDENCE (0.9-1.0):
+• Value clearly labeled as 'e' or 'pitch' in dimension table
+• Visible dimension line between pins in drawing
+• Value matches package type expectations
+
+MEDIUM CONFIDENCE (0.7-0.9):
+• Value found in mechanical drawing but not explicitly labeled
+• Multiple similar values, chose smallest one
+• Unit conversion required (inch → mm)
+
+LOW CONFIDENCE (0.5-0.7):
+• Value inferred from dimension table without drawing
+• Drawing present but unclear/blurry
+• Value at edge of realistic range (0.3mm or 4.5mm)
+
+NO CONFIDENCE (< 0.5):
+• No mechanical drawing section found
+• Only text mentions of pitch without values
+→ In these cases, return "nicht gefunden"!
+
+───────────────────────────────────────────────────────────────────────
+🎓 EXAMPLES FROM REAL DATASHEETS
+───────────────────────────────────────────────────────────────────────
+
+EXAMPLE 1: RF Amplifier QFN Package
+─────────────────────────────────────
+Section: "Package Information and Dimensions"
+Drawing shows:
+  - QFN-16 top view with pins numbered
+  - Dimension line: ← 0.50 → labeled 'e'
+  - Note: "e = pin pitch"
+
+✓ CORRECT: Pitch = 0.50 mm
+✗ WRONG: Using package size 3×3mm
+
+EXAMPLE 2: OP Amplifier SOIC-8
+─────────────────────────────────────
+Section: "Mechanical Data"
+Drawing shows:
+  - SOIC-8 side view
+  - Multiple dimensions:
+    • 0.65 (small, between pins)
+    • 3.9 (body width)
+    • 5.0 (body length)
+
+✓ CORRECT: Pitch = 0.65 mm (pin-to-pin)
+✗ WRONG: Using 3.9mm (body width)
+
+EXAMPLE 3: Connector with 1.27mm Pitch
+─────────────────────────────────────
+Section: "Dimensions"
+Table shows:
+  Symbol | Min | Typ | Max | Description
+  e      | -   | 1.27| -   | Contact pitch
+
+✓ CORRECT: Pitch = 1.27 mm
+✓ HIGH CONFIDENCE: Explicitly labeled in table
+
+EXAMPLE 4: No Pitch Information
+─────────────────────────────────────
+Datasheet only shows:
+  - Block diagram
+  - Electrical characteristics
+  - Application circuit
+  - No mechanical drawing section
+
+✓ CORRECT: Pitch = "nicht gefunden"
+✗ WRONG: Guessing 0.5mm "because it's common"
+
+───────────────────────────────────────────────────────────────────────
+⚡ QUICK REFERENCE CHECKLIST
+───────────────────────────────────────────────────────────────────────
+
+Before extracting Pitch value, verify:
+
+□ 1. Found "Package" or "Mechanical" section?
+□ 2. Located technical drawing with dimensions?
+□ 3. Identified dimension 'e' or "pitch" label?
+□ 4. Value is between 0.3mm and 5.0mm?
+□ 5. If multiple values, chose the smallest one?
+□ 6. Converted inches to mm if needed?
+□ 7. Value makes sense for package type?
+□ 8. Confidence level appropriate?
+
+If ANY checkbox is ✗ → Double-check or return "nicht gefunden"
+
+═══════════════════════════════════════════════════════════════════════
+ END OF PITCH EXTRACTION GUIDELINES
+═══════════════════════════════════════════════════════════════════════
+
+REMEMBER:
+🎯 Pitch is in TECHNICAL DRAWINGS (Package Dimensions section)
+🔍 Look for dimension 'e' with arrows between pins
+✅ Value must be 0.3-5mm (pin-to-pin spacing)
+⚠️ NOT package dimensions (those are much larger!)
+🚫 "nicht gefunden" is BETTER than wrong value!

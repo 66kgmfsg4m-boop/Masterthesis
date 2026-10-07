@@ -1,0 +1,165 @@
+===============================================================
+ RF AMPLIFIER EXTRACTION GUIDELINES
+===============================================================
+
+CRITICAL: This datasheet describes an RF AMPLIFIER component
+   (LNA, Gain Block, Power Amplifier, Driver Amplifier, MMIC).
+   Most RF amplifier datasheets describe EXACTLY ONE device.
+   -> Extract ALL parameters DIRECTLY from the datasheet.
+   -> Parenthesised / trailing suffixes in the part number
+      (e.g. "(E6327)", "(FTSA1)", "TR", "T7", "-7") are ORDERING /
+      MARKING / TAPE-AND-REEL codes, NOT electrical variants.
+      Ignore them for value extraction.
+
+===============================================================
+ STEP 0: SINGLE-PRODUCT vs. MULTI-VARIANT
+===============================================================
+
+(A) SINGLE-PRODUCT datasheet (most common):
+    - Only ONE base part number on the title page.
+    - "Ordering Information" only lists packaging / marking codes.
+    - All electrical values are given ONCE (Features, Electrical
+      Characteristics, Specifications).
+    -> Extract every value from the general sections.
+    -> Do NOT return "nicht klar erkennbar" just because the exact
+       ordering suffix is not repeated next to each value.
+
+(B) MULTI-VARIANT datasheet (part-number matrix with different
+    electrical values per row):
+    -> Locate the row matching the user's part number and read
+       variant-specific values from THAT row only.
+
+===============================================================
+ STEP 1: DATASHEET NAMING HINTS (schema -> datasheet labels)
+===============================================================
+
+Datasheets rarely use the exact schema property names.
+For each property, ALSO look for these common labels in tables,
+headings and figure captions. Matching is case-insensitive and
+subscripts (Vd, S21, P1dB, ...) count as the same identifier.
+
+  GainTypDb
+    Labels: "Small Signal Power Gain", "Power Gain", "S21",
+            "Insertion Gain", "|S21|", "Gain (S21)"
+    Read the TYP value.
+
+  NfTypDb
+    Labels: "Noise Figure", "NF", "F (Noise)"
+    Read the TYP value. Unit: dB.
+
+  Op1DbDbm
+    Labels: "Output Power @ 1-dB Compression", "P1dB", "OP1dB",
+            "1 dB Compression Point"
+    Unit: dBm.
+
+  Oip3TypDbm
+    Labels: "3rd Order Intercept", "IP3", "OIP3", "Output IP3",
+            "Third Order Intercept"
+    Unit: dBm.
+
+  IsupplyMaxA
+    Labels: "Device Current", "Supply Current", "Icc", "Idd",
+            "Quiescent Current", "IDDQ"
+    -> MAX value (see STEP 3). NOT a bias test condition.
+
+  VsSpecifV
+    Labels: "Device Voltage", "Supply Voltage", "Vd", "Vcc",
+            "Vdd", "Vs", "Operating Voltage"
+    -> Typical OPERATING voltage. NOT a rating range,
+       NOT an absolute-max limit.
+
+  PdissW
+    Labels: "Power Dissipation", "PD", "PDISS",
+            "Total Power Dissipation"
+    -> Usually from Absolute Maximum Ratings.
+
+  RfinMaxDbm
+    Labels: "RF Input Power", "Pin (max)", "Maximum Input Power",
+            "Input Power"
+    -> MAX value from Absolute Maximum Ratings. Unit: dBm.
+
+  FMinHz / FMaxHz
+    Lower / upper limit of the specified frequency range
+    (Operating Frequency Range or first / last row of a
+    frequency matrix). Keep unit (MHz / GHz).
+
+  SpecifiedHz
+    The test / median frequency at which the TYP values were
+    measured (see STEP 2). NOT automatically the highest
+    frequency of the table.
+
+  NumberOfPin
+    Labels: "Pin count", "Number of leads", "Leads", "Pins".
+
+  PackageType
+    Labels: "Package", "Case", "Package Type", "Outline",
+            "Housing" (e.g. TSLP-6-2, SOT-89, QFN).
+
+  Pitch
+    Labels: "Lead pitch", "Pin pitch", "e" (drawing dimension),
+            "Pin spacing". Usually only in the package drawing.
+
+IMPORTANT: If you find a value under one of these synonyms,
+extract it. Do NOT return "nicht vorhanden" only because the exact
+schema name is missing from the datasheet.
+
+===============================================================
+ STEP 2: FREQUENCY MATRIX / MIN-TYP-MAX SELECTION
+===============================================================
+
+RF amplifier specs are often given per FREQUENCY BAND (a matrix
+with several rows: f=0.1-1.0 GHz, f=1.0-4.0 GHz, ...), each with
+Min / Typ / Max columns.
+
+COLUMN SELECTION (by property name):
+   Contains "Typ" -> TYP column
+   Contains "Min" -> MIN column
+   Contains "Max" -> MAX column
+   No suffix      -> TYP (default)
+
+ROW SELECTION when a value is given per frequency band:
+   1 band        -> that band
+   2 bands       -> 1st band (lower frequency)
+   3 bands       -> 2nd band (median)
+   4 bands       -> 2nd or 3rd band (middle)
+   5+ bands      -> middle band (count/2 + 1)
+
+CONSISTENCY: When you pick a median band for GainTypDb / NfTypDb /
+Op1DbDbm / Oip3TypDbm, set SpecifiedHz to the SAME median frequency
+(or its center). Do NOT report the highest frequency of the table
+as SpecifiedHz.
+
+If a value is given only ONCE (Features bullet, single stated
+value like "Gain: 20 dB"), extract it directly - a Min/Typ/Max
+table is NOT required.
+
+===============================================================
+ STEP 3: MAX-PROPERTIES FROM "ABSOLUTE MAXIMUM RATINGS"
+===============================================================
+
+Properties whose name requests a MAX value
+(IsupplyMaxA, RfinMaxDbm, and typically PdissW) MUST be read from:
+   "Absolute Maximum Ratings" / "Maximum Ratings" /
+   "Recommended Operating Conditions (max)".
+
+RULES:
+   1. Take the value from the Rating / Max column of that section.
+   2. NEVER take a value from a "Test Conditions" cell
+      (e.g. "Icc = 50 mA" is a bias condition, NOT IsupplyMax).
+   3. NEVER take a Typ value from the nominal operating table
+      as a Max value.
+   4. Preserve the unit exactly (e.g. "96 mA", "365 mW", "+20 dBm").
+
+===============================================================
+ STEP 4: DO NOT HALLUCINATE
+===============================================================
+
+   * If a value is genuinely not in the datasheet: "nicht vorhanden".
+   * Never invent a supply-voltage range (e.g. "5 V to 20 V") that
+     is not printed.
+   * Never derive a value from an unrelated row of a matrix.
+   * Keep original units (dBm, dB, mW, mA, V, GHz, MHz, mm).
+
+===============================================================
+ END OF RF AMPLIFIER EXTRACTION GUIDELINES
+===============================================================
