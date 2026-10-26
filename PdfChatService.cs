@@ -61,7 +61,10 @@ public class PdfChatService : IPdfChatService
             throw new InvalidOperationException(
                 "Azure-Konfiguration ist nicht verfuegbar - Chatbot ist deaktiviert.");
 
-        string pdfContext = TruncateForContext(pdfTextContent, MaxPdfContextChars);
+        string retrieved = PassageRetrieval.SelectMarked(pdfTextContent, question);
+        string pdfContext = !string.IsNullOrWhiteSpace(retrieved)
+            ? retrieved
+            : TruncateForContext(pdfTextContent, MaxPdfContextChars);
 
         var systemMessage = new
         {

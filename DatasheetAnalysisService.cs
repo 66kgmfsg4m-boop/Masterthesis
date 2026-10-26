@@ -957,7 +957,19 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
             _logger.LogInformation(
                 "TEXT-Extraktion: {ComponentName} - {TextLength} chars, IsTextBased={IsTextBased}",
                 component.DisplayName, textLength, pdfContent.IsTextBased);
-            string textResult = await AnalyzeTextContentAsync(pdfContent.TextContent, dynamicPrompt);
+            string documentForModel = pdfContent.TextContent;
+            if (pdfContent.PageTexts != null && pdfContent.PageTexts.Count > 0)
+            {
+                string passages = PassageRetrieval.Select(pdfContent.PageTexts, dynamicPrompt);
+                if (!string.IsNullOrWhiteSpace(passages))
+                {
+                    documentForModel = passages;
+                    _logger.LogInformation(
+                        "Retrieval: {ComponentName} - {Pages} Seiten, fünf oder weniger an das Modell, BM25, ganze Seite als Passage.",
+                        component.DisplayName, pdfContent.PageTexts.Count);
+                }
+            }
+            string textResult = await AnalyzeTextContentAsync(documentForModel, dynamicPrompt);
 
             // Kurzer Blick auf das Roh-Ergebnis loggen, damit man beim Compare
             // sofort sehen kann, ob das Modell fuer dieses PDF wirklich Werte

@@ -562,6 +562,23 @@ else
                 </div>
                 <div class="panel-body">
                     <div class="data-content">@State.ResultLog</div>
+                    @if (AcceptanceKeys.Count > 0)
+                    {
+                        <div style="margin-top:12px;">
+                            <div style="font-weight:600; color:var(--rs-blue-header); margin-bottom:8px;">
+                                Feldprüfung in dieser Sitzung (@Acceptance.Count von @AcceptanceKeys.Count markiert). Wird nicht ins DMS geschrieben.
+                            </div>
+                            @foreach (var key in AcceptanceKeys)
+                            {
+                                <label style="display:block; margin:4px 0;">
+                                    <input type="checkbox"
+                                           checked="@Acceptance.IsAccepted(key)"
+                                           @onchange="e => OnAcceptChanged(key, e)" />
+                                    @key
+                                </label>
+                            }
+                        </div>
+                    }
                 </div>
 
                 @if (DmsTriggered)
@@ -776,6 +793,34 @@ protected override void OnInitialized()
     Console.WriteLine($"[Results] CurrentJsonResult Length = {State.CurrentJsonResult?.Length ?? 0}");
         
     State.OnStateChanged += OnStateChanged;
+    LoadAcceptanceKeys();
+}
+
+private void LoadAcceptanceKeys()
+{
+    AcceptanceKeys = new List<string>();
+    if (string.IsNullOrWhiteSpace(State.CurrentJsonResult))
+        return;
+    try
+    {
+        var json = JObject.Parse(State.CurrentJsonResult);
+        foreach (var prop in json.Properties())
+        {
+            if (prop.Name.StartsWith("_", StringComparison.Ordinal))
+                continue;
+            AcceptanceKeys.Add(prop.Name);
+        }
+    }
+    catch
+    {
+        AcceptanceKeys = new List<string>();
+    }
+}
+
+private void OnAcceptChanged(string key, ChangeEventArgs e)
+{
+    var accepted = e.Value is bool b && b;
+    Acceptance.Set(key, accepted);
 }
 
 private void OnStateChanged()
@@ -801,6 +846,7 @@ private void OnStateChanged()
 
     private void OnReset()
     {
+        Acceptance.Clear();
         State.Reset();
         GoToHome();
     }
@@ -932,6 +978,8 @@ private void OnStateChanged()
     private bool DmsRecordFound;
     private string MaterialNumberInput = "";
     private List<DmsRow>? DmsRows;
+    private readonly FieldAcceptance Acceptance = new();
+    private List<string> AcceptanceKeys = new();
     private List<string>? DmsRawColumns;
     private bool OnlyShowDifferences = false;
 

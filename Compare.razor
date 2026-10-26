@@ -262,6 +262,9 @@
                     <input type="checkbox" @bind="ShowOnlyDifferences" />
                     Nur Unterschiede anzeigen
                 </label>
+                <span style="margin-left:16px; font-weight:600; color:#003c7e;">
+                    @AlignmentText
+                </span>
                 <button class="cmp-button secondary" style="padding:8px 20px;font-size:14px;" @onclick="OnReset">
                     Neuer Vergleich
                 </button>
@@ -322,6 +325,29 @@
     private string StatusMessage = "";
     private string ErrorMessage = "";
     private bool ShowOnlyDifferences;
+
+    private string AlignmentText
+    {
+        get
+        {
+            if (!CompareState.HasResults)
+                return "";
+            var report = SubstituteAlignment.Evaluate(
+                ToMap(CompareState.Results[0].Properties),
+                ToMap(CompareState.Results[1].Properties));
+            if (report.JointReadingPossible)
+                return "Funktion, elektrische Grenzen und Pinbelegung liegen auf beiden Seiten. Das ist keine Freigabe eines Ersatzes.";
+            return "Für eine Austauschbarkeit fehlt: " + report.MissingGroups + ". Die Tabelle vergleicht nur Zeichenketten.";
+        }
+    }
+
+    private static Dictionary<string, string?> ToMap(Newtonsoft.Json.Linq.JObject obj)
+    {
+        var map = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prop in obj.Properties())
+            map[prop.Name] = prop.Value?.ToString();
+        return map;
+    }
 
     // Stage-1 / Identifikations-Flow
     private PDFProcessor.PDFContent? PdfContentA;

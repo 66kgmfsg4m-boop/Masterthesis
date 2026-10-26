@@ -121,12 +121,14 @@ public class PDFProcessor
         public string TextContent { get; }
         public List<string> Base64Images { get; }
         public int PageCount { get; }
-        public PDFContent(bool textBased, string textContent, List<string> base64Images, int pageCount)
+        public IReadOnlyDictionary<int, string> PageTexts { get; }
+        public PDFContent(bool textBased, string textContent, List<string> base64Images, int pageCount, IReadOnlyDictionary<int, string>? pageTexts = null)
         {
             IsTextBased = textBased;
             TextContent = textContent ?? "";
             Base64Images = base64Images ?? new List<string>();
             PageCount = pageCount;
+            PageTexts = pageTexts ?? new Dictionary<int, string>();
         }
     }
 
@@ -207,12 +209,12 @@ public class PDFProcessor
                     pageCount, extractedText.Length, isTextBased ? "Text" : "Bild", base64Images.Count);
 
                 if (isTextBased)
-                    return new PDFContent(true, extractedText, base64Images, pageCount);
+                    return new PDFContent(true, extractedText, base64Images, pageCount, pageTexts);
                 
                 if (base64Images.Count == 0)
                     _logger.LogWarning("Keine Bilder extrahiert – PDF könnte leer oder geschützt sein");
                 
-                return new PDFContent(false, extractedText, base64Images, pageCount);
+                return new PDFContent(false, extractedText, base64Images, pageCount, pageTexts);
             }
         }
         catch (System.Exception ex)

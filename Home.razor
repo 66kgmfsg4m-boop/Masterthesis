@@ -697,7 +697,10 @@ private IdentificationDialog? IdentificationDialogRef;
             // PDF-Text im State ablegen, damit der Chatbot auf der Ergebnisseite
             // Fragen zum aktuellen (einzigen) PDF beantworten kann. Bewusst nur
             // ein PDF pro Analyse - kein History-/Multi-PDF-Support.
-            State.PdfTextContent = PdfContent?.TextContent;
+            string markedPages = PassageRetrieval.MarkPages(PdfContent?.PageTexts);
+            State.PdfTextContent = string.IsNullOrWhiteSpace(markedPages)
+                ? PdfContent?.TextContent
+                : markedPages;
             State.CurrentFileName = SelectedFile.Name;
 
             // Schritt 2: Identifikation durchführen
