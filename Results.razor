@@ -794,6 +794,7 @@ protected override void OnInitialized()
         
     State.OnStateChanged += OnStateChanged;
     LoadAcceptanceKeys();
+    _acceptanceSource = State.CurrentJsonResult;
 }
 
 private void LoadAcceptanceKeys()
@@ -826,7 +827,16 @@ private void OnAcceptChanged(string key, ChangeEventArgs e)
 private void OnStateChanged()
 {
     Console.WriteLine($"[Results] OnStateChanged - HasResults = {State.HasResults}");
-    InvokeAsync(StateHasChanged);
+    InvokeAsync(() =>
+    {
+        if (!string.Equals(_acceptanceSource, State.CurrentJsonResult, StringComparison.Ordinal))
+        {
+            _acceptanceSource = State.CurrentJsonResult;
+            Acceptance.Clear();
+            LoadAcceptanceKeys();
+        }
+        StateHasChanged();
+    });
 }
 
     private async Task OnCopy()
@@ -979,6 +989,7 @@ private void OnStateChanged()
     private string MaterialNumberInput = "";
     private List<DmsRow>? DmsRows;
     private readonly FieldAcceptance Acceptance = new();
+    private string? _acceptanceSource;
     private List<string> AcceptanceKeys = new();
     private List<string>? DmsRawColumns;
     private bool OnlyShowDifferences = false;

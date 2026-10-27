@@ -19,6 +19,10 @@ public static class PassageRetrieval
     public const int PassageCount = 5;
     private const double K1 = 1.2;
     private const double B = 0.75;
+    // Larger than any BM25 sum over a page, so a page that contains the confirmed
+    // part number is kept when other pages merely share the prompt vocabulary.
+    private const double AnchorBonus = 1000;
+    private const int MinimumAnchorLength = 4;
     private static readonly Regex TokenPattern = new(@"[A-Za-z0-9]+(?:[./-][A-Za-z0-9]+)*", RegexOptions.Compiled);
 
     private static readonly HashSet<string> Stopwords = new(StringComparer.OrdinalIgnoreCase)
@@ -66,9 +70,12 @@ public static class PassageRetrieval
     }
 
     /// <summary>
-    /// Five pages, highest BM25 first. Fewer than five non-empty pages returns all of them in page order.
+    /// At most five pages. Fewer than five non-empty pages returns all of them in page order.
+    /// Otherwise the pages are the BM25 ranking of <paramref name="query"/>.
+    /// A page that contains <paramref name="anchor"/> (the confirmed part number, letters and
+    /// digits only) is preferred inside that cut, then the five are written in page order.
     /// </summary>
-    public static string Select(IReadOnlyDictionary<int, string>? pages, string? query)
+    public static string Select(IReadOnlyDictionary<int, string>? pages, string? query, string? anchor = null)
     {
         if (pages == null || pages.Count == 0)
             return "";
@@ -83,7 +90,9 @@ public static class PassageRetrieval
             return Format(usable);
 
         var queryTerms = Tokenize(query);
-        if (queryTerms.Count == 0)
+        string? compactAnchor = Compact(anchor);
+        bool useAnchor = compactAnchor != null && compactAnchor.Length >= MinimumAnchorLength;
+        if (queryTerms.Count == 0 && !useAnchor)
             return Format(usable.Take(PassageCount));
 
         var documents = usable.Select(pair => (pair.Key, Tokens: Tokenize(pair.Value))).ToList();
@@ -123,6 +132,8 @@ public static class PassageRetrieval
                 double denominator = tf + K1 * (1.0 - B + B * length / averageLength);
                 score += idf * (tf * (K1 + 1.0)) / denominator;
             }
+            if (useAnchor && PageContains(usable[i].Value, compactAnchor!))
+                score += AnchorBonus;
             ranked.Add((usable[i].Key, score, usable[i].Value));
         }
 
@@ -130,6 +141,7 @@ public static class PassageRetrieval
             .OrderByDescending(row => row.Score)
             .ThenBy(row => row.Page)
             .Take(PassageCount)
+            .OrderBy(row => row.Page)
             .ToList();
 
         if (chosen.All(row => row.Score <= 0))
@@ -157,6 +169,25 @@ public static class PassageRetrieval
             builder.AppendLine(page.Value.Trim());
         }
         return builder.ToString().Trim();
+    }
+
+    private static string? Compact(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+        var chars = new StringBuilder(text.Length);
+        foreach (char c in text)
+        {
+            if (char.IsLetterOrDigit(c))
+                chars.Append(char.ToLowerInvariant(c));
+        }
+        return chars.Length == 0 ? null : chars.ToString();
+    }
+
+    private static bool PageContains(string page, string compactAnchor)
+    {
+        string? compactPage = Compact(page);
+        return compactPage != null && compactPage.Contains(compactAnchor, StringComparison.Ordinal);
     }
 
     private static List<string> Tokenize(string? text)

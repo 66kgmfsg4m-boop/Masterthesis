@@ -270,7 +270,8 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 string chartResult;
                 if (pdfContent.IsTextBased)
                 {
-                    chartResult = await AnalyzeTextContentAsync(pdfContent.TextContent, seriesPrompt);
+                    chartResult = await AnalyzeTextContentAsync(
+                        TextForModel(pdfContent, seriesPrompt, partNumber), seriesPrompt);
                 }
                 else
                 {
@@ -327,7 +328,8 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 string decodingResult;
                 if (pdfContent.IsTextBased)
                 {
-                    decodingResult = await AnalyzeTextContentAsync(pdfContent.TextContent, decodingPrompt);
+                    decodingResult = await AnalyzeTextContentAsync(
+                        TextForModel(pdfContent, decodingPrompt, partNumber), decodingPrompt);
                 }
                 else
                 {
@@ -957,18 +959,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
             _logger.LogInformation(
                 "TEXT-Extraktion: {ComponentName} - {TextLength} chars, IsTextBased={IsTextBased}",
                 component.DisplayName, textLength, pdfContent.IsTextBased);
-            string documentForModel = pdfContent.TextContent;
-            if (pdfContent.PageTexts != null && pdfContent.PageTexts.Count > 0)
-            {
-                string passages = PassageRetrieval.Select(pdfContent.PageTexts, dynamicPrompt);
-                if (!string.IsNullOrWhiteSpace(passages))
-                {
-                    documentForModel = passages;
-                    _logger.LogInformation(
-                        "Retrieval: {ComponentName} - {Pages} Seiten, fünf oder weniger an das Modell, BM25, ganze Seite als Passage.",
-                        component.DisplayName, pdfContent.PageTexts.Count);
-                }
-            }
+            string documentForModel = TextForModel(pdfContent, dynamicPrompt, partNumber);
             string textResult = await AnalyzeTextContentAsync(documentForModel, dynamicPrompt);
 
             // Kurzer Blick auf das Roh-Ergebnis loggen, damit man beim Compare
@@ -1609,7 +1600,7 @@ VORGEHEN:
 
             if (pdfContent.IsTextBased)
             {
-                return await AnalyzeTextContentAsync(pdfContent.TextContent, prompt);
+                return await AnalyzeTextContentAsync(TextForModel(pdfContent, prompt), prompt);
             }
             else
             {
@@ -1620,6 +1611,28 @@ VORGEHEN:
         #endregion
 
         #region Azure OpenAI Communication
+
+        /// <summary>
+        /// BM25 over whole pages, at most five, in page order.
+        /// Identification does not use this cut: the catalogue group is not known yet.
+        /// </summary>
+        private string TextForModel(PDFProcessor.PDFContent pdfContent, string query, string? anchor = null)
+        {
+            string fallback = pdfContent.TextContent ?? "";
+            if (pdfContent.PageTexts == null || pdfContent.PageTexts.Count == 0)
+                return fallback;
+
+            string passages = PassageRetrieval.Select(pdfContent.PageTexts, query, anchor);
+            if (string.IsNullOrWhiteSpace(passages))
+                return fallback;
+
+            _logger.LogInformation(
+                "Retrieval: {PageCount} Seiten im Dokument, höchstens {Kept} an das Modell, Anker={Anchored}.",
+                pdfContent.PageTexts.Count,
+                PassageRetrieval.PassageCount,
+                !string.IsNullOrWhiteSpace(anchor));
+            return passages;
+        }
 
         private async Task<string> AnalyzeTextContentAsync(string textContent, string prompt)
         {

@@ -87,7 +87,9 @@ public class PdfChatService : IPdfChatService
         }
         if (!string.IsNullOrWhiteSpace(pdfContext))
         {
-            contextBuilder.AppendLine("### PDF-Inhalt (moeglicherweise gekuerzt)");
+            contextBuilder.AppendLine(!string.IsNullOrWhiteSpace(retrieved)
+                ? "### PDF-Inhalt (bis zu fünf Seiten, nach der Frage gewählt, in Seitenreihenfolge)"
+                : "### PDF-Inhalt (moeglicherweise gekuerzt)");
             contextBuilder.AppendLine(pdfContext);
         }
 
