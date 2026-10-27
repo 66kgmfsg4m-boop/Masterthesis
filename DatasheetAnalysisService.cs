@@ -1627,11 +1627,35 @@ VORGEHEN:
                 return fallback;
 
             _logger.LogInformation(
-                "Retrieval: {PageCount} Seiten im Dokument, höchstens {Kept} an das Modell, Anker={Anchored}.",
+                "Retrieval: Seiten {SentPages} von {PageCount} an das Modell, Anker={Anchored}.",
+                string.Join(",", PageMarkers(passages)),
                 pdfContent.PageTexts.Count,
-                PassageRetrieval.PassageCount,
                 !string.IsNullOrWhiteSpace(anchor));
             return passages;
+        }
+
+        private static List<int> PageMarkers(string passages)
+        {
+            var pages = new List<int>();
+            int search = 0;
+            const string marker = "[Page ";
+            while (search < passages.Length)
+            {
+                int at = passages.IndexOf(marker, search, StringComparison.Ordinal);
+                if (at < 0)
+                    break;
+                int end = passages.IndexOf(']', at + marker.Length);
+                if (end < 0)
+                    break;
+                if (int.TryParse(
+                        passages.Substring(at + marker.Length, end - at - marker.Length),
+                        System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out int page))
+                    pages.Add(page);
+                search = end + 1;
+            }
+            return pages;
         }
 
         private async Task<string> AnalyzeTextContentAsync(string textContent, string prompt)

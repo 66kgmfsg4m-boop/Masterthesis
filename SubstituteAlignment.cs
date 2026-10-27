@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace DatasheetAnalyzer.Blazor.Services;
@@ -18,8 +19,8 @@ public static class SubstituteAlignment
 
     private static readonly string[] FunctionKeys = { "Function" };
 
-    private static readonly Regex PinKey = new(
-        "pin",
+    private static readonly Regex PinWord = new(
+        @"^pin",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex LimitKey = new(
@@ -83,7 +84,40 @@ public static class SubstituteAlignment
     private static bool IsFunction(string key) =>
         FunctionKeys.Contains(key, StringComparer.OrdinalIgnoreCase);
 
-    private static bool IsPin(string key) => PinKey.IsMatch(key);
+    private static bool IsPin(string key)
+    {
+        foreach (string word in SplitKey(key))
+        {
+            if (PinWord.IsMatch(word))
+                return true;
+        }
+        return false;
+    }
+
+    private static IEnumerable<string> SplitKey(string key)
+    {
+        var word = new StringBuilder();
+        foreach (char c in key)
+        {
+            if (!char.IsLetterOrDigit(c))
+            {
+                if (word.Length > 0)
+                {
+                    yield return word.ToString();
+                    word.Clear();
+                }
+                continue;
+            }
+            if (word.Length > 0 && char.IsUpper(c) && char.IsLower(word[word.Length - 1]))
+            {
+                yield return word.ToString();
+                word.Clear();
+            }
+            word.Append(c);
+        }
+        if (word.Length > 0)
+            yield return word.ToString();
+    }
 
     private static bool IsLimit(string key) => LimitKey.IsMatch(key);
 
