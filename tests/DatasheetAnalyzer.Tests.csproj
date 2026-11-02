@@ -14,5 +14,7 @@
     <Compile Include="..\PassageRetrieval.cs" />
     <Compile Include="..\SubstituteAlignment.cs" />
     <Compile Include="..\FieldAcceptance.cs" />
+    <Compile Include="..\FieldAgreement.cs" />
+    <Compile Include="..\FieldAgreementLog.cs" />
   </ItemGroup>
 </Project>

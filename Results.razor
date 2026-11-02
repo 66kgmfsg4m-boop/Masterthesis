@@ -640,6 +640,22 @@ else
                                         @DmsRows.Count Felder geladen &nbsp;|&nbsp;
                                         davon @DmsRows.Count(r => r.IsDifferent) Abweichungen
                                     </span>
+                                    @if (FieldScore is { } score)
+                                    {
+                                        <div class="dms-info" style="display:block; margin-top:6px;">
+                                            Feldübereinstimmung: <strong>@FieldScoreText(score)</strong>
+                                            @if (score.Unsupported > 0)
+                                            {
+                                                <span> @score.Unsupported KI-Werte ohne DMS-Eintrag zählen nicht mit.</span>
+                                            }
+                                        </div>
+                                        @if (ScoreSaved)
+                                        {
+                                            <div class="dms-info" style="display:block; margin-top:4px;">
+                                                Für die Auswertung pro Bauteil gespeichert.
+                                            </div>
+                                        }
+                                    }
                                     <label style="margin-left:16px;">
                                         <input type="checkbox" @bind="OnlyShowDifferences" />
                                         Nur Abweichungen anzeigen
@@ -797,6 +813,13 @@ protected override void OnInitialized()
     _acceptanceSource = State.CurrentJsonResult;
 }
 
+protected override async Task OnAfterRenderAsync(bool firstRender)
+{
+    if (!firstRender)
+        return;
+    await TryStartDmsComparison();
+}
+
 private void LoadAcceptanceKeys()
 {
     AcceptanceKeys = new List<string>();
@@ -827,13 +850,18 @@ private void OnAcceptChanged(string key, ChangeEventArgs e)
 private void OnStateChanged()
 {
     Console.WriteLine($"[Results] OnStateChanged - HasResults = {State.HasResults}");
-    InvokeAsync(() =>
+    InvokeAsync(async () =>
     {
         if (!string.Equals(_acceptanceSource, State.CurrentJsonResult, StringComparison.Ordinal))
         {
             _acceptanceSource = State.CurrentJsonResult;
             Acceptance.Clear();
             LoadAcceptanceKeys();
+            _dmsAutoStarted = false;
+            FieldScore = null;
+            ScoreSaved = false;
+            DmsRows = null;
+            await TryStartDmsComparison();
         }
         StateHasChanged();
     });
@@ -982,6 +1010,9 @@ private void OnStateChanged()
     }
 
     private bool DmsTriggered;
+    private bool _dmsAutoStarted;
+    private FieldAgreement.Score? FieldScore;
+    private bool ScoreSaved;
     private bool IsDmsLoading;
     private string? DmsErrorMessage;
     private string? DmsObjectId;
@@ -1117,10 +1148,32 @@ private void OnStateChanged()
         catch { return null; }
     }
 
+    private async Task TryStartDmsComparison()
+    {
+        if (_dmsAutoStarted || !State.HasResults)
+            return;
+
+        _dmsAutoStarted = true;
+        OnToggleDmsPanel();
+        if (!string.IsNullOrWhiteSpace(MaterialNumberInput))
+            await OnLoadFromDms();
+    }
+
+    private static string FieldScoreText(FieldAgreement.Score score)
+    {
+        if (score.ReferenceFields == 0)
+            return "Keine gefüllten DMS-Felder.";
+
+        var percent = (int)Math.Round(100.0 * score.Matches / score.ReferenceFields);
+        return $"{score.Matches} von {score.ReferenceFields} DMS-Feldern ({percent} %). Einheiten und Dezimalzeichen werden nicht umgerechnet.";
+    }
+
     private async Task OnLoadFromDms()
     {
         DmsErrorMessage = null;
         DmsRows = null;
+        FieldScore = null;
+        ScoreSaved = false;
         DmsRecordFound = false;
         IsDmsLoading = true;
         StateHasChanged();
@@ -1339,6 +1392,8 @@ private void OnStateChanged()
             }
 
             DmsRows = rows;
+            FieldScore = FieldAgreement.Evaluate(rows.Select(r => ((string?)r.PdfValue, (string?)r.DmsValue)));
+            ScoreSaved = TrySaveFieldScore(rows, FieldScore.Value);
         }
         catch (Exception ex)
         {
@@ -1348,6 +1403,46 @@ private void OnStateChanged()
         {
             IsDmsLoading = false;
             StateHasChanged();
+        }
+    }
+
+    private bool TrySaveFieldScore(List<DmsRow> rows, FieldAgreement.Score score)
+    {
+        try
+        {
+            string? partNumber = null;
+            if (!string.IsNullOrWhiteSpace(State.CurrentJsonResult))
+            {
+                var json = JObject.Parse(State.CurrentJsonResult);
+                partNumber = json["PartNumber"]?.Value<string>();
+            }
+
+            var record = new FieldAgreementRecord
+            {
+                RecordedAtUtc = DateTime.UtcNow,
+                MaterialNumber = MaterialNumberInput.Trim(),
+                ObjectId = DmsObjectId,
+                Category = ExtractCategoryFromResult(),
+                PartNumber = partNumber,
+                Matches = score.Matches,
+                ReferenceFields = score.ReferenceFields,
+                Unsupported = score.Unsupported,
+                Ratio = score.Ratio,
+                Fields = rows.Select(r => new FieldAgreementField
+                {
+                    Name = r.ColumnLabel,
+                    Ai = r.PdfValue,
+                    Dms = r.DmsValue,
+                    Outcome = FieldAgreementLog.Outcome(r.PdfValue, r.DmsValue)
+                }).ToList()
+            };
+
+            FieldAgreementLog.CreateDefault().Append(record);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 
