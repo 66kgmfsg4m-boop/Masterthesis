@@ -345,7 +345,11 @@
     {
         var map = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         foreach (var prop in obj.Properties())
-            map[prop.Name] = prop.Value?.ToString();
+        {
+            if (prop.Name.StartsWith("_", StringComparison.Ordinal))
+                continue;
+            map[prop.Name] = ReadingContext.Plain(prop.Value);
+        }
         return map;
     }
 

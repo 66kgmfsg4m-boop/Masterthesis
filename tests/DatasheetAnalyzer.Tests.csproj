@@ -9,6 +9,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\PassageRetrieval.cs" />
@@ -16,5 +17,8 @@
     <Compile Include="..\FieldAcceptance.cs" />
     <Compile Include="..\FieldAgreement.cs" />
     <Compile Include="..\FieldAgreementLog.cs" />
+    <Compile Include="..\ReadingContext.cs" />
+    <Compile Include="..\SimilarPartSearch.cs" />
+    <Compile Include="..\DistributorSearch.cs" />
   </ItemGroup>
 </Project>

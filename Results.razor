@@ -9,6 +9,7 @@
 @inject DatasheetAnalyzer.Core.Services.DatasheetAnalysisService AnalysisService
 @implements IDisposable
 @using Newtonsoft.Json.Linq
+@using DatasheetAnalyzer.Core.Services
 
 <PageTitle>Ergebnisse - Datasheet Analyzer</PageTitle>
 
@@ -561,24 +562,103 @@ else
                     </h2>
                 </div>
                 <div class="panel-body">
-                    <div class="data-content">@State.ResultLog</div>
-                    @if (AcceptanceKeys.Count > 0)
+                    @if (ReadingRows.Count > 0)
                     {
-                        <div style="margin-top:12px;">
-                            <div style="font-weight:600; color:var(--rs-blue-header); margin-bottom:8px;">
-                                Feldprüfung in dieser Sitzung (@Acceptance.Count von @AcceptanceKeys.Count markiert). Wird nicht ins DMS geschrieben.
-                            </div>
-                            @foreach (var key in AcceptanceKeys)
-                            {
-                                <label style="display:block; margin:4px 0;">
-                                    <input type="checkbox"
-                                           checked="@Acceptance.IsAccepted(key)"
-                                           @onchange="e => OnAcceptChanged(key, e)" />
-                                    @key
-                                </label>
-                            }
+                        <p style="margin:0 0 10px; color:var(--rs-blue-header);">
+                            Jede Zeile nennt den Wert, die Einheit, die Bedingung, die Variante und die Seite im Datenblatt.
+                            Eine fehlende Angabe bleibt ?nicht vorhanden? und wird nicht zu 0.
+                        </p>
+                        <div class="dms-table-wrapper">
+                            <table class="dms-table">
+                                <thead>
+                                    <tr>
+                                        <th>Bezeichnung</th>
+                                        <th>Wert</th>
+                                        <th>Einheit</th>
+                                        <th>Bedingung</th>
+                                        <th>Variante</th>
+                                        <th>Quelle</th>
+                                        <th>Gesehen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in ReadingRows)
+                                    {
+                                        <tr>
+                                            <td>@row.Designation</td>
+                                            <td>@(row.Absent ? "nicht vorhanden" : row.Value)</td>
+                                            <td>@(string.IsNullOrWhiteSpace(row.Unit) ? "?" : row.Unit)</td>
+                                            <td>@(string.IsNullOrWhiteSpace(row.Condition) ? "?" : row.Condition)</td>
+                                            <td>@(string.IsNullOrWhiteSpace(row.Variant) ? "?" : row.Variant)</td>
+                                            <td>@row.PageLabel</td>
+                                            <td>
+                                                <input type="checkbox"
+                                                       checked="@Acceptance.IsAccepted(row.Designation)"
+                                                       @onchange="e => OnAcceptChanged(row.Designation, e)" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
                         </div>
+                        <p style="margin:8px 0 0; font-size:0.9rem;">
+                            Feldprüfung in dieser Sitzung (@Acceptance.Count von @ReadingRows.Count markiert). Wird nicht ins DMS geschrieben.
+                        </p>
                     }
+                    <details style="margin-top:12px;">
+                        <summary>Rohprotokoll</summary>
+                        <div class="data-content">@State.ResultLog</div>
+                    </details>
+
+                    <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--rs-gray-medium);">
+                        <h3 style="margin:0 0 8px; color:var(--rs-blue-header);">Ähnliche Bauteile</h3>
+                        <p style="margin:0 0 8px;">
+                            Die gelesenen Parameter werden mit dem DMS-Index verglichen.
+                            Dieselbe Anfrage lässt sich bei Mouser, Digi-Key, Farnell und LCSC öffnen.
+                            Ein Treffer gibt kein Bauteil frei und legt keinen Last-Time-Buy an.
+                        </p>
+                        <button class="rs-button" type="button" @onclick="OnSearchSimilar" disabled="@SimilarBusy">
+                            @(SimilarBusy ? "Suche läuft..." : "Nach Parametern suchen")
+                        </button>
+                        @if (!string.IsNullOrWhiteSpace(SimilarMessage))
+                        {
+                            <p style="margin:8px 0 0;">@SimilarMessage</p>
+                        }
+                        @if (SimilarLinks.Count > 0)
+                        {
+                            <p style="margin:8px 0 4px;">Distributoren</p>
+                            <ul>
+                                @foreach (var link in SimilarLinks)
+                                {
+                                    <li><a href="@link.Url" target="_blank" rel="noopener noreferrer">@link.Name</a></li>
+                                }
+                            </ul>
+                        }
+                        @if (MouserHits.Count > 0)
+                        {
+                            <p style="margin:8px 0 4px;">Mouser-Katalog</p>
+                            <ul>
+                                @foreach (var hit in MouserHits)
+                                {
+                                    <li>@hit.Manufacturer @hit.PartNumber ? @hit.Description</li>
+                                }
+                            </ul>
+                        }
+                        @if (SimilarMatches.Count > 0)
+                        {
+                            <p style="margin:8px 0 4px;">DMS-Index (@SimilarSource). Nichts wird ins DMS geschrieben.</p>
+                            <ul>
+                                @foreach (var match in SimilarMatches)
+                                {
+                                    <li>
+                                        @match.Candidate.MaterialNumber
+                                        @match.Candidate.PartNumber
+                                        (@match.Shared von @match.Compared Parametern nah)
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
                 </div>
 
                 @if (DmsTriggered)
@@ -820,20 +900,68 @@ protected override async Task OnAfterRenderAsync(bool firstRender)
     await TryStartDmsComparison();
 }
 
+private List<ReadingContext.Row> ReadingRows = new();
+private IReadOnlyList<SimilarPartSearch.Match> SimilarMatches = Array.Empty<SimilarPartSearch.Match>();
+private IReadOnlyList<DistributorSearch.Link> SimilarLinks = Array.Empty<DistributorSearch.Link>();
+private IReadOnlyList<DistributorSearch.Hit> MouserHits = Array.Empty<DistributorSearch.Hit>();
+private string SimilarSource = "";
+private string? SimilarMessage;
+private bool SimilarBusy;
+
+private async Task OnSearchSimilar()
+{
+    if (string.IsNullOrWhiteSpace(State.CurrentJsonResult))
+    {
+        SimilarMessage = "Es liegt noch kein Vorschlag vor.";
+        return;
+    }
+
+    SimilarBusy = true;
+    SimilarMessage = null;
+    try
+    {
+        var json = JObject.Parse(State.CurrentJsonResult);
+        var query = SimilarPartSearch.QueryFrom(json);
+        var index = SimilarPartSearch.LoadIndex();
+        SimilarMatches = SimilarPartSearch.Rank(query, index);
+        SimilarSource = index.Source;
+        string keyword = SimilarPartSearch.Keyword(query);
+        SimilarLinks = string.IsNullOrWhiteSpace(keyword)
+            ? Array.Empty<DistributorSearch.Link>()
+            : DistributorSearch.Links(keyword);
+        MouserHits = Array.Empty<DistributorSearch.Hit>();
+        if (DistributorSearch.HasMouserKey() && !string.IsNullOrWhiteSpace(keyword))
+            MouserHits = await DistributorSearch.SearchMouserAsync(keyword);
+
+        if (query.Parameters.Count == 0 && string.IsNullOrWhiteSpace(query.Function))
+            SimilarMessage = "Im Vorschlag stehen keine numerischen Parameter für die Suche.";
+        else if (!DistributorSearch.HasMouserKey())
+            SimilarMessage = "Die Distributor-Seiten öffnen dieselbe Anfrage. Ein Mouser-API-Schlüssel ist nicht hinterlegt, deshalb bleibt der Katalogaufruf aus.";
+        else
+            SimilarMessage = "DMS-Index und Mouser wurden mit denselben Parametern abgefragt.";
+    }
+    catch (Exception ex)
+    {
+        SimilarMessage = "Die Suche konnte nicht ausgeführt werden: " + ex.Message;
+    }
+    finally
+    {
+        SimilarBusy = false;
+    }
+}
+
 private void LoadAcceptanceKeys()
 {
     AcceptanceKeys = new List<string>();
+    ReadingRows = new List<ReadingContext.Row>();
     if (string.IsNullOrWhiteSpace(State.CurrentJsonResult))
         return;
     try
     {
         var json = JObject.Parse(State.CurrentJsonResult);
-        foreach (var prop in json.Properties())
-        {
-            if (prop.Name.StartsWith("_", StringComparison.Ordinal))
-                continue;
-            AcceptanceKeys.Add(prop.Name);
-        }
+        ReadingRows = ReadingContext.Rows(json).ToList();
+        foreach (var row in ReadingRows)
+            AcceptanceKeys.Add(row.Designation);
     }
     catch
     {
@@ -1230,7 +1358,7 @@ private void OnStateChanged()
                         // identifiziert. Sie im Diff zu zeigen produziert nur
                         // Dauer-"+"-Eintraege ohne Erkenntniswert.
                         if (NonComparableProperties.Contains(prop.Name)) continue;
-                        pdfProps[prop.Name] = prop.Value?.ToString();
+                        pdfProps[prop.Name] = ReadingContext.Plain(prop.Value);
                     }
                 }
                 catch (Exception ex)

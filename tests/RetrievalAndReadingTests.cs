@@ -198,6 +198,144 @@ public class FieldAgreementLogTests
     }
 }
 
+public class ReadingContextTests
+{
+    [Fact]
+    public void ValueKeepsUnitConditionVariantAndPage()
+    {
+        var json = Newtonsoft.Json.Linq.JObject.Parse("""
+        {
+          "GainTypDb": {
+            "value": "17",
+            "unit": "dB",
+            "condition": "Vd = 5 V",
+            "variant": "",
+            "page": 9
+          },
+          "PartNumber": "HMC1040"
+        }
+        """);
+        var pages = new Dictionary<int, string>
+        {
+            [1] = "Ordering information HMC1040 and ADL5611",
+            [2] = "Gain 17 dB at Vd = 5 V for HMC1040. ADL5611 is the other code."
+        };
+
+        ReadingContext.TakeDetails(json);
+        ReadingContext.Attach(json, pages, "HMC1040");
+        var row = ReadingContext.Rows(json).Single(item => item.Designation == "GainTypDb");
+
+        Assert.Equal("17", row.Value);
+        Assert.Equal("dB", row.Unit);
+        Assert.Equal("Vd = 5 V", row.Condition);
+        Assert.Equal("HMC1040", row.Variant);
+        Assert.Equal(2, row.Page);
+        Assert.Equal("typ", row.Statement);
+        Assert.Equal("17 dB", ReadingContext.Plain(json["GainTypDb"]));
+        Assert.Equal("HMC1040", json["PartNumber"]?.ToString());
+    }
+
+    [Fact]
+    public void AbsenceStaysAbsentAndIsNotZero()
+    {
+        var json = Newtonsoft.Json.Linq.JObject.Parse("""
+        { "NoiseTypDb": "nicht vorhanden", "SupplyVoltage": "0 V" }
+        """);
+        var pages = new Dictionary<int, string> { [1] = "Supply 0 V" };
+
+        ReadingContext.Attach(json, pages, null);
+        var absent = ReadingContext.Rows(json).Single(item => item.Designation == "NoiseTypDb");
+        var zero = ReadingContext.Rows(json).Single(item => item.Designation == "SupplyVoltage");
+
+        Assert.True(absent.Absent);
+        Assert.Equal("nicht vorhanden", absent.Value);
+        Assert.Null(absent.Page);
+        Assert.False(zero.Absent);
+        Assert.Equal("0", zero.Value);
+        Assert.Equal("V", zero.Unit);
+        Assert.Equal(1, zero.Page);
+    }
+
+    [Fact]
+    public void MinimumTypicalAndMaximumStayOnSeparateKeys()
+    {
+        var fields = new Dictionary<string, string?>
+        {
+            ["GainMinDb"] = "10 / 17 / 20 dB",
+            ["GainTypDb"] = "nicht vorhanden",
+            ["GainMaxDb"] = "nicht vorhanden"
+        };
+
+        ReadingContext.SeparateStatements(fields);
+
+        Assert.Equal("10 dB", fields["GainMinDb"]);
+        Assert.Equal("17 dB", fields["GainTypDb"]);
+        Assert.Equal("20 dB", fields["GainMaxDb"]);
+    }
+
+    [Fact]
+    public void PageComesFromThePassageThatContainsTheValue()
+    {
+        var pages = new Dictionary<int, string>
+        {
+            [3] = "Absolute maximum ratings",
+            [4] = "Typical gain 14.5 dB"
+        };
+
+        int? page = ReadingContext.LocatePage(pages, "14.5", "dB", hinted: 3);
+
+        Assert.Equal(4, page);
+    }
+}
+
+public class SimilarPartSearchTests
+{
+    [Fact]
+    public void DmsIndexKeepsNearAmplifiersAndSkipsAMixer()
+    {
+        var json = Newtonsoft.Json.Linq.JObject.Parse("""
+        {
+          "_reading": [
+            {"designation":"Function","value":"amplifier","unit":"","condition":"","variant":"","statement":"","page":1,"absent":false},
+            {"designation":"GainTypDb","value":"17","unit":"dB","condition":"","variant":"","statement":"typ","page":2,"absent":false}
+          ]
+        }
+        """);
+
+        var query = SimilarPartSearch.QueryFrom(json);
+        var matches = SimilarPartSearch.Rank(query, SimilarPartSearch.Parse(SimilarPartSearch.SampleJson, "test"));
+
+        Assert.Contains(matches, match => match.Candidate.MaterialNumber == "1001001");
+        Assert.Contains(matches, match => match.Candidate.MaterialNumber == "1001002");
+        Assert.DoesNotContain(matches, match => match.Candidate.PartNumber == "MIX-DEMO-7");
+    }
+
+    [Fact]
+    public void DistributorLinksCarryTheSameParameters()
+    {
+        var links = DistributorSearch.Links("amplifier 17 dB");
+
+        Assert.Contains(links, link => link.Name == "Mouser" && link.Url.Contains("mouser.de", StringComparison.Ordinal));
+        Assert.Contains(links, link => link.Name == "Digi-Key");
+        Assert.Contains(links, link => link.Name == "Farnell");
+        Assert.Contains(links, link => link.Name == "LCSC");
+        Assert.Contains("amplifier", links[0].Url, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MouserPayloadBecomesHits()
+    {
+        const string payload = """
+        {"SearchResults":{"Parts":[{"Manufacturer":"Analog Devices","ManufacturerPartNumber":"HMC1040","Description":"RF amplifier"}]}}
+        """;
+
+        var hits = DistributorSearch.ParseMouser(payload);
+
+        Assert.Single(hits);
+        Assert.Equal("HMC1040", hits[0].PartNumber);
+    }
+}
+
 public class FieldAcceptanceTests
 {
     [Fact]

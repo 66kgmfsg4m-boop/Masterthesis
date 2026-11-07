@@ -183,6 +183,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                         var resultJson = JObject.Parse(extractionResult);
                         resultJson["_PropertySchemaUsed"] = component.DisplayName;
                         resultJson["_RequestedCategory"] = componentCategory;
+                        ReadingContext.TakeDetails(resultJson);
                         
                         // Wenn Part Number Decoding erfolgreich war, kombiniere intelligent mit PDF-Extraktion
                         if (decodedProperties != null)
@@ -208,6 +209,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                         // FINALE NORMALISIERUNG: Alias-Mapping (z.B. tAA_Max -> TaaMaxS, Voltage -> VccVddTypV)
                         // + Schema-Whitelist: alles was nicht im Schema steht wird entfernt.
                         NormalizeAndFilterToSchema(resultJson, properties, component);
+                        ReadingContext.Attach(resultJson, pdfContent.PageTexts, partNumber);
 
                         return resultJson.ToString(Formatting.Indented);
                     }
@@ -526,7 +528,8 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 "Description", "DocumentType", "ComponentCategory", "ComponentName",
                 "_PropertySchemaUsed", "_RequestedCategory",
                 "WasCorrected", "OriginalCategory", "CorrectionTimestamp",
-                "IsSeriesDatasheet", "CategoryWasChanged"
+                "IsSeriesDatasheet", "CategoryWasChanged",
+                ReadingContext.Carried, ReadingContext.Reading
             };
 
         /// <summary>
@@ -537,14 +540,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         /// </summary>
         private void NormalizeAndFilterToSchema(JObject resultJson, IList<ComponentProperty> properties, CatalogComponent? component = null)
         {
-            var emptyMarkers = new[] { "nicht vorhanden", "nicht gefunden", "nicht klar erkennbar", "mehrdeutig", "nicht relevant", "n/a", "-" };
-            bool IsEmpty(JToken? token)
-            {
-                if (token == null || token.Type == JTokenType.Null) return true;
-                var s = token.Value<string>();
-                if (string.IsNullOrWhiteSpace(s)) return true;
-                return emptyMarkers.Any(m => string.Equals(s.Trim(), m, StringComparison.OrdinalIgnoreCase));
-            }
+            bool IsEmpty(JToken? token) => ReadingContext.IsEmpty(token);
 
             // Schema-Whitelist (case-insensitive) - genau das, was get_classes.csv liefert
             var schemaNames = new HashSet<string>(
@@ -594,7 +590,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     {
                         var token = resultJson[name];
                         if (IsEmpty(token)) continue;
-                        var value = token!.Value<string>();
+                        var value = ReadingContext.Plain(token);
                         resultJson[baseName] = value;
                         _logger.LogInformation(
                             "  Varianten-Konsolidierung: '{Suffix}' -> '{Base}' = '{Value}'",
@@ -627,7 +623,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     var aliasToken = resultJson[alias];
                     if (IsEmpty(aliasToken)) continue;
 
-                    var value = aliasToken!.Value<string>();
+                    var value = ReadingContext.Plain(aliasToken);
                     resultJson[schemaName] = value;
                     _logger.LogDebug("  Synonym-Mapping: '{Alias}' -> '{SchemaName}' = '{Value}'",
                         alias, schemaName, value);
@@ -641,7 +637,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 .FirstOrDefault(n => schemaNames.Contains(n));
             if (pinSchemaName != null && IsEmpty(resultJson[pinSchemaName]))
             {
-                var pkg = resultJson["PackageType"]?.Value<string>();
+                var pkg = ReadingContext.Plain(resultJson["PackageType"]);
                 if (!string.IsNullOrWhiteSpace(pkg))
                 {
                     var match = System.Text.RegularExpressions.Regex.Match(
@@ -668,7 +664,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     .FirstOrDefault(n => schemaNames.Contains(n));
                 if (functionField != null)
                 {
-                    var current = resultJson[functionField]?.Value<string>();
+                    var current = ReadingContext.Plain(resultJson[functionField]);
                     var mapped = NormalizeMemorySerialFunctionValue(current);
                     if (mapped != null && !string.Equals(mapped, current, StringComparison.Ordinal))
                     {
@@ -1062,9 +1058,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 var name = p.PropertyInternalName;
                 if (string.IsNullOrWhiteSpace(name)) continue;
 
-                var token = json[name];
-                var value = token?.ToString();
-                if (IsEmpty(value)) result.Add(name);
+                if (ReadingContext.IsEmpty(json[name])) result.Add(name);
             }
             return result;
         }
@@ -1226,12 +1220,12 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
 
             foreach (var name in propertyNames)
             {
-                string? textValue = textJson[name]?.Value<string>();
-                string? visionValue = visionExtras[name]?.Value<string>();
+                string? textValue = ReadingContext.Plain(textJson[name]);
+                string? visionValue = ReadingContext.Plain(visionExtras[name]);
 
                 if (!IsEmpty(visionValue) && IsEmpty(textValue))
                 {
-                    textJson[name] = visionValue;
+                    textJson[name] = visionExtras[name]?.DeepClone() ?? visionValue;
                     _logger.LogInformation(
                         "  Vision-Merge: '{Name}' = '{Value}' (aus Package-Drawing)", name, visionValue);
                 }
@@ -1278,7 +1272,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
             foreach (var prop in json.Properties())
             {
                 if (prop.Name.StartsWith("_", StringComparison.Ordinal)) continue;
-                string? v = prop.Value?.ToString();
+                string? v = ReadingContext.Plain(prop.Value);
                 if (IsEmpty(v))
                 {
                     empty++;
@@ -1597,14 +1591,22 @@ VORGEHEN:
         private async Task<string> AnalyzeSafetyDatasheetAsync(PDFProcessor.PDFContent pdfContent)
         {
             string prompt = await GetSafetyDatasheetPromptAsync();
+            string raw = pdfContent.IsTextBased
+                ? await AnalyzeTextContentAsync(TextForModel(pdfContent, prompt), prompt)
+                : await AnalyzeImageContentAsync(pdfContent.Base64Images, prompt);
 
-            if (pdfContent.IsTextBased)
+            try
             {
-                return await AnalyzeTextContentAsync(TextForModel(pdfContent, prompt), prompt);
+                var json = JObject.Parse(raw);
+                json["DocumentType"] = "MIXTURE";
+                ReadingContext.TakeDetails(json);
+                ReadingContext.Attach(json, pdfContent.PageTexts, null);
+                return json.ToString(Formatting.Indented);
             }
-            else
+            catch (Exception ex)
             {
-                return await AnalyzeImageContentAsync(pdfContent.Base64Images, prompt);
+                _logger.LogWarning(ex, "Sicherheitsdatenblatt blieb ohne Seitenbezug, weil die Antwort kein JSON war");
+                return raw;
             }
         }
 
@@ -1718,7 +1720,7 @@ STATTDESSEN:
     Feldes (z.B. NumberOfPin: '28, 48'), aber niemals ueber
     zusaetzliche Feldnamen mit Suffix.
 ================================================================
-";
+" + ReadingContext.PromptRule;
 
             var message = new
             {
@@ -1743,7 +1745,7 @@ STATTDESSEN:
         {
             var content = new List<object>();
 
-            content.Add(new { type = "text", text = prompt });
+            content.Add(new { type = "text", text = prompt + ReadingContext.PromptRule });
 
             // Limit fuer Vision-API. Muss mit PDFProcessor.MAX_RENDERED_PAGES konsistent sein!
             // 15 ist ein guter Kompromiss aus Erkennungsqualitaet, Geschwindigkeit und Token-Kosten.
@@ -1818,7 +1820,7 @@ VORRANG-REGEL:
 WICHTIG: 'nicht vorhanden' ist nur zulaessig, wenn beide Quellen
 das Feld nicht enthalten. NICHT wenn nur eine Quelle es nicht zeigt.
 ================================================================
-";
+" + ReadingContext.PromptRule;
 
             content.Add(new { type = "text", text = hybridPrompt });
 

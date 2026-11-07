@@ -1,0 +1,37 @@
+{
+  "source": "mitgelieferter Parameterindex",
+  "records": [
+    {
+      "materialNumber": "1001001",
+      "partNumber": "HMC-DEMO-17",
+      "manufacturer": "Beispielhersteller",
+      "fields": {
+        "Function": "amplifier",
+        "GainTypDb": "17 dB",
+        "FminGHz": "24",
+        "SupplyVoltage": "5 V"
+      }
+    },
+    {
+      "materialNumber": "1001002",
+      "partNumber": "HMC-DEMO-19",
+      "manufacturer": "Beispielhersteller",
+      "fields": {
+        "Function": "amplifier",
+        "GainTypDb": "19 dB",
+        "FminGHz": "24",
+        "SupplyVoltage": "5 V"
+      }
+    },
+    {
+      "materialNumber": "1001003",
+      "partNumber": "MIX-DEMO-7",
+      "manufacturer": "Beispielhersteller",
+      "fields": {
+        "Function": "mixer",
+        "GainTypDb": "7 dB",
+        "FminGHz": "24"
+      }
+    }
+  ]
+}

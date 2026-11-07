@@ -486,7 +486,22 @@
             </div>
             
             <h1 class="rs-title">Datenblatt-Analyse</h1>
-            <p class="rs-subtitle">Laden Sie ein PDF-Datenblatt hoch, um die technischen Parameter automatisch zu extrahieren</p>
+            <p class="rs-subtitle">Vier Schritte. Datei wählen, Art bestätigen, Identifikation prüfen, Vorschlag mit Seite lesen.</p>
+
+            <div style="text-align:left; margin:0 auto 16px; max-width:520px;">
+                <p style="margin:0 0 8px; font-weight:600;">Was laden Sie hoch?</p>
+                <label style="display:block; margin:4px 0;">
+                    <input type="radio" name="document-kind" checked="@(!SafetySheet)" @onchange="SelectComponentSheet" />
+                    Bauteil-Datenblatt
+                </label>
+                <label style="display:block; margin:4px 0;">
+                    <input type="radio" name="document-kind" checked="@SafetySheet" @onchange="SelectSafetySheet" />
+                    Sicherheitsdatenblatt
+                </label>
+                <p style="margin:8px 0 0; color:#445;">
+                    Ein Sicherheitsdatenblatt läuft getrennt. Seine Angaben werden nicht in die Felder einer Bauteilgruppe geschrieben.
+                </p>
+            </div>
             
             @if (!ServicesAvailable)
             {
@@ -563,6 +578,27 @@ else
     <script>window.location.href = '/results';</script>
 }
 
+@if (ShowSafetyConfirm)
+{
+    <div class="rs-dashboard" style="margin-top:16px;">
+        <div class="rs-upload-card" style="text-align:left;">
+            <h2 class="rs-title" style="font-size:22px;">Sicherheitsdatenblatt bestätigen</h2>
+            <p>
+                Die Datei wird als Sicherheitsdatenblatt gelesen, nicht als Bauteil.
+                Es wird nichts ins DMS geschrieben. Danach sehen Sie jede Angabe mit der Seite, von der sie stammt.
+            </p>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button class="rs-analyze-button" style="width:auto;" @onclick="ConfirmSafety" disabled="@IsAnalyzing">
+                    Sicherheitsdatenblatt lesen
+                </button>
+                <button class="rs-file-select-button" type="button" @onclick="CancelSafety">
+                    Zurück
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 <!-- Identifikations-Dialog -->
 <IdentificationDialog @ref="IdentificationDialogRef"
                      IdentificationData="@CurrentIdentification"
@@ -577,6 +613,8 @@ private DatasheetAnalysisService? AnalysisService;
 private bool ServicesAvailable => CatalogService != null && AnalysisService != null;
     
 private bool AnalysisStarted = false;
+private bool SafetySheet = false;
+private bool ShowSafetyConfirm = false;
 private bool IsAnalyzing = false;
 private bool IsSeriesDatasheet = false; // Flag für Part Number Eingabe (wird bei Memory Components aktiviert)
 private IBrowserFile? SelectedFile;
@@ -672,7 +710,9 @@ private IdentificationDialog? IdentificationDialogRef;
         
         SelectedFile = file;
         State.CurrentFileName = file.Name;
-        State.StatusText = $"Datei ausgewählt: {file.Name}";
+        State.StatusText = SafetySheet
+            ? "Schritt 1 erledigt. Als Nächstes das Sicherheitsdatenblatt bestätigen."
+            : "Schritt 1 erledigt. Als Nächstes die Bauteilgruppe bestätigen.";
         StateHasChanged();
     }
 
@@ -703,8 +743,24 @@ private IdentificationDialog? IdentificationDialogRef;
                 : markedPages;
             State.CurrentFileName = SelectedFile.Name;
 
+            if (SafetySheet)
+            {
+                CurrentIdentification = new JObject
+                {
+                    ["DocumentType"] = "MIXTURE",
+                    ["ComponentCategory"] = "Sicherheitsdatenblatt",
+                    ["ComponentName"] = "Sicherheitsdatenblatt",
+                    ["PartNumber"] = ""
+                };
+                IsAnalyzing = false;
+                ShowSafetyConfirm = true;
+                State.StatusText = "Schritt 2. Bitte den eigenen Ablauf für das Sicherheitsdatenblatt bestätigen.";
+                StateHasChanged();
+                return;
+            }
+
             // Schritt 2: Identifikation durchführen
-            State.StatusText = "Stage 1: Identifiziere Komponententyp...";
+            State.StatusText = "Schritt 2. Die Bauteilgruppe wird erkannt und muss bestätigt werden.";
             StateHasChanged();
             
             string identificationJson = await AnalysisService!.IdentifyComponentOnlyAsync(PdfContent);
@@ -786,8 +842,8 @@ private IdentificationDialog? IdentificationDialogRef;
             // Schritt 3: Dialog anzeigen
             IsAnalyzing = false;
             State.StatusText = IsSeriesDatasheet 
-                ? "Bitte bestätigen und Part Number eingeben" 
-                : "Bitte bestätigen Sie die Identifikation";
+                ? "Schritt 2. Bitte die Gruppe bestätigen und die Bestellnummer eingeben."
+                : "Schritt 2. Bitte die erkannte Gruppe bestätigen, bevor Felder gefüllt werden.";
             StateHasChanged();
             
             if (IdentificationDialogRef != null)
@@ -822,7 +878,9 @@ private IdentificationDialog? IdentificationDialogRef;
                 State.AddTokenUsage(prompt, completion);
             };
             
-            State.StatusText = "Stage 2: Extrahiere Properties...";
+            State.StatusText = SafetySheet
+                ? "Schritt 3. Das Sicherheitsdatenblatt wird gelesen."
+                : "Schritt 3. Die Katalogfelder werden gelesen.";
             StateHasChanged();
             
             string finalResult = await AnalysisService.AnalyzeWithConfirmedIdentificationAsync(PdfContent, confirmedIdentification);
@@ -831,9 +889,17 @@ private IdentificationDialog? IdentificationDialogRef;
             State.CurrentJsonResult = finalResult;
             State.ResultLog += "=== STAGE 2: EXTRAKTION ===\n";
             State.ResultLog += finalResult + "\n";
+            try
+            {
+                State.ResultLog += ReadingContext.FormatLog(JObject.Parse(finalResult));
+            }
+            catch
+            {
+                State.ResultLog += "Der Vorschlag konnte nicht als Tabelle gelesen werden.\n";
+            }
             State.ResultLog += new string('=', 80) + "\n";
             
-            State.StatusText = "✓ Analyse abgeschlossen";
+            State.StatusText = "Schritt 4. Der Vorschlag liegt vor. Jede Zeile nennt die Seite.";
             
             // Warte kurz damit der State gesetzt wird
             await Task.Delay(100);
@@ -843,7 +909,7 @@ private IdentificationDialog? IdentificationDialogRef;
         }
         catch (Exception ex)
         {
-            State.StatusText = $"Fehler bei Extraktion: {ex.Message}";
+            State.StatusText = "Die Analyse ist fehlgeschlagen. " + ex.Message;
             State.ResultLog += $"\nFEHLER: {ex.Message}\n";
         }
         finally
@@ -851,6 +917,33 @@ private IdentificationDialog? IdentificationDialogRef;
             IsAnalyzing = false;
             StateHasChanged();
         }
+    }
+
+    private void SelectComponentSheet(ChangeEventArgs _)
+    {
+        SafetySheet = false;
+        ShowSafetyConfirm = false;
+    }
+
+    private void SelectSafetySheet(ChangeEventArgs _)
+    {
+        SafetySheet = true;
+        ShowSafetyConfirm = false;
+    }
+
+    private async Task ConfirmSafety()
+    {
+        if (CurrentIdentification == null)
+            return;
+        ShowSafetyConfirm = false;
+        await OnIdentificationConfirmed(CurrentIdentification);
+    }
+
+    private void CancelSafety()
+    {
+        ShowSafetyConfirm = false;
+        IsAnalyzing = false;
+        State.StatusText = "Sicherheitsdatenblatt nicht bestätigt. Die Datei bleibt ausgewählt.";
     }
 
     private void OnIdentificationCancelled()
@@ -868,8 +961,12 @@ private IdentificationDialog? IdentificationDialogRef;
         PdfContent = null;
         CurrentIdentification = null;
         
+        ShowSafetyConfirm = false;
+        State.PdfTextContent = "";
+        State.CurrentJsonResult = "";
+        State.ResultLog = "";
         State.Reset();
-        State.StatusText = "Bereit für neue Analyse";
+        State.StatusText = "Bereit für eine neue Datei. Die vorherige Datei ist aus der Sitzung entfernt.";
         
         StateHasChanged();
     }
