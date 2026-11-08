@@ -1,18 +1,6 @@
-# =====================================================================
-# =====================================================================
-# Multi-stage Dockerfile für DatasheetAnalyzer.Blazor (.NET 8)
-# ---------------------------------------------------------------------
-# Stage 1 (build):   .NET 8 SDK – restore & publish
-# Stage 2 (runtime): ASP.NET 8 Runtime – schlankes Deployment-Image
-#
-# Build:
-#   docker build -t datasheet-analyzer:latest .
-#
-# Run:
-#   docker run --rm -p 8080:8080 \
-#     -e ASPNETCORE_ENVIRONMENT=Production \
-#     datasheet-analyzer:latest
-# =====================================================================
+# DatasheetAnalyzer.Blazor, .NET 8.
+# Build: docker build -t datasheet-analyzer:latest .
+# Run:   docker run --rm -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Production datasheet-analyzer:latest
 
 ARG DOTNET_VERSION=8.0
 

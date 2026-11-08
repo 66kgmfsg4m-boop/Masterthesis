@@ -12,13 +12,13 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\PassageRetrieval.cs" />
-    <Compile Include="..\SubstituteAlignment.cs" />
-    <Compile Include="..\FieldAcceptance.cs" />
-    <Compile Include="..\FieldAgreement.cs" />
-    <Compile Include="..\FieldAgreementLog.cs" />
-    <Compile Include="..\ReadingContext.cs" />
-    <Compile Include="..\SimilarPartSearch.cs" />
-    <Compile Include="..\DistributorSearch.cs" />
+    <Compile Include="..\DatasheetAnalyzer.Core\PassageRetrieval.cs" />
+    <Compile Include="..\DatasheetAnalyzer.Blazor\SubstituteAlignment.cs" />
+    <Compile Include="..\DatasheetAnalyzer.Blazor\FieldAcceptance.cs" />
+    <Compile Include="..\DatasheetAnalyzer.Blazor\FieldAgreement.cs" />
+    <Compile Include="..\DatasheetAnalyzer.Blazor\FieldAgreementLog.cs" />
+    <Compile Include="..\DatasheetAnalyzer.Core\ReadingContext.cs" />
+    <Compile Include="..\DatasheetAnalyzer.Core\SimilarPartSearch.cs" />
+    <Compile Include="..\DatasheetAnalyzer.Core\DistributorSearch.cs" />
   </ItemGroup>
 </Project>
