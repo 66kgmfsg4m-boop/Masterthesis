@@ -9,31 +9,7 @@ using System.Windows.Controls;
 namespace CheckOrderConfirmationFromSupplier.Windows
 {
     /// <summary>
-    /// Correction Window for Manual Category Adjustment
-    /// 
-    /// Allows users to manually correct AI-identified component categories when validation
-    /// detects potential errors or low confidence scores. Primarily used for datasheet analysis.
-    /// 
-    /// Features:
-    /// - Category selection from DMS catalog
-    /// - Document type selection (COMPONENT/MIXTURE)
-    /// - Manufacturer information editing
-    /// - Part number input for resistors
-    /// - Property count display per category
-    /// - Correction notes and timestamps
-    /// 
-    /// Workflow:
-    /// 1. User reviews AI-identified category
-    /// 2. Selects correct category from dropdown
-    /// 3. Optionally adds correction note
-    /// 4. System marks data as manually corrected
-    /// 5. Corrected data replaces original identification
-    /// 
-    /// Use Cases:
-    /// - AI misidentified component type (e.g., "Amplifier" instead of "OP Amplifier")
-    /// - Low confidence score (< 70%)
-    /// - Generic category detected by validation rules
-    /// - User wants to override AI decision
+    /// Correction Window for Manual Category Adjustment Allows users to manually correct AI-identified component categories when validation detects potential errors or low confidence scores.
     /// </summary>
     public partial class CorrectionWindow : Window
     {
@@ -53,18 +29,14 @@ namespace CheckOrderConfirmationFromSupplier.Windows
         /// </summary>
         public JObject CorrectedJson { get; private set; }
 
-        /// <summary>
-        /// Indicates whether user applied corrections (true) or cancelled (false).
-        /// </summary>
+        /// <summary>Indicates whether user applied corrections (true) or cancelled (false).</summary>
         public bool WasCorrected { get; private set; }
 
         #endregion
 
         #region Constructor
 
-        /// <summary>
-        /// Initializes the correction window with original AI results.
-        /// </summary>
+        /// <summary>Initializes the correction window with original AI results.</summary>
         /// <param name="jsonResult">Original JSON result from AI analysis</param>
         /// <param name="pdfFileName">Name of the analyzed PDF file</param>
         /// <param name="catalogService">DMS catalog service for loading available categories</param>
@@ -94,15 +66,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region JSON Processing
 
-        /// <summary>
-        /// Extracts clean JSON from Azure OpenAI response.
-        /// Removes markdown code blocks and extracts JSON object.
-        /// 
-        /// Handles formats:
-        /// - ```json ... ``` (markdown code block)
-        /// - Plain JSON with { }
-        /// - Mixed text with embedded JSON
-        /// </summary>
+        /// <summary>Extracts clean JSON from Azure OpenAI response.</summary>
         /// <param name="response">Raw Azure OpenAI response</param>
         /// <returns>Clean JSON string</returns>
         private string ExtractCleanJson(string response)
@@ -172,19 +136,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             UpdatePartNumberVisibility(category);
         }
 
-        /// <summary>
-        /// Loads all available component categories from DMS catalog.
-        /// 
-        /// Process:
-        /// 1. Retrieves all components from catalog
-        /// 2. Extracts unique categories from DisplayName and ComponentName
-        /// 3. Checks property count for each category
-        /// 4. Displays categories with property count (e.g., "OP Amplifier (18 Properties)")
-        /// 5. Sorts categories alphabetically
-        /// 
-        /// Note: Uses both DisplayName (Column D) and ComponentName (Column E) to ensure
-        /// all category variants are available (e.g., "RF Amplifier" vs "OP Amplifier").
-        /// </summary>
+        /// <summary>Loads all available component categories from DMS catalog.</summary>
         private void LoadCategories()
         {
             try
@@ -248,7 +200,6 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
                 Console.WriteLine($"{categoriesWithProperties.Count} spezifische Kategorien geladen");
 
-                // Debug: Log amplifier categories (common correction case)
                 var amplifierCategories = categoriesWithProperties.Where(c =>
                     c.ToLower().Contains("amplifier")).ToList();
 
@@ -271,11 +222,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region Event Handlers
 
-        /// <summary>
-        /// Handles catalog refresh button click.
-        /// Reloads catalog data from disk and refreshes category dropdown.
-        /// Useful when catalog file is updated externally.
-        /// </summary>
+        /// <summary>Handles catalog refresh button click. Reloads catalog data from disk and refreshes category dropdown.</summary>
         private void RefreshCategories_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -292,11 +239,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             }
         }
 
-        /// <summary>
-        /// Handles category selection change.
-        /// Updates part number field visibility based on selected category.
-        /// Part number is only relevant for resistor components.
-        /// </summary>
+        /// <summary>Handles category selection change. Updates part number field visibility based on selected category.</summary>
         private void CategoryComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // Extract clean category name (remove property count suffix)
@@ -310,17 +253,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             UpdatePartNumberVisibility(categoryText);
         }
 
-        /// <summary>
-        /// Handles Apply button click.
-        /// Creates corrected JSON object with user changes and closes dialog.
-        /// 
-        /// Process:
-        /// 1. Extract clean category name (remove property count)
-        /// 2. Create corrected JSON with metadata
-        /// 3. Add part number if resistor category
-        /// 4. Preserve original ComponentName
-        /// 5. Mark as manually corrected with timestamp
-        /// </summary>
+        /// <summary>Handles Apply button click. Creates corrected JSON object with user changes and closes dialog.</summary>
         private void Apply_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -328,8 +261,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
                 // Get selected document type
                 var selectedDocType = (documentTypeComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "COMPONENT";
 
-                // Extract clean category name (remove property count suffix)
-                // Example: "OP Amplifier (18 Properties)" -> "OP Amplifier"
+                // Extract clean category name (remove property count suffix) Example: "OP Amplifier (18 Properties)" -> "OP Amplifier"
                 string categoryText = categoryComboBox.Text.Trim();
                 int propCountIndex = categoryText.IndexOf(" (");
                 if (propCountIndex > 0)
@@ -349,8 +281,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
                     ["WasManuallyCorrected"] = true
                 };
 
-                // Add part number for resistor categories
-                // Applies to: "Resistor", "Resistor Constant", "Resistor Network", etc.
+                // Add part number for resistor categories Applies to: "Resistor", "Resistor Constant", "Resistor Network", etc.
                 bool isResistor = categoryText.IndexOf("Resistor", StringComparison.OrdinalIgnoreCase) >= 0;
 
                 if (isResistor && !string.IsNullOrWhiteSpace(partNumberTextBox.Text))
@@ -399,16 +330,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region Helper Methods
 
-        /// <summary>
-        /// Updates part number panel visibility based on component category.
-        /// Part number field is only shown for resistor-related categories.
-        /// 
-        /// Applies to categories containing "Resistor":
-        /// - Resistor
-        /// - Resistor Constant
-        /// - Resistor Network
-        /// - etc.
-        /// </summary>
+        /// <summary>Updates part number panel visibility based on component category.</summary>
         /// <param name="category">Component category name</param>
         private void UpdatePartNumberVisibility(string category)
         {

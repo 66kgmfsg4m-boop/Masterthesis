@@ -3,9 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace DatasheetAnalyzer.Blazor.Services;
 
-/// <summary>
-/// Both records need a function, one electrical limit and a pin assignment.
-/// </summary>
+/// <summary>Both records need a function, one electrical limit and a pin assignment.</summary>
 public static class SubstituteAlignment
 {
     private static readonly string[] EmptyMarkers =

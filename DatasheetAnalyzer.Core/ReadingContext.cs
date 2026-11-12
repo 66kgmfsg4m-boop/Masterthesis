@@ -8,9 +8,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DatasheetAnalyzer.Core.Services;
 
-/// <summary>
-/// Keeps unit, condition, variant and page next to a value. A missing value stays "nicht vorhanden".
-/// </summary>
+/// <summary>Keeps unit, condition, variant and page next to a value. A missing value stays "nicht vorhanden".</summary>
 public static class ReadingContext
 {
     public const string Carried = "_carried";

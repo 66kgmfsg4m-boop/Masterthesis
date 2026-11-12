@@ -124,11 +124,11 @@ namespace CheckOrderConfirmationFromSupplier
                 try
                 {
                     catalogService.LoadCatalogData();
-                    Console.WriteLine("✓ Katalog-Service für Korrektur-Dialog geladen");
+                    Console.WriteLine("Katalog-Service für Korrektur-Dialog geladen");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"⚠ Katalog-Service konnte nicht geladen werden: {ex.Message}");
+                    Console.WriteLine($"Katalog-Service konnte nicht geladen werden: {ex.Message}");
                 }
 
                 // UiPath Service nur initialisieren wenn Konfiguration gültig ist
@@ -142,11 +142,11 @@ namespace CheckOrderConfirmationFromSupplier
                         uiPathConfig.GetClientSecret(),
                         uiPathConfig.GetOrganizationUnitId()
                     );
-                    Console.WriteLine("✓ UiPath Orchestrator Service initialisiert");
+                    Console.WriteLine("UiPath Orchestrator Service initialisiert");
                 }
                 else
                 {
-                    Console.WriteLine("⚠ UiPath Konfiguration ungültig - Service nicht verfügbar");
+                    Console.WriteLine("UiPath Konfiguration ungültig - Service nicht verfügbar");
                 }
 
                 UpdateStatusText("Bereit - Ziehen Sie eine PDF-Datei hierher oder klicken Sie 'Datei auswählen'");
@@ -186,18 +186,18 @@ namespace CheckOrderConfirmationFromSupplier
             if (orderConfirmationMode.IsChecked == true)
             {
                 currentMode = AnalysisMode.OrderConfirmation;
-                uploadIcon.Text = "☁️";
+                uploadIcon.Text = "PDF";
                 uploadText.Text = "Auftragsbestätigungs-PDF hierher ziehen";
-                resultsIcon.Text = "📋";
+                resultsIcon.Text = "";
                 resultsTitle.Text = "Auftragsbestätigungsdaten";
                 UpdateStatusText("Auftragsbestätigungsmodus - Bereit");
             }
             else if (datasheetMode.IsChecked == true)
             {
                 currentMode = AnalysisMode.Datasheet;
-                uploadIcon.Text = "🔬";
+                uploadIcon.Text = "PDF";
                 uploadText.Text = "Datenblatt-PDF hierher ziehen";
-                resultsIcon.Text = "🧪";
+                resultsIcon.Text = "";
                 resultsTitle.Text = "Datenblatt-Analyse";
                 UpdateStatusText("Datenblättermodus - Bereit");
             }
@@ -307,11 +307,11 @@ namespace CheckOrderConfirmationFromSupplier
 
                 if (!copySuccess)
                 {
-                    Console.WriteLine("⚠ PDF-Kopie fehlgeschlagen - Verarbeitung wird trotzdem fortgesetzt");
+                    Console.WriteLine("PDF-Kopie fehlgeschlagen - Verarbeitung wird trotzdem fortgesetzt");
                 }
                 else
                 {
-                    Console.WriteLine($"✓ PDF erfolgreich archiviert: {Path.GetFileName(pdfFilePath)}");
+                    Console.WriteLine($"PDF erfolgreich archiviert: {Path.GetFileName(pdfFilePath)}");
                 }
             }
 
@@ -370,7 +370,7 @@ namespace CheckOrderConfirmationFromSupplier
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"✗ Fehler beim Parsen der Identifikation: {ex.Message}");
+                            Console.WriteLine($"Fehler beim Parsen der Identifikation: {ex.Message}");
                             await Dispatcher.InvokeAsync(() =>
                             {
                                 MessageBox.Show($"Fehler beim Parsen der Identifikation: {ex.Message}",
@@ -380,11 +380,11 @@ namespace CheckOrderConfirmationFromSupplier
                         }
 
                         // Post-Validation mit objektiven Regeln
-                        Console.WriteLine("\n🔎 STARTE POST-VALIDATION DER IDENTIFIKATION...");
+                        Console.WriteLine("\nSTARTE POST-VALIDATION DER IDENTIFIKATION...");
                         var validationService = new IdentificationValidationService(catalogService);
                         var validationResult = validationService.ValidateIdentification(identification);
 
-                        Console.WriteLine($"✓ Validation abgeschlossen: {validationResult}");
+                        Console.WriteLine($"Validation abgeschlossen: {validationResult}");
 
                         if (validationResult.Issues.Count > 0)
                         {
@@ -433,14 +433,13 @@ namespace CheckOrderConfirmationFromSupplier
                         else
                         {
                             // Für MIXTURE (Safety Data Sheets): KEIN ValidationResult
-                            Console.WriteLine("ℹ️ Safety Data Sheet - ValidationResult wird NICHT gespeichert");
+                            Console.WriteLine("Safety Data Sheet - ValidationResult wird NICHT gespeichert");
                         }
 
                         // Speichere in Task
                         task.ValidationResult = validationResultForDisplay;
 
-                        // Safety Data Sheets (MIXTURE) benötigen KEINE Bestätigung
-                        //         da es keine Komponenten-Kategorie oder Part Number gibt
+                        // Safety Data Sheets (MIXTURE) benötigen KEINE Bestätigung da es keine Komponenten-Kategorie oder Part Number gibt
                         JObject confirmedIdentification = null;
                         JObject manualResistorProperties = null;
                         bool userConfirmed = false;
@@ -448,7 +447,7 @@ namespace CheckOrderConfirmationFromSupplier
                         if (docType.Equals("MIXTURE", StringComparison.OrdinalIgnoreCase))
                         {
                             // Safety Data Sheet - KEINE Bestätigung erforderlich
-                            Console.WriteLine("ℹ️ Safety Data Sheet erkannt - Dialog wird übersprungen");
+                            Console.WriteLine("Safety Data Sheet erkannt - Dialog wird übersprungen");
                             confirmedIdentification = identification;
                             userConfirmed = true;
                         }
@@ -482,28 +481,28 @@ namespace CheckOrderConfirmationFromSupplier
                                                 category.Equals("Resistor", StringComparison.OrdinalIgnoreCase))
                                             {
                                                 manualResistorProperties = identDialog.ManualResistorProperties;
-                                                Console.WriteLine("✓ Manuelle Resistor-Properties vom Benutzer eingegeben - KI-Extraktion wird übersprungen!");
+                                                Console.WriteLine("Manuelle Resistor-Properties vom Benutzer eingegeben - KI-Extraktion wird übersprungen!");
                                             }
 
                                             userConfirmed = true;
 
-                                            Console.WriteLine("✓ Benutzer hat Identifikation bestätigt");
+                                            Console.WriteLine("Benutzer hat Identifikation bestätigt");
                                             if (!string.IsNullOrEmpty(identDialog.SelectedPartNumber))
                                             {
-                                                Console.WriteLine($"  → Ausgewählte Herstellernummer: {identDialog.SelectedPartNumber}");
+                                                Console.WriteLine($"-> Ausgewählte Herstellernummer: {identDialog.SelectedPartNumber}");
                                             }
                                         }
                                         else if (identDialog.UserChoice == IdentificationConfirmationDialog.UserDialogResult.NeedsCorrection)
                                         {
                                             // Korrektur angefordert - NUR für Komponenten-Kategorie (FREIE EINGABE)
-                                            Console.WriteLine("⚠ Benutzer möchte Kategorie korrigieren");
+                                            Console.WriteLine("Benutzer möchte Kategorie korrigieren");
 
                                             string correctedCategory = null;
 
                                             // Einfacher InputDialog für Kategorie (FREIE EINGABE, keine Vorschläge!)
                                             string correctionPrompt =
-                                                $"📝 KOMPONENTEN-KATEGORIE KORRIGIEREN\n" +
-                                                $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                                                $" KOMPONENTEN-KATEGORIE KORRIGIEREN\n" +
+                                                $"\n" +
                                                 $"Aktuell: {category}\n\n" +
                                                 $"Geben Sie die korrekte Komponenten-Kategorie ein:";
 
@@ -531,8 +530,8 @@ namespace CheckOrderConfirmationFromSupplier
 
                                                     userConfirmed = true;
 
-                                                    Console.WriteLine("✓ Benutzer hat Kategorie korrigiert:");
-                                                    Console.WriteLine($"  Kategorie: {category} → {correctedCategory}");
+                                                    Console.WriteLine("Benutzer hat Kategorie korrigiert:");
+                                                    Console.WriteLine($"  Kategorie: {category} -> {correctedCategory}");
 
                                                     // Markiere als korrigiert für Feedback-Learning
                                                     confirmedIdentification["WasCorrected"] = true;
@@ -552,19 +551,19 @@ namespace CheckOrderConfirmationFromSupplier
                                             else
                                             {
                                                 // Benutzer hat Dialog abgebrochen
-                                                Console.WriteLine("✗ Kategorie-Korrektur vom Benutzer abgebrochen");
+                                                Console.WriteLine("Kategorie-Korrektur vom Benutzer abgebrochen");
                                             }
                                         }
                                     }
                                     else
                                     {
-                                        // ⛔ Analyse komplett abbrechen
-                                        Console.WriteLine("✗ Benutzer hat Analyse abgebrochen");
+                                        // Analyse komplett abbrechen
+                                        Console.WriteLine(" Benutzer hat Analyse abgebrochen");
                                     }
                                 }
                                 catch (Exception ex)
                                 {
-                                    Console.WriteLine($"✗ Fehler im Bestätigungsdialog: {ex.Message}");
+                                    Console.WriteLine($"Fehler im Bestätigungsdialog: {ex.Message}");
                                     MessageBox.Show($"Fehler: {ex.Message}",
                                         "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
                                 }
@@ -584,19 +583,18 @@ namespace CheckOrderConfirmationFromSupplier
                         }
 
                         // Prüfe was in confirmedIdentification steht
-                        Console.WriteLine("\n═══════════════════════════════════════");
+                        Console.WriteLine("\n");
                         Console.WriteLine("DEBUG: BESTÄTIGTE IDENTIFIKATION");
                         Console.WriteLine($"Part Number: {confirmedIdentification["PartNumber"]}");
                         Console.WriteLine($"Category: {confirmedIdentification["ComponentCategory"]}");
                         Console.WriteLine($"Name: {confirmedIdentification["ComponentName"]}");
-                        Console.WriteLine("═══════════════════════════════════════\n");
+                        Console.WriteLine("\n");
 
-                        // Wenn dekodierte oder manuell eingegebene Resistor-Properties vorhanden sind,
-                        //         verwende diese STATT KI-Extraktion aus PDF!
+                        // Wenn dekodierte oder manuell eingegebene Resistor-Properties vorhanden sind, verwende diese STATT KI-Extraktion aus PDF!
 
                         if (manualResistorProperties != null)
                         {
-                            Console.WriteLine("\n🔧 VERWENDE RESISTOR-PROPERTIES AUS PART NUMBER");
+                            Console.WriteLine("\nVERWENDE RESISTOR-PROPERTIES AUS PART NUMBER");
                             Console.WriteLine($"   Quelle: {manualResistorProperties["DataSource"]}");
 
                             // Füge Herstellernummer und Meta-Daten hinzu
@@ -614,12 +612,12 @@ namespace CheckOrderConfirmationFromSupplier
                             // Konvertiere zu JSON-String
                             result = manualResistorProperties.ToString(Newtonsoft.Json.Formatting.Indented);
 
-                            Console.WriteLine("✓ Resistor-Daten vorbereitet (OHNE KI-Extraktion aus PDF):");
+                            Console.WriteLine("Resistor-Daten vorbereitet (OHNE KI-Extraktion aus PDF):");
                             Console.WriteLine(result);
 
                             // BEHALTE ValidationResult - es wurde bereits vor der Verzweigung gespeichert!
                             // task.ValidationResult wurde bereits oben gesetzt und muss nicht erneut gesetzt werden
-                            Console.WriteLine($"✓ ValidationResult bleibt erhalten: Confidence = {task.ValidationResult?["ConfidenceScore"]}");
+                            Console.WriteLine($"ValidationResult bleibt erhalten: Confidence = {task.ValidationResult?["ConfidenceScore"]}");
                         }
                         else
                         {
@@ -628,12 +626,12 @@ namespace CheckOrderConfirmationFromSupplier
                             {
                                 if (taskId == currentTaskId)
                                 {
-                                    UpdateStatusText("🔬 Stufe 2: Extrahiere Details...");
+                                    UpdateStatusText("Stufe 2: Extrahiere Details...");
                                 }
                             });
 
-                            Console.WriteLine("\n🔬 STUFE 2: Detail-Extraktion");
-                            // Verwende neue Methode mit bestätigter Identifikation (inkl. Part Number!)
+                            Console.WriteLine("\n STUFE 2: Detail-Extraktion");
+                            // Verwende neue Methode mit bestätigter Identifikation (inkl.
                             result = await datasheetService.AnalyzeWithConfirmedIdentificationAsync(
                                 pdfContent,
                                 confirmedIdentification);
@@ -647,7 +645,7 @@ namespace CheckOrderConfirmationFromSupplier
                                 string cleanedJson = ExtractCleanJsonFromResponse(result);
                                 var extractedData = JObject.Parse(cleanedJson);
 
-                                Console.WriteLine("\n🔎 STARTE PROPERTY-VALIDIERUNG...");
+                                Console.WriteLine("\nSTARTE PROPERTY-VALIDIERUNG...");
 
                                 // Validiere extrahierte Properties
                                 var propertyValidationService = new PropertyValidationService();
@@ -658,14 +656,14 @@ namespace CheckOrderConfirmationFromSupplier
                                 // Zeige Warnungen in Console
                                 if (propertyValidationResult.HasIssues)
                                 {
-                                    Console.WriteLine($"\n⚠ VALIDIERUNGSWARNUNGEN GEFUNDEN:");
+                                    Console.WriteLine($"\nVALIDIERUNGSWARNUNGEN GEFUNDEN:");
                                     Console.WriteLine($"   {propertyValidationResult.Warnings.Count} Warnungen");
                                     Console.WriteLine($"   {propertyValidationResult.Errors.Count} Fehler");
                                     Console.WriteLine();
 
                                     foreach (var warning in propertyValidationResult.Warnings)
                                     {
-                                        Console.WriteLine($"  ⚠ {warning.PropertyName}:");
+                                        Console.WriteLine($" {warning.PropertyName}:");
                                         Console.WriteLine($"     Aktuell: {warning.CurrentValue}");
                                         Console.WriteLine($"     Problem: {warning.Message}");
                                         Console.WriteLine($"     Hinweis: {warning.Suggestion}");
@@ -674,7 +672,7 @@ namespace CheckOrderConfirmationFromSupplier
 
                                     foreach (var error in propertyValidationResult.Errors)
                                     {
-                                        Console.WriteLine($"  ✗ {error.PropertyName}:");
+                                        Console.WriteLine($" {error.PropertyName}:");
                                         Console.WriteLine($"     Aktuell: {error.CurrentValue}");
                                         Console.WriteLine($"     Fehler: {error.Message}");
                                         Console.WriteLine();
@@ -712,12 +710,12 @@ namespace CheckOrderConfirmationFromSupplier
                                         task.ValidationResult["PropertyWarningCount"] = propertyValidationResult.Warnings.Count;
                                         task.ValidationResult["PropertyErrorCount"] = propertyValidationResult.Errors.Count;
 
-                                        Console.WriteLine($"✓ {propertyWarnings.Count} Property-Warnings zum ValidationResult hinzugefügt");
+                                        Console.WriteLine($"{propertyWarnings.Count} Property-Warnings zum ValidationResult hinzugefügt");
                                     }
                                 }
                                 else
                                 {
-                                    Console.WriteLine("✓ VALIDIERUNG ERFOLGREICH - Keine Probleme gefunden!");
+                                    Console.WriteLine("VALIDIERUNG ERFOLGREICH - Keine Probleme gefunden!");
                                 }
 
                                 // Zeige Validation-Warnung NACH der Analyse (nur bei niedrigem Confidence < 70%)
@@ -731,7 +729,7 @@ namespace CheckOrderConfirmationFromSupplier
 
                                         foreach (var issue in validationResult.Issues.Take(5))
                                         {
-                                            warningMessage += $"• {issue.Field}: {issue.Message}\n";
+                                            warningMessage += $"- {issue.Field}: {issue.Message}\n";
                                         }
 
                                         if (validationResult.Issues.Count > 5)
@@ -750,7 +748,7 @@ namespace CheckOrderConfirmationFromSupplier
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"⚠ Fehler bei Property-Validierung: {ex.Message}");
+                                Console.WriteLine($"Fehler bei Property-Validierung: {ex.Message}");
                                 Console.WriteLine("  Extraktion wird trotzdem fortgesetzt.");
                             }
                         }
@@ -799,7 +797,7 @@ namespace CheckOrderConfirmationFromSupplier
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"✗ Fehler bei PDF-Verarbeitung (Task: {taskId}): {e.Message}");
+                    Console.WriteLine($"Fehler bei PDF-Verarbeitung (Task: {taskId}): {e.Message}");
                     Console.WriteLine(e.StackTrace);
 
                     await Dispatcher.InvokeAsync(() =>
@@ -832,30 +830,30 @@ namespace CheckOrderConfirmationFromSupplier
                 {
                     if (uiPathSuccess)
                     {
-                        Console.WriteLine($"✓ Erfolgreich an UiPath Orchestrator gesendet (Task: {taskId})");
+                        Console.WriteLine($"Erfolgreich an UiPath Orchestrator gesendet (Task: {taskId})");
                         if (taskId == currentTaskId)
                         {
-                            UpdateStatusText("✓ Analyse abgeschlossen und an UiPath gesendet");
+                            UpdateStatusText("Analyse abgeschlossen und an UiPath gesendet");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"✗ Fehler beim Senden an UiPath Orchestrator (Task: {taskId})");
+                        Console.WriteLine($"Fehler beim Senden an UiPath Orchestrator (Task: {taskId})");
                         if (taskId == currentTaskId)
                         {
-                            UpdateStatusText("✗ Analyse abgeschlossen, aber UiPath-Übertragung fehlgeschlagen");
+                            UpdateStatusText("Analyse abgeschlossen, aber UiPath-Übertragung fehlgeschlagen");
                         }
                     }
                 });
             }
             catch (Exception e)
             {
-                Console.WriteLine($"✗ Exception beim Senden an UiPath (Task: {taskId}): {e.Message}");
+                Console.WriteLine($"Exception beim Senden an UiPath (Task: {taskId}): {e.Message}");
                 await Dispatcher.InvokeAsync(() =>
                 {
                     if (taskId == currentTaskId)
                     {
-                        UpdateStatusText("✗ Analyse abgeschlossen, aber UiPath-Fehler aufgetreten");
+                        UpdateStatusText("Analyse abgeschlossen, aber UiPath-Fehler aufgetreten");
                     }
                 });
             }
@@ -914,15 +912,12 @@ namespace CheckOrderConfirmationFromSupplier
                         Console.WriteLine($"\n[DisplayResult] ValidationResult ist NULL!");
                     }
 
-                    // Zeige Confidence Score für ALLE technischen Datenblätter (COMPONENT)
-                    //         NUR bei Safety Data Sheets (MIXTURE) wird kein Score angezeigt
+                    // Zeige Confidence Score für ALLE technischen Datenblätter (COMPONENT) NUR bei Safety Data Sheets (MIXTURE) wird kein Score angezeigt
                     if (validationResult != null && validationResult["ConfidenceScore"] != null)
                     {
                         double confidence = validationResult["ConfidenceScore"].Value<double>();
 
-                        // Prüfe ob IssueCount-Feld existiert
-                        //    Wenn IssueCount existiert (auch wenn 0), dann ist es ein COMPONENT
-                        //    Nur wenn IssueCount fehlt UND confidence = 1.0, dann ist es MIXTURE
+                        // Prüfe ob IssueCount-Feld existiert Wenn IssueCount existiert (auch wenn 0), dann ist es ein COMPONENT Nur wenn IssueCount fehlt UND confidence = 1.0, dann ist es MIXTURE
                         bool hasIssueCountField = validationResult["IssueCount"] != null;
                         bool isTechnicalDatasheet = hasIssueCountField || confidence < 1.0;
 
@@ -950,9 +945,7 @@ namespace CheckOrderConfirmationFromSupplier
                                         string currentValue = issue["CurrentValue"]?.Value<string>() ?? "";
                                         string suggestion = issue["Suggestion"]?.Value<string>() ?? "";
 
-                                        string icon = severity == "Error" ? "✗" : "⚠";
-
-                                        logEntry += $"   {icon} {field}: {message}\n";
+                                        logEntry += $"   {field}: {message}\n";
                                         if (!string.IsNullOrEmpty(currentValue))
                                             logEntry += $"      Aktuell: {currentValue}\n";
                                         if (!string.IsNullOrEmpty(suggestion))
@@ -963,7 +956,7 @@ namespace CheckOrderConfirmationFromSupplier
                             else
                             {
                                 // Nur bei Technical Datasheets mit 0 Issues
-                                logEntry += $"   ✓ Validierung erfolgreich - Keine Probleme gefunden\n";
+                                logEntry += $"   Validierung erfolgreich - Keine Probleme gefunden\n";
                             }
 
                             // Zeige Property-Validation Warnings (falls vorhanden)
@@ -983,9 +976,7 @@ namespace CheckOrderConfirmationFromSupplier
                                     string currentValue = propWarning["CurrentValue"]?.Value<string>() ?? "";
                                     string suggestion = propWarning["Suggestion"]?.Value<string>() ?? "";
 
-                                    string icon = severity == "Error" ? "✗" : "⚠";
-
-                                    logEntry += $"   {icon} {propertyName}: {message}\n";
+                                    logEntry += $"   {propertyName}: {message}\n";
                                     if (!string.IsNullOrEmpty(currentValue))
                                         logEntry += $"      Aktuell: {currentValue}\n";
                                     if (!string.IsNullOrEmpty(suggestion))
@@ -993,8 +984,7 @@ namespace CheckOrderConfirmationFromSupplier
                                 }
                             }
                         }
-                        // Für MIXTURE (Safety Data Sheets) wird NICHTS angezeigt
-                        // Kein "Keine Validierungsprobleme", kein Score, nichts!
+                        // Für MIXTURE (Safety Data Sheets) wird NICHTS angezeigt Kein "Keine Validierungsprobleme", kein Score, nichts!
                     }
                     else
                     {
@@ -1076,7 +1066,7 @@ namespace CheckOrderConfirmationFromSupplier
                 {
                     string cleanedJson = ExtractCleanJsonFromResponse(currentJsonResult);
                     Clipboard.SetText(cleanedJson);
-                    UpdateStatusText("✓ JSON in Zwischenablage kopiert");
+                    UpdateStatusText("JSON in Zwischenablage kopiert");
                 }
                 catch (Exception ex)
                 {
@@ -1112,7 +1102,7 @@ namespace CheckOrderConfirmationFromSupplier
                 totalCompletionTokens = 0;
                 totalProcessedPDFs = 0;
 
-                tokenStatsLabel.Text = "Tokens: 0/0 (∅ 0) | PDFs: 0 | ∅ 0 Tokens/PDF";
+                tokenStatsLabel.Text = "Tokens: 0/0 (0) | PDFs: 0 | Schnitt 0 Tokens/PDF";
 
                 UpdateStatusText("Zurückgesetzt - Bereit für neue Analyse");
             }
@@ -1135,7 +1125,7 @@ namespace CheckOrderConfirmationFromSupplier
 
                 if (tokenStatsLabel != null)
                 {
-                    tokenStatsLabel.Text = $"Tokens: {totalPrompt:N0}/{totalCompletion:N0} (∅{totalTokens:N0}) | PDFs: {processedPDFs} | ∅ {avgTokensPerPDF:F0} Tokens/PDF";
+                    tokenStatsLabel.Text = $"Tokens: {totalPrompt:N0}/{totalCompletion:N0} ({totalTokens:N0}) | PDFs: {processedPDFs} | Schnitt {avgTokensPerPDF:F0} Tokens/PDF";
                 }
             });
 
@@ -1161,12 +1151,12 @@ namespace CheckOrderConfirmationFromSupplier
                     // Zeige korrigiertes Ergebnis
                     DisplayCorrectedCategoryResult(correctedJson, pdfFileName);
 
-                    UpdateStatusText("✓ Korrektur angewendet");
+                    UpdateStatusText("Korrektur angewendet");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"✗ Fehler im Korrektur-Dialog: {ex.Message}");
+                Console.WriteLine($"Fehler im Korrektur-Dialog: {ex.Message}");
                 MessageBox.Show($"Fehler beim Öffnen des Korrektur-Dialogs: {ex.Message}",
                     "Fehler", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
@@ -1245,7 +1235,7 @@ namespace CheckOrderConfirmationFromSupplier
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"✗ Fehler beim Öffnen des Korrektur-Dialogs: {ex.Message}");
+                Console.WriteLine($"Fehler beim Öffnen des Korrektur-Dialogs: {ex.Message}");
                 MessageBox.Show(
                     $"Fehler beim Öffnen des Korrektur-Dialogs:\n\n{ex.Message}",
                     "Fehler",

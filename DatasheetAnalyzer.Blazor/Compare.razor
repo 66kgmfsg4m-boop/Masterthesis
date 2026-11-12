@@ -218,19 +218,19 @@
             <div class="cmp-file-row">
                 <span class="cmp-file-label">PDF 1:</span>
                 <span class="cmp-file-name @(FileA != null ? "has-file" : "")">
-                    @(FileA?.Name ?? "Keine Datei ausgew‰hlt")
+                    @(FileA?.Name ?? "Keine Datei ausgew√§hlt")
                 </span>
                 <InputFile id="fileA" accept=".pdf" OnChange="OnFileASelected" style="display:none" />
-                <label for="fileA" class="cmp-button secondary" style="cursor:pointer;">Datei w‰hlen</label>
+                <label for="fileA" class="cmp-button secondary" style="cursor:pointer;">Datei w√§hlen</label>
             </div>
 
             <div class="cmp-file-row">
                 <span class="cmp-file-label">PDF 2:</span>
                 <span class="cmp-file-name @(FileB != null ? "has-file" : "")">
-                    @(FileB?.Name ?? "Keine Datei ausgew‰hlt")
+                    @(FileB?.Name ?? "Keine Datei ausgew√§hlt")
                 </span>
                 <InputFile id="fileB" accept=".pdf" OnChange="OnFileBSelected" style="display:none" />
-                <label for="fileB" class="cmp-button secondary" style="cursor:pointer;">Datei w‰hlen</label>
+                <label for="fileB" class="cmp-button secondary" style="cursor:pointer;">Datei w√§hlen</label>
             </div>
 
             <div style="text-align:center; margin-top: 24px;">
@@ -251,7 +251,7 @@
             @if (!ServicesAvailable)
             {
                 <div class="cmp-error" style="margin-top:16px;">
-                    Azure-Services nicht verf¸gbar. Vergleich derzeit nicht mˆglich.
+                    Azure-Services nicht verf√ºgbar. Vergleich derzeit nicht m√∂glich.
                 </div>
             }
         }
@@ -285,12 +285,12 @@
                         {
                             <tr class="@(row.IsDifferent ? "cmp-row-diff" : "")">
                                 <td class="cmp-prop-name">@row.PropertyName</td>
-                                <td class="@GetCellClass(row, isLeft: true)">@(row.ValueA ?? "ó")</td>
-                                <td class="@GetCellClass(row, isLeft: false)">@(row.ValueB ?? "ó")</td>
+                                <td class="@GetCellClass(row, isLeft: true)">@(row.ValueA ?? " - ")</td>
+                                <td class="@GetCellClass(row, isLeft: false)">@(row.ValueB ?? " - ")</td>
                                 <td>
                                     @if (row.IsDifferent)
                                     {
-                                        <span class="cmp-badge cmp-badge-diff">ge‰ndert</span>
+                                        <span class="cmp-badge cmp-badge-diff">ge√§ndert</span>
                                     }
                                     else
                                     {
@@ -337,7 +337,7 @@
                 ToMap(CompareState.Results[1].Properties));
             if (report.JointReadingPossible)
                 return "Funktion, elektrische Grenzen und Pinbelegung liegen auf beiden Seiten. Das ist keine Freigabe eines Ersatzes.";
-            return "F¸r eine Austauschbarkeit fehlt: " + report.MissingGroups + ". Die Tabelle vergleicht nur Zeichenketten.";
+            return "F√ºr eine Austauschbarkeit fehlt: " + report.MissingGroups + ". Die Tabelle vergleicht nur Zeichenketten.";
         }
     }
 
@@ -433,7 +433,7 @@
             IsSeriesDatasheet = IdentifiedComponent != null && IsMemoryComponent(IdentifiedComponent);
 
             IsProcessing = false;
-            StatusMessage = "Bitte Identifikation best‰tigen (gilt f¸r beide PDFs).";
+            StatusMessage = "Bitte Identifikation best√§tigen (gilt f√ºr beide PDFs).";
             StateHasChanged();
 
             IdentificationDialogRef?.Show();
@@ -476,7 +476,7 @@
             if (!CategoriesMatch(confirmedCategory, categoryB))
             {
                 IsProcessing = false;
-                ErrorMessage = $"Fehler: Die beiden PDFs gehˆren zu unterschiedlichen Kategorien " +
+                ErrorMessage = $"Fehler: Die beiden PDFs geh√∂ren zu unterschiedlichen Kategorien " +
                                $"('{confirmedCategory}' vs. '{categoryB}'). Vergleich abgebrochen.";
                 StatusMessage = "";
                 StateHasChanged();
@@ -608,10 +608,7 @@
     {
         if (string.IsNullOrWhiteSpace(value)) return "";
 
-        // 1) Unicode-Whitespace normalisieren:
-        //    - non-breaking space (U+00A0), narrow no-break (U+202F),
-        //      figure space (U+2007), thin space (U+2009), zero-width space (U+200B)
-        //      etc. -> normales Space.
+        // 1) Unicode-Whitespace normalisieren: - non-breaking space (U+00A0), narrow no-break (U+202F), figure space (U+2007), thin space (U+2009), zero-width space (U+200B) etc. -> normales Space.
         var sb = new System.Text.StringBuilder(value.Length);
         foreach (var ch in value)
         {

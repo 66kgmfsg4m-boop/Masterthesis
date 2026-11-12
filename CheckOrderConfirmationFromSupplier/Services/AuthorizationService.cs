@@ -4,21 +4,13 @@ using System.Windows;
 
 namespace CheckOrderConfirmationFromSupplier.Services
 {
-    /// <summary>
-    /// Service for managing user authorization and access control.
-    /// Loads authorized user list from Azure Blob Storage and validates current Windows user.
-    /// Prevents unauthorized access to the application.
-    /// </summary>
+    /// <summary>Service for managing user authorization and access control.</summary>
     public class AuthorizationService
     {
         private Dictionary<string, string> _authorizedUsers;
         private readonly RemoteConfigService _remoteConfigService;
 
-        /// <summary>
-        /// Initializes the authorization service.
-        /// Creates a RemoteConfigService instance with unique client ID for Azure communication.
-        /// Immediately loads authorized users from Azure Blob Storage.
-        /// </summary>
+        /// <summary>Initializes the authorization service. Creates a RemoteConfigService instance with unique client ID for Azure communication.</summary>
         public AuthorizationService()
         {
             // Initialize RemoteConfigService with unique client ID for Azure Blob Storage access
@@ -26,11 +18,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             LoadAuthorizedUsers();
         }
 
-        /// <summary>
-        /// Loads the list of authorized users from Azure Blob Storage.
-        /// The authorized-users configuration file contains username-to-welcome-message mappings.
-        /// Throws exception if loading fails (critical - application cannot start without authorization data).
-        /// </summary>
+        /// <summary>Loads the list of authorized users from Azure Blob Storage.</summary>
         private void LoadAuthorizedUsers()
         {
             try
@@ -61,11 +49,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Checks if the current Windows user is authorized to use the application.
-        /// Compares the current Windows username against the authorized users list from Azure.
-        /// Shows welcome dialog if authorized, or access denied dialog if not authorized.
-        /// </summary>
+        /// <summary>Checks if the current Windows user is authorized to use the application.</summary>
         /// <returns>True if user is authorized, false otherwise</returns>
         public bool CheckUserAuthorization()
         {
@@ -111,9 +95,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Gets the current Windows username from environment variables.
-        /// </summary>
+        /// <summary>Gets the current Windows username from environment variables.</summary>
         /// <returns>Current Windows username (e.g., "john.doe")</returns>
         private string GetCurrentUser()
         {

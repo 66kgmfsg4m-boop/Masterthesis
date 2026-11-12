@@ -6,14 +6,14 @@
         title="@ThemeButtonTitle"
         aria-label="@(UseGerman ? "Design wechseln (Hell/Dunkel)" : "Toggle theme (light/dark)")"
         @onclick="ToggleTheme">
-    <span aria-hidden="true">@(_resolved == "dark" ? "🌙" : "☀️")</span>
+    <span aria-hidden="true">@(_resolved == "dark" ? "Dunkel" : "Hell")</span>
 </button>
 
 <style>
     .rs-theme-toggle {
-        min-width: 45px;
+        min-width: 76px;
         height: 45px;
-        font-size: 1.2rem;
+        font-size: 0.85rem;
         border-radius: 8px;
         display: flex;
         align-items: center;

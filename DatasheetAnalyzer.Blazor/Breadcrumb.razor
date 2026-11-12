@@ -93,7 +93,7 @@
     }
     
     .breadcrumb-item + .breadcrumb-item::before {
-        content: "›";
+        content: ">";
         color: #0099cc;
         font-weight: 700;
         font-size: 1.2rem;
@@ -120,19 +120,13 @@
     {
         try
         {
-            // Debug-Logs
-            await JS.InvokeVoidAsync("console.log", "=== BREADCRUMB: OnBackToStart GESTARTET ===");
-            await JS.InvokeVoidAsync("console.log", $"State.HasResults VOR Reset: {State.HasResults}");
-            await JS.InvokeVoidAsync("console.log", $"State.CurrentJsonResult VOR Reset: {!string.IsNullOrEmpty(State.CurrentJsonResult)}");
             
-            // State KOMPLETT zurücksetzen
+            // State KOMPLETT zurÃ¼cksetzen
             State.Reset();
             
             // Warten bis Event gefeuert wurde
             await Task.Delay(100);
             
-            await JS.InvokeVoidAsync("console.log", $"State.HasResults NACH Reset: {State.HasResults}");
-            await JS.InvokeVoidAsync("console.log", "=== BREADCRUMB: OnBackToStart ABGESCHLOSSEN ===");
             
             // Force Re-Render von ALLEN Components
             StateHasChanged();

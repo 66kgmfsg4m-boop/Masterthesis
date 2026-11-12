@@ -1,8 +1,6 @@
 namespace DatasheetAnalyzer.Blazor.Services;
 
-/// <summary>
-/// Stub für Layout-NavLink (aktuell gewählter Datensatz). Ohne Katalogbaum-Logik.
-/// </summary>
+/// <summary>Stub für Layout-NavLink (aktuell gewählter Datensatz). Ohne Katalogbaum-Logik.</summary>
 public interface ICurrentRecordService
 {
     CurrentRecordInfo? CurrentRecord { get; set; }

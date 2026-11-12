@@ -5,47 +5,12 @@ using System.Windows;
 
 namespace CheckOrderConfirmationFromSupplier.Windows
 {
-    /// <summary>
-    /// Identification Confirmation Dialog
-    /// 
-    /// Dialog for confirming and refining AI-identified component information (Stage 1 of datasheet analysis).
-    /// Provides two-strategy part number decoding for resistors and allows manual corrections.
-    /// 
-    /// Features:
-    /// - Display AI-identified component information
-    /// - Part number input and validation
-    /// - Two-strategy automatic decoding:
-    ///   1. AI-based decoding from datasheet legend
-    ///   2. Manufacturer-specific pattern rules (fallback)
-    /// - Manual parameter input if decoding fails
-    /// - Three user choices: Confirm, Correct, Cancel
-    /// 
-    /// Workflow:
-    /// 1. AI identifies component (Stage 1)
-    /// 2. User reviews identification in this dialog
-    /// 3. For resistors: User enters/confirms part number
-    /// 4. System attempts automatic decoding (2 strategies)
-    /// 5. If successful: User confirms decoded values
-    /// 6. If failed: User enters values manually
-    /// 7. Dialog returns result to main workflow
-    /// 
-    /// Special Handling:
-    /// - Resistors: Triggers part number decoding + parameter extraction
-    /// - Non-resistors: Simple confirmation (part number optional)
-    /// - Part number can be from "PartNumber" field or "PartNumbers" array
-    /// 
-    /// Integration Points:
-    /// - DatasheetAnalysisService (AI decoding)
-    /// - PartNumberDecoderService (pattern decoding)
-    /// - ResistorParameterDialog (manual/confirmed parameters)
-    /// </summary>
+    /// <summary>Identification Confirmation Dialog Dialog for confirming and refining AI-identified component information (Stage 1 of datasheet analysis).</summary>
     public partial class IdentificationConfirmationDialog : Window
     {
         #region Enums
 
-        /// <summary>
-        /// Result of user interaction with the dialog.
-        /// </summary>
+        /// <summary>Result of user interaction with the dialog.</summary>
         public enum UserDialogResult
         {
             /// <summary>User confirmed the identification as correct</summary>
@@ -62,14 +27,10 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region Properties
 
-        /// <summary>
-        /// Gets the user's choice from the dialog.
-        /// </summary>
+        /// <summary>Gets the user's choice from the dialog.</summary>
         public UserDialogResult UserChoice { get; private set; }
 
-        /// <summary>
-        /// Gets the identification data (potentially updated with part number).
-        /// </summary>
+        /// <summary>Gets the identification data (potentially updated with part number).</summary>
         public JObject IdentificationData { get; private set; }
 
         /// <summary>
@@ -78,11 +39,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
         /// </summary>
         public string SelectedPartNumber { get; private set; }
 
-        /// <summary>
-        /// Gets the manually entered or decoded resistor properties.
-        /// Only set for resistor components after successful parameter input.
-        /// Contains: ResistaOhm, TolerancePct, PowerW, PackageType, etc.
-        /// </summary>
+        /// <summary>Gets the manually entered or decoded resistor properties.</summary>
         public JObject ManualResistorProperties { get; private set; }
 
         #endregion
@@ -97,9 +54,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region Constructor
 
-        /// <summary>
-        /// Initializes the identification confirmation dialog.
-        /// </summary>
+        /// <summary>Initializes the identification confirmation dialog.</summary>
         /// <param name="identification">AI-identified component information</param>
         /// <param name="pdfFileName">Name of the analyzed PDF file</param>
         /// <param name="datasheetService">Optional: Service for AI-based part number decoding</param>
@@ -146,14 +101,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region Part Number Extraction
 
-        /// <summary>
-        /// Extracts part number from identification JSON.
-        /// Tries two sources:
-        /// 1. "PartNumber" field (single string)
-        /// 2. "PartNumbers" array (takes first entry)
-        /// 
-        /// Filters out "nicht vorhanden" placeholder values.
-        /// </summary>
+        /// <summary>Extracts part number from identification JSON.</summary>
         /// <param name="identification">Identification JSON object</param>
         /// <returns>Part number string or empty if not found</returns>
         private string ExtractPartNumber(JObject identification)
@@ -220,11 +168,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             Close();
         }
 
-        /// <summary>
-        /// Handles Correct button click.
-        /// Signals that user wants to correct the category.
-        /// Preserves entered part number if resistor.
-        /// </summary>
+        /// <summary>Handles Correct button click. Signals that user wants to correct the category.</summary>
         private void Correct_Click(object sender, RoutedEventArgs e)
         {
             string componentCategory = IdentificationData["ComponentCategory"]?.Value<string>() ?? "";
@@ -238,7 +182,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
                 {
                     SelectedPartNumber = enteredPartNumber;
                     IdentificationData["PartNumber"] = enteredPartNumber;
-                    Console.WriteLine($"Part Number gespeichert für Korrektur: {enteredPartNumber}");
+                    Console.WriteLine($"Part Number gespeichert fÃ¼r Korrektur: {enteredPartNumber}");
                 }
             }
 
@@ -251,19 +195,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region Resistor-Specific Confirmation Flow
 
-        /// <summary>
-        /// Handles confirmation flow for resistor components.
-        /// 
-        /// Process:
-        /// 1. Validate part number is entered
-        /// 2. Attempt AI-based decoding from datasheet legend
-        /// 3. Fallback to manufacturer-specific pattern rules
-        /// 4. Show decoded parameters for confirmation OR manual input dialog
-        /// 
-        /// Two-Strategy Decoding:
-        /// Strategy 1 (AI): Analyzes datasheet legend/breakdown table (requires PDF content)
-        /// Strategy 2 (Rules): Pattern matching against known manufacturer formats (Yageo, Vishay, etc.)
-        /// </summary>
+        /// <summary>Handles confirmation flow for resistor components.</summary>
         private void HandleResistorConfirmation(string componentCategory)
         {
             string enteredPartNumber = partNumberTextBox.Text?.Trim();
@@ -273,7 +205,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             {
                 MessageBox.Show(
                     "Bitte geben Sie die Herstellernummer ein.\n\n" +
-                    "Die Herstellernummer ist erforderlich für die korrekte\n" +
+                    "Die Herstellernummer ist erforderlich fÃ¼r die korrekte\n" +
                     "Extraktion der technischen Parameter.",
                     "Herstellernummer erforderlich",
                     MessageBoxButton.OK,
@@ -332,11 +264,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             }
         }
 
-        /// <summary>
-        /// Attempts AI-based part number decoding from datasheet legend.
-        /// Analyzes the datasheet PDF for part number breakdown tables and extracts parameters.
-        /// Shows progress window during analysis (30 second timeout).
-        /// </summary>
+        /// <summary>Attempts AI-based part number decoding from datasheet legend.</summary>
         /// <param name="partNumber">Part number to decode</param>
         /// <param name="manufacturer">Manufacturer name</param>
         /// <param name="category">Component category</param>
@@ -403,19 +331,15 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             return result;
         }
 
-        /// <summary>
-        /// Handles successful part number decoding.
-        /// Shows decoded parameters in ResistorParameterDialog for user confirmation.
-        /// If user confirms, stores parameters and closes with success.
-        /// </summary>
+        /// <summary>Handles successful part number decoding.</summary>
         private void HandleSuccessfulDecoding(JObject decodedProperties, string partNumber)
         {
             Console.WriteLine("Part Number erfolgreich dekodiert!");
             Console.WriteLine($"  Quelle: {decodedProperties["DecodingSource"]}");
             Console.WriteLine($"  Widerstand: {decodedProperties["ResistaOhm"]} Ohm");
-            Console.WriteLine($"  Toleranz: ±{decodedProperties["TolerancePct"]}%");
+            Console.WriteLine($"  Toleranz: Â±{decodedProperties["TolerancePct"]}%");
             Console.WriteLine($"  Leistung: {decodedProperties["PowerW"]} W");
-            Console.WriteLine($"  Gehäuse: {decodedProperties["PackageType"]}");
+            Console.WriteLine($"  GehÃ¤use: {decodedProperties["PackageType"]}");
 
             // Show decoded parameters in confirmation dialog
             var resistorDialog = new ResistorParameterDialog(partNumber, decodedProperties);
@@ -423,7 +347,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
             if (result == true && resistorDialog.WasConfirmed)
             {
-                Console.WriteLine("Dekodierte Resistor-Parameter vom User bestätigt");
+                Console.WriteLine("Dekodierte Resistor-Parameter vom User bestÃ¤tigt");
                 ManualResistorProperties = resistorDialog.ResistorProperties;
                 UserChoice = UserDialogResult.Confirmed;
                 this.DialogResult = true;
@@ -442,7 +366,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
         private void HandleFailedDecoding(string partNumber)
         {
             Console.WriteLine("Automatische Dekodierung fehlgeschlagen (beide Methoden)");
-            Console.WriteLine("  Öffne manuelle Eingabe...");
+            Console.WriteLine("  Ã–ffne manuelle Eingabe...");
 
             // Open manual input dialog
             var resistorDialog = new ResistorParameterDialog(partNumber);
@@ -470,11 +394,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region Non-Resistor Confirmation Flow
 
-        /// <summary>
-        /// Handles confirmation flow for non-resistor components.
-        /// Simple confirmation without part number decoding.
-        /// Part number is optional but will be saved if entered.
-        /// </summary>
+        /// <summary>Handles confirmation flow for non-resistor components.</summary>
         private void HandleNonResistorConfirmation()
         {
             string enteredPartNumber = partNumberTextBox.Text?.Trim();
@@ -495,11 +415,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
 
         #region Helper Methods
 
-        /// <summary>
-        /// Checks if component category is a resistor type.
-        /// Matches any category containing "Resistor" or "Widerstand".
-        /// Examples: "Resistor", "Resistor Constant", "Resistor Network", etc.
-        /// </summary>
+        /// <summary>Checks if component category is a resistor type.</summary>
         private bool IsResistor(string componentCategory)
         {
             if (string.IsNullOrWhiteSpace(componentCategory))

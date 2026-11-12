@@ -15,11 +15,7 @@ public class AzureConfig
     {
         _remoteConfigService = remoteConfigService;
         _logger = logger;
-        // Konfiguration NICHT im Konstruktor laden, damit die App auch bei
-        // fehlendem/blockiertem Azure-Zugriff (z.B. Firewall beim Endkunden)
-        // startet und die Web-UI ueberhaupt ausgeliefert werden kann.
-        // Die Properties werden erst beim ersten Zugriff geladen
-        // (siehe EnsureLoaded()).
+        // Konfiguration NICHT im Konstruktor laden, damit die App auch bei fehlendem/blockiertem Azure-Zugriff (z.B.
     }
 
     /// <summary>
@@ -30,9 +26,6 @@ public class AzureConfig
 
     /// <summary>
     /// Versucht die Konfiguration zu laden, falls noch nicht geschehen.
-    /// Wirft KEINE Exception nach aussen - Fehler werden geloggt und
-    /// koennen ueber <see cref="LastLoadError"/> bzw.
-    /// <see cref="IsConfigurationValid"/> ausgewertet werden.
     /// </summary>
     public bool EnsureLoaded()
     {

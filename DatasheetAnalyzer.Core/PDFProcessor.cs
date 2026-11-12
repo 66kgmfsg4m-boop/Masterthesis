@@ -20,19 +20,11 @@ public class PDFProcessor
     private const int MIN_IMAGE_HEIGHT = 100;
     // Maximalzahl gerenderter PDF-Seiten (Fallback, wenn PDF keine eingebetteten Bilder hat).
     // ACHTUNG: Muss mit dem Limit in DatasheetAnalysisService.CreateImageRequestBody konsistent sein,
-    // sonst werden gerenderte Seiten verworfen, bevor sie die Vision-API erreichen.
-    // Die Auswahl WELCHE 15 Seiten verwendet werden uebernimmt SelectRelevantPages
-    // (Score-basiert mit Multi-Keyword-Bonus, Negativliste und End-of-Document-Bonus).
     private const int MAX_RENDERED_PAGES = 15;
     private static readonly Regex MEANINGFUL_TEXT_PATTERN = new Regex(@"[A-Za-zÄÖÜäöüß]{10,}");
 
     /// <summary>
-    /// Stichworte, die typischerweise auf "interessanten" Seiten eines Datenblatts
-    /// stehen (Ordering Information, Package Drawing, Pin Configuration, ...).
-    /// Werden in <see cref="SelectRelevantPages"/> verwendet, um die Top-15-Seiten
-    /// fuer die Vision-API zu priorisieren.
-    /// Pro Treffer wird der Wert addiert; siehe Multi-Keyword-Bonus in
-    /// <see cref="ScorePage"/> fuer den Boost bei thematischer Vielfalt.
+    /// Stichworte, die typischerweise auf "interessanten" Seiten eines Datenblatts stehen (Ordering Information, Package Drawing, Pin Configuration, ...).
     /// </summary>
     private static readonly (string Keyword, int Weight)[] RelevanceKeywords = new[]
     {
@@ -180,8 +172,7 @@ public class PDFProcessor
             {
                 int pageCount = reader.NumberOfPages;
                 
-                // Extract text PER PAGE (wird sowohl fuer Gesamttext als auch fuer
-                // die smarte Seitenauswahl beim Rendering benoetigt)
+                // Extract text PER PAGE (wird sowohl fuer Gesamttext als auch fuer die smarte Seitenauswahl beim Rendering benoetigt)
                 var pageTexts = ExtractTextPerPage(reader);
                 string extractedText = string.Join("\n", pageTexts.OrderBy(kv => kv.Key).Select(kv => kv.Value)).Trim();
                 bool isTextBased = IsTextBasedPDF(extractedText);
@@ -189,20 +180,14 @@ public class PDFProcessor
                 // Extract images from all pages
                 var base64Images = ExtractEmbeddedImages(reader);
 
-                // Wenn keine eingebetteten Bilder, aber PDF hat technische Zeichnungen
-                //         → Rendere die RELEVANTESTEN PDF-Seiten als Bilder (für Vision API).
-                //         Smarte Auswahl: Cover (Seite 1) + Top-Seiten nach Keyword-Score
-                //         (Ordering Information, Package, Pinout, Pitch, ...).
-                //         Falls weniger als 15 relevante Seiten gefunden werden, wird mit
-                //         den fruehesten verbleibenden Seiten aufgefuellt -> 15er-Budget
-                //         wird IMMER ausgeschoepft (sofern PDF >= 15 Seiten hat).
+                // Wenn keine eingebetteten Bilder, aber PDF hat technische Zeichnungen -> Rendere die RELEVANTESTEN PDF-Seiten als Bilder (für Vision API).
                 if (base64Images.Count == 0 && pageCount > 0)
                 {
                     var selectedPages = SelectRelevantPages(pageTexts, pageCount, MAX_RENDERED_PAGES);
                     _logger.LogInformation("Keine eingebetteten Bilder - rendere {Count} ausgewaehlte Seiten ({Pages})...",
                         selectedPages.Count, string.Join(",", selectedPages));
                     base64Images = RenderPdfPagesToImages(pdfFilePath, pageCount, selectedPages);
-                    _logger.LogInformation("✓ {Count} PDF-Seiten als Bilder gerendert", base64Images.Count);
+                    _logger.LogInformation("{Count} PDF-Seiten als Bilder gerendert", base64Images.Count);
                 }
 
                 _logger.LogInformation("PDF-Analyse: Seiten={Pages}, Zeichen={Chars}, Typ={Type}, Bilder={Images}",
@@ -212,7 +197,7 @@ public class PDFProcessor
                     return new PDFContent(true, extractedText, base64Images, pageCount, pageTexts);
                 
                 if (base64Images.Count == 0)
-                    _logger.LogWarning("Keine Bilder extrahiert – PDF könnte leer oder geschützt sein");
+                    _logger.LogWarning("Keine Bilder extrahiert - PDF könnte leer oder geschützt sein");
                 
                 return new PDFContent(false, extractedText, base64Images, pageCount, pageTexts);
             }
@@ -249,19 +234,6 @@ public class PDFProcessor
 
     /// <summary>
     /// Whlt die <paramref name="limit"/> "interessantesten" Seiten aus.
-    /// Strategie:
-    ///   1. Seite 1 (Cover) ist IMMER dabei (Modellname, Hersteller, Family-Bezeichnung).
-    ///   2. Restliche Seiten werden nach Gesamt-Score absteigend gewaehlt. Score = 
-    ///        + Summe aller Keyword-Treffer (siehe <see cref="RelevanceKeywords"/>)
-    ///        + Multi-Keyword-Bonus (verschiedene Themen auf einer Seite ist wertvoller
-    ///          als 5x dasselbe Wort)
-    ///        + End-of-Document-Bonus (Ordering/Package-Drawings stehen oft am Ende)
-    ///        + Diagram-Bonus (Seiten mit wenig Text = vermutlich technische Zeichnung)
-    ///        - Negativ-Keywords (Inhaltsverzeichnis, Revision History, Disclaimer, …)
-    ///   3. Werden weniger als <paramref name="limit"/> Seiten mit positivem Score
-    ///      gefunden, wird mit den fruehesten verbleibenden Seiten aufgefuellt
-    ///      → 15er-Budget wird IMMER ausgeschoepft (sofern Doc >= 15 Seiten).
-    ///   4. Rueckgabe ist nach Seitennummer aufsteigend sortiert (Kontext-Reihenfolge).
     /// </summary>
     private List<int> SelectRelevantPages(Dictionary<int, string> pageTexts, int pageCount, int limit)
     {
@@ -298,9 +270,7 @@ public class PDFProcessor
         return picked;
     }
 
-    /// <summary>
-    /// Berechnet den Relevanz-Score einer einzelnen Seite. Hoeher = wichtiger.
-    /// </summary>
+    /// <summary>Berechnet den Relevanz-Score einer einzelnen Seite. Hoeher = wichtiger.</summary>
     /// <param name="pageNumber">1-basierte Seitennummer.</param>
     /// <param name="pageText">Kompletter Text dieser Seite (kann leer sein).</param>
     /// <param name="totalPages">Gesamtseitenzahl des Dokuments.</param>
@@ -336,14 +306,11 @@ public class PDFProcessor
 
         rawScore -= penalty;
 
-        // 3) Diagram-Bonus: Seiten mit sehr wenig Text (= vermutlich rein grafisch,
-        //    z.B. Package-Outline oder Pinout-Zeichnung) bekommen einen Bonus,
-        //    weil Vision dort die wertvollste Info liefert.
+        // 3) Diagram-Bonus: Seiten mit sehr wenig Text (= vermutlich rein grafisch, z.B.
         if (pageText.Length < 400) rawScore += 6;
         else if (pageText.Length < 800) rawScore += 3;
 
-        // 4) End-of-Document-Bonus: die letzten ~20% des Dokuments enthalten oft
-        //    Ordering Tables und Mechanical Drawings.
+        // 4) End-of-Document-Bonus: die letzten ~20% des Dokuments enthalten oft Ordering Tables und Mechanical Drawings.
         if (totalPages >= 5)
         {
             double position = (double)pageNumber / totalPages;
@@ -386,9 +353,6 @@ public class PDFProcessor
 
     /// <summary>
     /// Extracts all embedded images from the PDF.
-    /// Currently supports JPEG images (most common in technical documents).
-    /// Encodes images as base64 data URLs for Azure OpenAI Vision API.
-    /// Filters out small images (likely icons/logos).
     /// </summary>
     private List<string> ExtractEmbeddedImages(PdfReader reader)
     {
@@ -468,8 +432,6 @@ public class PDFProcessor
 
     /// <summary>
     /// Extracts an image from a PDF XObject and converts it to base64.
-    /// Currently supports JPEG images (DCTDecode filter).
-    /// Filters out small images based on dimensions.
     /// </summary>
     private string? ExtractImageFromXObject(PdfDictionary imageDict, int pageNum)
     {
@@ -515,9 +477,7 @@ public class PDFProcessor
         }
     }
 
-    /// <summary>
-    /// Gets the filter name from a PdfObject (can be single filter or array).
-    /// </summary>
+    /// <summary>Gets the filter name from a PdfObject (can be single filter or array).</summary>
     private string? GetFilterName(PdfObject? filterObj)
     {
         if (filterObj == null)
@@ -540,8 +500,6 @@ public class PDFProcessor
 
     /// <summary>
     /// Extracts JPEG image directly as base64 data URL.
-    /// JPEG images are already compressed and can be used without conversion.
-    /// Format: data:image/jpeg;base64,/9j/4AAQSkZJRg...
     /// </summary>
     private string? ExtractJpegImage(PdfDictionary imageDict)
     {
@@ -629,7 +587,7 @@ public class PDFProcessor
                 }
             }
 
-            _logger.LogInformation("✓ {Count} von {Total} ausgewaehlten Seiten erfolgreich gerendert",
+            _logger.LogInformation("{Count} von {Total} ausgewaehlten Seiten erfolgreich gerendert",
                 renderedImages.Count, pages.Count);
         }
         catch (System.Exception ex)

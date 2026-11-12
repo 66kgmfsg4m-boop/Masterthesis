@@ -5,39 +5,15 @@ namespace DatasheetAnalyzer.Core.Services;
 
 /// <summary>
 /// Liefert benutzerpflegbare Alias-Mappings PDF-Property -> DMS-Spaltenname(n).
-///
-/// Datenquelle: Azure Blob "dms_property_map.json" (siehe RemoteConfigService).
-/// Struktur:
-/// {
-///   "*": {                           // Default fuer alle Komponentenkategorien
-///     "FMinHz": ["FMIN", "F_MIN"],
-///     "FMaxHz": ["FMAX", "F_MAX"]
-///   },
-///   "RF Amplifier": {                // Kategoriespezifische Ueberschreibung/Ergaenzung
-///     "GainTypDb": ["GAIN", "GTYP"],
-///     "VsSpecifV": ["VS", "VCC", "VDD", "USUP"]
-///   }
-/// }
-///
-/// Die Map wird beim ersten Zugriff geladen und gecached. Faellt das Laden
-/// aus (Blob nicht vorhanden, Azure nicht erreichbar, JSON-Fehler), liefert
-/// der Service eine leere Map - der Aufrufer faellt dann auf seinen eigenen
-/// eingebauten Synonym-Katalog zurueck.
 /// </summary>
 public interface IDmsPropertyMappingService
 {
     /// <summary>
-    /// Gibt die Alias-Liste fuer eine PDF-Property zurueck, ggf. mit
-    /// kategoriespezifischer Ueberschreibung. Reihenfolge:
-    ///   1. Kategorie-spezifische Aliase (falls Kategorie angegeben)
-    ///   2. Default-Aliase aus "*"
-    /// Duplikate werden entfernt.
+    /// Gibt die Alias-Liste fuer eine PDF-Property zurueck, ggf. mit kategoriespezifischer Ueberschreibung.
     /// </summary>
     IReadOnlyList<string> GetAliases(string? category, string propertyName);
 
-    /// <summary>
-    /// Erzwingt ein Nachladen aus Azure Blob beim naechsten Aufruf.
-    /// </summary>
+    /// <summary>Erzwingt ein Nachladen aus Azure Blob beim naechsten Aufruf.</summary>
     void Invalidate();
 }
 

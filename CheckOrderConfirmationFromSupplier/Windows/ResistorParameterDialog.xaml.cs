@@ -37,7 +37,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             WasConfirmed = false;
             _isAutoDecoded = true;
 
-            this.Title = "Widerstands-Parameter bestätigen";
+            this.Title = "Widerstands-Parameter bestÃ¤tigen";
             autoDecodedInfoPanel.Visibility = Visibility.Visible;
             manualInputWarning.Visibility = Visibility.Collapsed;
 
@@ -48,7 +48,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
         {
             try
             {
-                Console.WriteLine("\nFÜLLE DIALOG MIT DEKODIERTEN WERTEN VOR:");
+                Console.WriteLine("\nFÃœLLE DIALOG MIT DEKODIERTEN WERTEN VOR:");
 
                 double resistanceOhm = decoded["ResistaOhm"]?.Value<double>() ?? 0;
                 if (resistanceOhm > 0)
@@ -74,7 +74,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
                 }
 
                 double tolerancePct = decoded["TolerancePct"]?.Value<double>() ?? 1.0;
-                string toleranceStr = $"±{tolerancePct}%";
+                string toleranceStr = $"Â±{tolerancePct}%";
                 SelectComboBoxItem(toleranceComboBox, toleranceStr);
                 Console.WriteLine($"   Toleranz: {toleranceStr}");
 
@@ -102,7 +102,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
                 double tempCoeffPPM = decoded["TempCoeffPPM"]?.Value<double>() ?? 0;
                 if (tempCoeffPPM > 0)
                 {
-                    string tempCoeffStr = $"±{tempCoeffPPM} ppm/°C";
+                    string tempCoeffStr = $"Â±{tempCoeffPPM} ppm/Â°C";
                     tempCoeffComboBox.Text = tempCoeffStr;
                     Console.WriteLine($"   Temp.Koeff.: {tempCoeffStr}");
                 }
@@ -120,7 +120,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Fehler beim Vorausfüllen der Werte: {ex.Message}");
+                Console.WriteLine($"Fehler beim VorausfÃ¼llen der Werte: {ex.Message}");
             }
         }
 
@@ -163,12 +163,12 @@ namespace CheckOrderConfirmationFromSupplier.Windows
                 if (_isAutoDecoded)
                 {
                     ResistorProperties["DataSource"] = "Part Number Decoding (User Confirmed)";
-                    Console.WriteLine("Automatisch dekodierte Werte vom User bestätigt");
+                    Console.WriteLine("Automatisch dekodierte Werte vom User bestÃ¤tigt");
                 }
                 else
                 {
                     ResistorProperties["DataSource"] = "Manual User Input";
-                    Console.WriteLine("Manuell eingegebene Werte vom User bestätigt");
+                    Console.WriteLine("Manuell eingegebene Werte vom User bestÃ¤tigt");
                 }
 
                 WasConfirmed = true;
@@ -204,7 +204,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             string toleranceStr = GetComboBoxValue(toleranceComboBox);
             if (toleranceStr != "nicht vorhanden" && toleranceStr.Contains("%"))
             {
-                string toleranceValue = toleranceStr.Replace("±", "").Replace("%", "").Trim();
+                string toleranceValue = toleranceStr.Replace("Â±", "").Replace("%", "").Trim();
                 properties["TolerancePct"] = toleranceValue;
             }
             else
@@ -232,7 +232,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
             string tempCoeffValue = GetComboBoxValue(tempCoeffComboBox);
             if (tempCoeffValue != "nicht vorhanden" && tempCoeffValue.Contains("ppm"))
             {
-                string tempCoeffNumeric = tempCoeffValue.Replace("±", "").Replace("ppm/°C", "").Trim();
+                string tempCoeffNumeric = tempCoeffValue.Replace("Â±", "").Replace("ppm/Â°C", "").Trim();
                 properties["TempCoeffPPM"] = tempCoeffNumeric;
             }
             else
@@ -329,7 +329,7 @@ namespace CheckOrderConfirmationFromSupplier.Windows
                     return numericValue * 1000000;
                 case "mW":
                     return numericValue / 1000;
-                case "µW":
+                case "ÂµW":
                     return numericValue / 1000000;
                 case "W":
                 default:

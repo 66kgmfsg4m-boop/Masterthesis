@@ -1,8 +1,6 @@
 namespace DatasheetAnalyzer.Blazor.Services;
 
-/// <summary>
-/// Pro-User-State für die Analyse-Seite: Modus, Ergebnis, Token-Statistik, Status.
-/// </summary>
+/// <summary>Pro-User-State für die Analyse-Seite: Modus, Ergebnis, Token-Statistik, Status.</summary>
 public interface IAnalyzeStateService
 {
     bool IsOrderConfirmationMode { get; set; }
@@ -19,14 +17,10 @@ public interface IAnalyzeStateService
     int TotalCompletionTokens { get; }
     int ProcessedPdfCount { get; }
     
-    /// <summary>
-    /// Gibt an, ob Ergebnisse vorhanden sind (für Breadcrumb-Navigation)
-    /// </summary>
+    /// <summary>Gibt an, ob Ergebnisse vorhanden sind (für Breadcrumb-Navigation)</summary>
     bool HasResults { get; }
     
-    /// <summary>
-    /// Event das gefeuert wird wenn sich der State ändert
-    /// </summary>
+    /// <summary>Event das gefeuert wird wenn sich der State ändert</summary>
     event Action? OnStateChanged;
     
     void AddTokenUsage(int promptTokens, int completionTokens);

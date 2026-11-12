@@ -624,9 +624,7 @@ private CatalogComponent? IdentifiedComponent;
     
 private IdentificationDialog? IdentificationDialogRef;
 
-    /// <summary>
-    /// Prüft ob Component eine Memory-Komponente ist (dann Part Number Eingabe aktivieren)
-    /// </summary>
+    /// <summary>Prüft ob Component eine Memory-Komponente ist (dann Part Number Eingabe aktivieren)</summary>
     private bool IsMemoryComponent(CatalogComponent component)
     {
         var memoryKeywords = new[]
@@ -651,11 +649,8 @@ private IdentificationDialog? IdentificationDialogRef;
 
     protected override void OnInitialized()
     {
-        // Robust gegen fehlende/fehlerhafte Azure-Konfiguration:
-        // GetService kann eine Exception werfen, wenn der Konstruktor des
-        // Service (z.B. RemoteConfigService) wegen Netzwerk-/Firewall-
+        // Robust gegen fehlende/fehlerhafte Azure-Konfiguration: GetService kann eine Exception werfen, wenn der Konstruktor des Service (z.B.
         // Problemen scheitert. Das wuerde sonst die ganze Seite mit
-        // HTTP 500 abreissen lassen.
         try
         {
             CatalogService = ServiceProvider.GetService<DMSCatalogService>();
@@ -730,13 +725,10 @@ private IdentificationDialog? IdentificationDialogRef;
 
         try
         {
-            // Schritt 1: PDF verarbeiten
             await using var stream = SelectedFile.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
             PdfContent = await PdfProcessor.ProcessPdfAsync(stream);
 
-            // PDF-Text im State ablegen, damit der Chatbot auf der Ergebnisseite
-            // Fragen zum aktuellen (einzigen) PDF beantworten kann. Bewusst nur
-            // ein PDF pro Analyse - kein History-/Multi-PDF-Support.
+            // PDF-Text im State ablegen, damit der Chatbot auf der Ergebnisseite Fragen zum aktuellen (einzigen) PDF beantworten kann.
             string markedPages = PassageRetrieval.MarkPages(PdfContent?.PageTexts);
             State.PdfTextContent = string.IsNullOrWhiteSpace(markedPages)
                 ? PdfContent?.TextContent
@@ -759,7 +751,6 @@ private IdentificationDialog? IdentificationDialogRef;
                 return;
             }
 
-            // Schritt 2: Identifikation durchführen
             State.StatusText = "Schritt 2. Die Bauteilgruppe wird erkannt und muss bestätigt werden.";
             StateHasChanged();
             
@@ -769,8 +760,6 @@ private IdentificationDialog? IdentificationDialogRef;
             // Prüfe ob es eine Memory-Komponente ist (dann immer Part Number ermöglichen)
             string componentCategory = CurrentIdentification["ComponentCategory"]?.Value<string>() ?? "";
             
-            // Debug-Logs
-            await JS.InvokeVoidAsync("console.log", $"Component category: {componentCategory}");
             
             // Suche Component im Katalog (mit mehreren Fallback-Strategien)
             IdentifiedComponent = CatalogService!.FindComponent(componentCategory);
@@ -781,7 +770,6 @@ private IdentificationDialog? IdentificationDialogRef;
                 string componentName = CurrentIdentification["ComponentName"]?.Value<string>() ?? "";
                 if (!string.IsNullOrWhiteSpace(componentName))
                 {
-                    await JS.InvokeVoidAsync("console.log", $"🔄 Retry search with ComponentName: {componentName}");
                     IdentifiedComponent = CatalogService!.FindComponent(componentName);
                 }
             }
@@ -789,7 +777,6 @@ private IdentificationDialog? IdentificationDialogRef;
             // Fallback 2: Spezielle Behandlung für Memory Components
             if (IdentifiedComponent == null && componentCategory.Contains("Memory", StringComparison.OrdinalIgnoreCase))
             {
-                await JS.InvokeVoidAsync("console.log", "🔄 Memory Component detected - trying specialized search");
                 
                 // Versuche verschiedene Memory-Kategorien
                 var memoryVariants = new[] 
@@ -807,39 +794,27 @@ private IdentificationDialog? IdentificationDialogRef;
                     IdentifiedComponent = CatalogService!.FindComponent(variant);
                     if (IdentifiedComponent != null)
                     {
-                        await JS.InvokeVoidAsync("console.log", $"Found via fallback: {variant}");
                         break;
                     }
                 }
             }
             
-            // E LOGIK: Prüfe ob Memory-Komponente (dann immer Part Number Eingabe ermöglichen)
             if (IdentifiedComponent != null)
             {
-                await JS.InvokeVoidAsync("console.log", "Component found in catalog:");
-                await JS.InvokeVoidAsync("console.log", $"   DisplayName: {IdentifiedComponent.DisplayName}");
-                await JS.InvokeVoidAsync("console.log", $"   InternalName: {IdentifiedComponent.InternalName}");
-                await JS.InvokeVoidAsync("console.log", $"   FullPath: {IdentifiedComponent.FullPath}");
                 
                 // Prüfe ob es eine Memory-Komponente ist
                 IsSeriesDatasheet = IsMemoryComponent(IdentifiedComponent);
                 
-                await JS.InvokeVoidAsync("console.log", $"   RequiresPartNumber: {IsSeriesDatasheet}");
                 
                 if (IsSeriesDatasheet)
                 {
-                    await JS.InvokeVoidAsync("console.log", $"🔑 Memory Component detected: {IdentifiedComponent.DisplayName}");
-                    await JS.InvokeVoidAsync("console.log", "   → Part Number input WILL BE ENABLED in dialog");
                 }
             }
             else
             {
-                await JS.InvokeVoidAsync("console.log", $"Component not in catalog: {componentCategory}");
-                await JS.InvokeVoidAsync("console.log", "   Part Number input will be disabled");
                 IsSeriesDatasheet = false;
             }
             
-            // Schritt 3: Dialog anzeigen
             IsAnalyzing = false;
             State.StatusText = IsSeriesDatasheet 
                 ? "Schritt 2. Bitte die Gruppe bestätigen und die Bestellnummer eingeben."
@@ -866,7 +841,7 @@ private IdentificationDialog? IdentificationDialogRef;
         IsAnalyzing = true;
         AnalysisStarted = true;
         
-        State.ResultLog = $"[{DateTime.Now:HH:mm:ss}] PDF-Analyse – {SelectedFile?.Name}\n";
+        State.ResultLog = $"[{DateTime.Now:HH:mm:ss}] PDF-Analyse - {SelectedFile?.Name}\n";
         State.ResultLog += new string('=', 80) + "\n\n";
         
         StateHasChanged();

@@ -128,7 +128,7 @@ public class RemoteConfigService : IRemoteConfigService
 
     public void DiagnoseConnection()
     {
-        _logger.LogInformation("Azure Blob Storage Diagnose – Client-ID: {ClientId}", _clientId);
+        _logger.LogInformation("Azure Blob Storage Diagnose - Client-ID: {ClientId}", _clientId);
         try
         {
             if (_containerClient.Exists())

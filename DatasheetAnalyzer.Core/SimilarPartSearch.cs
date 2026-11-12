@@ -8,9 +8,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DatasheetAnalyzer.Core.Services;
 
-/// <summary>
-/// Looks up similar parameter sets in the local DMS index. A hit is only a hint.
-/// </summary>
+/// <summary>Looks up similar parameter sets in the local DMS index. A hit is only a hint.</summary>
 public static class SimilarPartSearch
 {
     public const double Tolerance = 0.25;

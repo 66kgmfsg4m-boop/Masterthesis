@@ -1,15 +1,7 @@
 namespace DatasheetAnalyzer.Core.Config;
 
 /// <summary>
-/// Konfiguration fuer die READ-ONLY-Anbindung an das neue DMS-REST-Interface
-/// (https://dms-api-prod.cloud.rsint.net). Loest die bisherige direkte
-/// Oracle-Anbindung ab. Der API-Service verhaelt sich absichtlich langsam
-/// (asynchrones send_query -> receive-Polling), daher die Polling-Optionen.
-///
-/// Override-Reihenfolge (hoch -> niedrig):
-///   1. Umgebungsvariablen (DmsApi__User etc.)
-///   2. appsettings.json
-///   3. Eingebettete Defaults in Program.cs
+/// Konfiguration fuer die READ-ONLY-Anbindung an das neue DMS-REST-Interface (https://dms-api-prod.cloud.rsint.net).
 /// </summary>
 public class DmsApiOptions
 {
@@ -58,17 +50,12 @@ public class DmsApiOptions
     public bool ForceRefresh { get; set; } = false;
 
     /// <summary>
-    /// Optional: explizite Liste der Material-Tabellen. Wenn gesetzt, wird
-    /// der Discovery-Schritt (SELECT auf ALL_TABLES) uebersprungen. Notwendig,
-    /// wenn der DMS-API-User keine Rechte auf ALL_TABLES hat.
+    /// Optional: explizite Liste der Material-Tabellen.
     /// </summary>
     public List<string> Tables { get; set; } = new();
 
     /// <summary>
-    /// Metadaten-Konfiguration fuer das dynamische Property-Mapping
-    /// (Material -&gt; Kataloggruppe -&gt; Merkmal -&gt; Zieltabelle+Spalte).
-    /// Wenn <see cref="MetadataOptions.Enabled"/>=false ist, wird auf die
-    /// alte Namensheuristik in der UI zurueckgefallen.
+    /// Metadaten-Konfiguration fuer das dynamische Property-Mapping (Material -&gt; Kataloggruppe -&gt; Merkmal -&gt; Zieltabelle+Spalte).
     /// </summary>
     public MetadataOptions Metadata { get; set; } = new();
 

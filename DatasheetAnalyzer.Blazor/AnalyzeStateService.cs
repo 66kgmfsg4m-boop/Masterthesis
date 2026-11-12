@@ -58,14 +58,10 @@ public class AnalyzeStateService : IAnalyzeStateService
     public int TotalCompletionTokens { get; private set; }
     public int ProcessedPdfCount { get; private set; }
     
-    /// <summary>
-    /// Gibt an, ob Ergebnisse vorhanden sind
-    /// </summary>
+    /// <summary>Gibt an, ob Ergebnisse vorhanden sind</summary>
     public bool HasResults => !string.IsNullOrEmpty(CurrentJsonResult) || !string.IsNullOrEmpty(ResultLog);
     
-    /// <summary>
-    /// Event das gefeuert wird wenn sich der State ändert
-    /// </summary>
+    /// <summary>Event das gefeuert wird wenn sich der State ändert</summary>
     public event Action? OnStateChanged;
     
     private void NotifyStateChanged()

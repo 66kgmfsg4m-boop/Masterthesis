@@ -3,23 +3,7 @@ using System.IO;
 
 namespace CheckOrderConfirmationFromSupplier.Services
 {
-    /// <summary>
-    /// PDF File Manager Service
-    /// 
-    /// Manages automatic archiving of PDF files to a configured directory.
-    /// Supports both Azure-configured paths and local fallback paths.
-    /// 
-    /// Purpose:
-    /// - Automatically copy processed PDFs to archive directory
-    /// - Support network paths and local paths
-    /// - Load archive path from Azure configuration
-    /// - Create directories if they don't exist
-    /// - Verify write permissions
-    /// 
-    /// Configuration:
-    /// - Primary: Azure Blob Storage (authorized-users config)
-    /// - Fallback: Local path (C:\Temp\PDFArchiv\)
-    /// </summary>
+    /// <summary>PDF File Manager Service Manages automatic archiving of PDF files to a configured directory.</summary>
     public class PDFFileManagerService
     {
         // Default local path (used if Azure configuration is unavailable)
@@ -31,12 +15,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
         private readonly string _targetDirectory;
         private readonly RemoteConfigService _remoteConfigService;
 
-        /// <summary>
-        /// Initializes the PDF file manager service.
-        /// Attempts to load archive path from Azure configuration.
-        /// Falls back to local path if Azure is unavailable.
-        /// Creates target directory if it doesn't exist.
-        /// </summary>
+        /// <summary>Initializes the PDF file manager service.</summary>
         public PDFFileManagerService()
         {
             _remoteConfigService = new RemoteConfigService(Guid.NewGuid().ToString());
@@ -113,16 +92,11 @@ namespace CheckOrderConfirmationFromSupplier.Services
             if (string.IsNullOrEmpty(path))
                 return path;
 
-            // Remove double backslashes (except for UNC paths)
-            // Add trailing backslash if missing
+            // Remove double backslashes (except for UNC paths) Add trailing backslash if missing
             return path.Replace("\\\\", "\\").TrimEnd('\\') + "\\";
         }
 
-        /// <summary>
-        /// Copies a PDF file to the configured target directory.
-        /// Overwrites existing files if they already exist.
-        /// Creates target directory if it doesn't exist.
-        /// </summary>
+        /// <summary>Copies a PDF file to the configured target directory.</summary>
         /// <param name="sourceFilePath">Full path to source PDF file</param>
         /// <returns>True if copy was successful, false otherwise</returns>
         public bool CopyPDFToTargetDirectory(string sourceFilePath)
@@ -154,7 +128,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
                 // Check if file already exists
                 if (File.Exists(targetPath))
                 {
-                    Console.WriteLine($"Datei existiert bereits - wird überschrieben: {fileName}");
+                    Console.WriteLine($"Datei existiert bereits - wird Ã¼berschrieben: {fileName}");
                 }
 
                 // Copy file and overwrite if exists
@@ -173,15 +147,15 @@ namespace CheckOrderConfirmationFromSupplier.Services
                 // Provide specific error hints based on exception message
                 if (e.Message.Contains("Access is denied") || e.Message.Contains("Zugriff verweigert"))
                 {
-                    Console.WriteLine("  Mögliche Ursache: Keine Berechtigung für das Zielverzeichnis");
+                    Console.WriteLine("  MÃ¶gliche Ursache: Keine Berechtigung fÃ¼r das Zielverzeichnis");
                 }
                 else if (e.Message.Contains("network path") || e.Message.Contains("Netzwerkpfad"))
                 {
-                    Console.WriteLine("  Mögliche Ursache: Netzwerkpfad nicht erreichbar");
+                    Console.WriteLine("  MÃ¶gliche Ursache: Netzwerkpfad nicht erreichbar");
                 }
                 else if (e.Message.Contains("cannot find the path") || e.Message.Contains("Pfad nicht gefunden"))
                 {
-                    Console.WriteLine("  Mögliche Ursache: Zielverzeichnis existiert nicht");
+                    Console.WriteLine("  MÃ¶gliche Ursache: Zielverzeichnis existiert nicht");
                 }
 
                 return false;
@@ -195,17 +169,13 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Checks if target directory exists and is writable.
-        /// Creates directory if it doesn't exist.
-        /// Tests write permissions by creating a temporary file.
-        /// </summary>
+        /// <summary>Checks if target directory exists and is writable.</summary>
         private void CheckTargetDirectoryExists()
         {
             try
             {
-                Console.WriteLine("=== VERZEICHNIS-ÜBERPRÜFUNG ===");
-                Console.WriteLine($"Überprüfe Pfad: {_targetDirectory}");
+                Console.WriteLine("=== VERZEICHNIS-ÃœBERPRÃœFUNG ===");
+                Console.WriteLine($"ÃœberprÃ¼fe Pfad: {_targetDirectory}");
 
                 if (Directory.Exists(_targetDirectory))
                 {
@@ -221,7 +191,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
                     }
                     catch
                     {
-                        Console.WriteLine($"Warnung: Keine Schreibberechtigung für Verzeichnis: {_targetDirectory}");
+                        Console.WriteLine($"Warnung: Keine Schreibberechtigung fÃ¼r Verzeichnis: {_targetDirectory}");
                     }
                 }
                 else
@@ -243,14 +213,12 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Fehler beim Überprüfen des Zielverzeichnisses: {e.Message}");
+                Console.WriteLine($"Fehler beim ÃœberprÃ¼fen des Zielverzeichnisses: {e.Message}");
                 Console.WriteLine($"Verzeichnis: {_targetDirectory}");
             }
         }
 
-        /// <summary>
-        /// Checks if target directory is accessible.
-        /// </summary>
+        /// <summary>Checks if target directory is accessible.</summary>
         /// <returns>True if directory exists, false otherwise</returns>
         public bool IsTargetDirectoryAccessible()
         {
@@ -264,9 +232,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Gets the configured target directory path.
-        /// </summary>
+        /// <summary>Gets the configured target directory path.</summary>
         /// <returns>Full path to target directory</returns>
         public string GetTargetDirectory()
         {

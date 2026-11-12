@@ -602,7 +602,7 @@ else
                             </table>
                         </div>
                         <p style="margin:8px 0 0; font-size:0.9rem;">
-                            Feldprüfung in dieser Sitzung (@Acceptance.Count von @ReadingRows.Count markiert). Wird nicht ins DMS geschrieben.
+                            FeldprÃ¼fung in dieser Sitzung (@Acceptance.Count von @ReadingRows.Count markiert). Wird nicht ins DMS geschrieben.
                         </p>
                     }
                     <details style="margin-top:12px;">
@@ -611,14 +611,14 @@ else
                     </details>
 
                     <div style="margin-top:16px; padding-top:12px; border-top:1px solid var(--rs-gray-medium);">
-                        <h3 style="margin:0 0 8px; color:var(--rs-blue-header);">Ähnliche Bauteile</h3>
+                        <h3 style="margin:0 0 8px; color:var(--rs-blue-header);">Ã„hnliche Bauteile</h3>
                         <p style="margin:0 0 8px;">
                             Die gelesenen Parameter werden mit dem DMS-Index verglichen.
-                            Dieselbe Anfrage lässt sich bei Mouser, Digi-Key, Farnell und LCSC öffnen.
+                            Dieselbe Anfrage lÃ¤sst sich bei Mouser, Digi-Key, Farnell und LCSC Ã¶ffnen.
                             Ein Treffer gibt kein Bauteil frei und legt keinen Last-Time-Buy an.
                         </p>
                         <button class="rs-button" type="button" @onclick="OnSearchSimilar" disabled="@SimilarBusy">
-                            @(SimilarBusy ? "Suche läuft..." : "Nach Parametern suchen")
+                            @(SimilarBusy ? "Suche lÃ¤uft..." : "Nach Parametern suchen")
                         </button>
                         @if (!string.IsNullOrWhiteSpace(SimilarMessage))
                         {
@@ -723,16 +723,16 @@ else
                                     @if (FieldScore is { } score)
                                     {
                                         <div class="dms-info" style="display:block; margin-top:6px;">
-                                            Feldübereinstimmung: <strong>@FieldScoreText(score)</strong>
+                                            FeldÃ¼bereinstimmung: <strong>@FieldScoreText(score)</strong>
                                             @if (score.Unsupported > 0)
                                             {
-                                                <span> @score.Unsupported KI-Werte ohne DMS-Eintrag zählen nicht mit.</span>
+                                                <span> @score.Unsupported KI-Werte ohne DMS-Eintrag zÃ¤hlen nicht mit.</span>
                                             }
                                         </div>
                                         @if (ScoreSaved)
                                         {
                                             <div class="dms-info" style="display:block; margin-top:4px;">
-                                                Für die Auswertung pro Bauteil gespeichert.
+                                                FÃ¼r die Auswertung pro Bauteil gespeichert.
                                             </div>
                                         }
                                     }
@@ -755,8 +755,8 @@ else
                                         {
                                             <tr>
                                                 <td><strong>@row.ColumnLabel</strong></td>
-                                                <td class="@GetCellClass(row, isPdf: true)">@(row.PdfValue ?? "—")</td>
-                                                <td class="@GetCellClass(row, isPdf: false)">@(row.DmsValue ?? "—")</td>
+                                                <td class="@GetCellClass(row, isPdf: true)">@(row.PdfValue ?? " - ")</td>
+                                                <td class="@GetCellClass(row, isPdf: false)">@(row.DmsValue ?? " - ")</td>
                                             </tr>
                                         }
                                     </tbody>
@@ -797,7 +797,7 @@ else
                                       @bind="ChatQuestion"
                                       @bind:event="oninput"
                                       @onkeydown="OnChatKeyDown"
-                                      placeholder="Was möchtest du zum analysierten Datenblatt wissen? (Strg+Enter zum Senden)"
+                                      placeholder="Was mÃ¶chtest du zum analysierten Datenblatt wissen? (Strg+Enter zum Senden)"
                                       disabled="@IsChatLoading"></textarea>
 
                             <div style="display:flex; gap:12px; align-items:center; margin-top:10px; flex-wrap:wrap;">
@@ -934,15 +934,15 @@ private async Task OnSearchSimilar()
             MouserHits = await DistributorSearch.SearchMouserAsync(keyword);
 
         if (query.Parameters.Count == 0 && string.IsNullOrWhiteSpace(query.Function))
-            SimilarMessage = "Im Vorschlag stehen keine numerischen Parameter für die Suche.";
+            SimilarMessage = "Im Vorschlag stehen keine numerischen Parameter fÃ¼r die Suche.";
         else if (!DistributorSearch.HasMouserKey())
-            SimilarMessage = "Die Distributor-Seiten öffnen dieselbe Anfrage. Ein Mouser-API-Schlüssel ist nicht hinterlegt, deshalb bleibt der Katalogaufruf aus.";
+            SimilarMessage = "Die Distributor-Seiten Ã¶ffnen dieselbe Anfrage. Ein Mouser-API-SchlÃ¼ssel ist nicht hinterlegt, deshalb bleibt der Katalogaufruf aus.";
         else
             SimilarMessage = "DMS-Index und Mouser wurden mit denselben Parametern abgefragt.";
     }
     catch (Exception ex)
     {
-        SimilarMessage = "Die Suche konnte nicht ausgeführt werden: " + ex.Message;
+        SimilarMessage = "Die Suche konnte nicht ausgefÃ¼hrt werden: " + ex.Message;
     }
     finally
     {
@@ -1155,8 +1155,6 @@ private void OnStateChanged()
 
     /// <summary>
     /// Empty markers, die im PDF-Analyse-Ergebnis als "kein Wert" gelten.
-    /// Werden beim Diff wie NULL behandelt, damit "nicht vorhanden" vs. DMS-NULL
-    /// nicht als Abweichung gewertet wird.
     /// </summary>
     private static readonly string[] EmptyMarkers =
     {
@@ -1165,12 +1163,7 @@ private void OnStateChanged()
     };
 
     /// <summary>
-    /// PDF-Properties, die vom DMS-Diff ausgeschlossen werden. Entweder gibt
-    /// es keine direkt vergleichbare DMS-Spalte (Funktion steckt im DMS
-    /// implizit in der Kataloggruppe SKN_COD, nicht als Klartext) oder der
-    /// Wert wird bereits ueber die Materialnummer selbst identifiziert
-    /// (PartNumber, Manufacturer, Description). Diese Properties im UI zu
-    /// zeigen wuerde nur Dauer-"+"-Eintraege ohne Erkenntniswert erzeugen.
+    /// PDF-Properties, die vom DMS-Diff ausgeschlossen werden.
     /// </summary>
     private static readonly HashSet<string> NonComparableProperties =
         new(StringComparer.OrdinalIgnoreCase)
@@ -1186,9 +1179,6 @@ private void OnStateChanged()
 
     /// <summary>
     /// Synonym-Mapping PDF-Property -> moegliche DMS-Spaltennamen.
-    /// Wird nur als letzter Fallback verwendet, wenn weder PropertyMap
-    /// (ORDNUM-Join) noch der normalisierte Namensvergleich einen
-    /// Treffer liefern. Bewusst konservativ gehalten.
     /// </summary>
     private static readonly Dictionary<string, string[]> PropertySynonyms =
         new(StringComparer.OrdinalIgnoreCase)
@@ -1235,8 +1225,7 @@ private void OnStateChanged()
     private void OnToggleDmsPanel()
     {
         DmsTriggered = true;
-        // Bei erstem Oeffnen: Materialnummer-Vorschlag aus Analyse-JSON ziehen,
-        // falls dort z.B. eine interne Sachnummer extrahiert wurde.
+        // Bei erstem Oeffnen: Materialnummer-Vorschlag aus Analyse-JSON ziehen, falls dort z.B. eine interne Sachnummer extrahiert wurde.
         if (string.IsNullOrWhiteSpace(MaterialNumberInput) && !string.IsNullOrEmpty(State.CurrentJsonResult))
         {
             try
@@ -1290,7 +1279,7 @@ private void OnStateChanged()
     private static string FieldScoreText(FieldAgreement.Score score)
     {
         if (score.ReferenceFields == 0)
-            return "Keine gefüllten DMS-Felder.";
+            return "Keine gefÃ¼llten DMS-Felder.";
 
         var percent = (int)Math.Round(100.0 * score.Matches / score.ReferenceFields);
         return $"{score.Matches} von {score.ReferenceFields} DMS-Feldern ({percent} %). Einheiten und Dezimalzeichen werden nicht umgerechnet.";
@@ -1348,15 +1337,7 @@ private void OnStateChanged()
                     foreach (var prop in json.Properties())
                     {
                         if (prop.Name.StartsWith("_", StringComparison.Ordinal)) continue;
-                        // Nicht vergleichbare Meta-Properties ausblenden:
-                        // "Function", "ComponentType", "ComponentCategory",
-                        // "ManufacturerInfo", "Manufacturer", "Description",
-                        // "PartNumber" sind entweder Klartext-Beschreibungen
-                        // ohne aequivalente DMS-Spalte (Funktion steckt im DMS
-                        // implizit in der Kataloggruppe SKN_COD) oder werden
-                        // ueber die Materialnummer selbst schon eindeutig
-                        // identifiziert. Sie im Diff zu zeigen produziert nur
-                        // Dauer-"+"-Eintraege ohne Erkenntniswert.
+                        // Nicht vergleichbare Meta-Properties ausblenden: "Function", "ComponentType", "ComponentCategory", "ManufacturerInfo", "Manufacturer", "Description", "PartNumber" sind entweder
                         if (NonComparableProperties.Contains(prop.Name)) continue;
                         pdfProps[prop.Name] = ReadingContext.Plain(prop.Value);
                     }
@@ -1368,23 +1349,11 @@ private void OnStateChanged()
                 }
             }
 
-            // WICHTIG: Wir iterieren NUR ueber die PDF-Properties (= das, was die
-            // Analyse extrahiert hat). DMS hat viele zusaetzliche interne Spalten
-            // (CHECK_*, BEARBEITER, BA, ...), die fuer einen Property-Abgleich
-            // irrelevant sind und das UI vollkommen ueberfluten wuerden.
+            // WICHTIG: Wir iterieren NUR ueber die PDF-Properties (= das, was die Analyse extrahiert hat).
             // PDF-Properties, die im DMS gar nicht vorkommen, werden ebenfalls
-            // gefiltert (sonst sieht der User lauter "+ OnlyInPdf"-Zeilen ohne
-            // Erkenntniswert).
-            //
-            // DMS-Spaltennamen weichen haeufig von den PDF-Property-Namen ab
-            // (z.B. PDF "Pitch" vs. DMS "PITCH___1", "GEH_TYP1" vs. "Package").
-            // Wir bauen deshalb einen normalisierten Index ueber die DMS-Spalten
-            // und akzeptieren zusaetzlich Praefix-Matches.
             static string NormKey(string s)
             {
-                // Alles in eckigen Klammern (typischerweise Einheiten wie "[mm]",
-                // "[H]", "[Ohm]", "[%]") komplett entfernen, damit PDF-Property
-                // "Hoehe [mm]" auf DMS-Spalte "HEIGHT" mappen kann.
+                // Alles in eckigen Klammern (typischerweise Einheiten wie "[mm]", "[H]", "[Ohm]", "[%]") komplett entfernen, damit PDF-Property "Hoehe [mm]" auf DMS-Spalte "HEIGHT" mappen kann.
                 var noUnit = System.Text.RegularExpressions.Regex.Replace(s, @"\[[^\]]*\]", "");
                 var sb = new System.Text.StringBuilder(noUnit.Length);
                 foreach (var c in noUnit)
@@ -1404,8 +1373,7 @@ private void OnStateChanged()
                 if (!dmsIndex.ContainsKey(norm))
                     dmsIndex[norm] = kv.Key;
             }
-            // 2) Danach ALLE Spalten (auch NULL-Spalten) indizieren, damit auch
-            //    leere DMS-Felder als Ziel eines Property-Matches erkannt werden.
+            // 2) Danach ALLE Spalten (auch NULL-Spalten) indizieren, damit auch leere DMS-Felder als Ziel eines Property-Matches erkannt werden.
             if (result.AllColumns != null)
             {
                 foreach (var col in result.AllColumns)
@@ -1425,10 +1393,7 @@ private void OnStateChanged()
                 .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            // 3) Alias-Mapping: keine hartcodierte Liste mehr - die Kopplung
-            //    PDF-Property -> DMS-Spalte kommt jetzt dynamisch ueber
-            //    DmsLookupResult.PropertyMap (ORDNUM-Join TR_SMT/TE_CLS_MERK
-            //    x get_classes.csv).
+            // 3) Alias-Mapping: keine hartcodierte Liste mehr - die Kopplung PDF-Property -> DMS-Spalte kommt jetzt dynamisch ueber DmsLookupResult.PropertyMap (ORDNUM-Join TR_SMT/TE_CLS_MERK x get_classes.csv).
 
             var rows = new List<DmsRow>();
             foreach (var key in pdfProps.Keys.OrderBy(k => k, StringComparer.OrdinalIgnoreCase))
@@ -1443,9 +1408,7 @@ private void OnStateChanged()
                     dmsKey = mappedCol;
                 }
 
-                // 2) Fallback: Namensmatch (normalisiert) gegen alle DMS-Spalten,
-                //    damit Merkmale wie Function/TolerancePct/SrfHz auch dann
-                //    erscheinen, wenn die ORDNUM-Kopplung nicht greift.
+                // 2) Fallback: Namensmatch (normalisiert) gegen alle DMS-Spalten, damit Merkmale wie Function/TolerancePct/SrfHz auch dann erscheinen, wenn die ORDNUM-Kopplung nicht greift.
                 if (dmsKey is null)
                 {
                     var norm = NormKey(key);
@@ -1455,9 +1418,7 @@ private void OnStateChanged()
                     }
                 }
 
-                // 3) Remote-konfiguriertes Alias-Mapping aus Azure Blob
-                //    (dms_property_map.json). Wird ohne Code-Aenderung
-                //    ueber den RemoteConfigService gepflegt.
+                // 3) Remote-konfiguriertes Alias-Mapping aus Azure Blob (dms_property_map.json).
                 if (dmsKey is null)
                 {
                     var category = ExtractCategoryFromResult();
@@ -1474,7 +1435,7 @@ private void OnStateChanged()
                 }
 
                 // 4) Synonym-Fallback: eingebauter Katalog bekannter Aliase.
-                //    Wird nur genutzt, wenn (1)-(3) nichts gefunden haben.
+                // Wird nur genutzt, wenn (1)-(3) nichts gefunden haben.
                 if (dmsKey is null && PropertySynonyms.TryGetValue(key, out var synonyms))
                 {
                     foreach (var syn in synonyms)
@@ -1491,8 +1452,7 @@ private void OnStateChanged()
 
                 if (dmsKey is null)
                 {
-                    // Kein DMS-Match: PDF-Property gehoert nicht zu den
-                    // Technischen Parametern dieser Kataloggruppe -> ausblenden.
+                    // Kein DMS-Match: PDF-Property gehoert nicht zu den Technischen Parametern dieser Kataloggruppe -> ausblenden.
                     continue;
                 }
 
@@ -1621,14 +1581,6 @@ private void OnStateChanged()
 
     /// <summary>
     /// Vergleicht zwei Werte numerisch mit Einheiten-Skalierung.
-    /// Beispiele die als gleich erkannt werden:
-    ///   "27 µH" vs "2.7E-05"          (µ = 1e-6)
-    ///   "15 MHz" vs "15000000"        (M = 1e6)
-    ///   "100 kHz" vs "100000"         (k = 1e3)
-    ///   "37.6 m?" vs "0.0376"         (m = 1e-3)
-    ///   "±20%" vs "20"                (Vorzeichen/Prozent ignoriert)
-    ///   "4.3 A" vs "4,3"              (Dezimalkomma vs Punkt)
-    ///   "6.4 mm" vs "6,4"             (Einheit ignoriert)
     /// </summary>
     private static bool NumericEqual(string? a, string? b)
     {
@@ -1645,7 +1597,7 @@ private void OnStateChanged()
     {
         value = 0;
         if (string.IsNullOrWhiteSpace(s)) return false;
-        var t = s.Trim().TrimStart('±', '+', '~').Replace("\u00A0", " ").Trim();
+        var t = s.Trim().TrimStart('Â±', '+', '~').Replace("\u00A0", " ").Trim();
         // Zahlen-Teil (mit optionalem Vorzeichen, Dezimalpunkt/komma, Exponent) extrahieren
         var m = System.Text.RegularExpressions.Regex.Match(
             t, @"^\s*(-?\d+(?:[.,]\d+)?(?:[eE][-+]?\d+)?)\s*([^\s]*)");
@@ -1656,9 +1608,8 @@ private void OnStateChanged()
             return false;
 
         var unit = m.Groups[2].Value.Trim();
-        // SI-Praefix am Anfang der Einheit auswerten. Nur wenn danach eine
+        // SI-Praefix am Anfang der Einheit auswerten.
         // Einheit folgt (Hz, H, ?, A, V, W, F, s, m, g, ...), damit "mm" nicht
-        // faelschlich als "milli-m" skaliert wird.
         double factor = 1.0;
         if (unit.Length >= 2)
         {
@@ -1671,7 +1622,7 @@ private void OnStateChanged()
                 'M' => 1e6,
                 'k' or 'K' => 1e3,
                 'm' => 1e-3,
-                'µ' or 'u' or '?' => 1e-6,
+                'Âµ' or 'u' or '?' => 1e-6,
                 'n' => 1e-9,
                 'p' => 1e-12,
                 _ => (double?)null

@@ -1,8 +1,6 @@
 namespace DatasheetAnalyzer.Blazor.Services;
 
-/// <summary>
-/// Fields the person has confirmed in this session. Not written to DMS.
-/// </summary>
+/// <summary>Fields the person has confirmed in this session. Not written to DMS.</summary>
 public sealed class FieldAcceptance
 {
     private readonly HashSet<string> _accepted = new(StringComparer.OrdinalIgnoreCase);

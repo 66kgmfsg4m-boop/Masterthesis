@@ -8,8 +8,6 @@ namespace DatasheetAnalyzer.Core.Services
 {
     /// <summary>
     /// Service zum Laden und Verarbeiten der DMS-Katalogdaten aus CSV-Dateien.
-    /// Lädt Komponenten-Definitionen und Properties aus Azure Blob Storage.
-    /// Generiert dynamische Prompts für KI-basierte Extraktion basierend auf Katalog-Schema.
     /// </summary>
     public class DMSCatalogService
     {
@@ -365,12 +363,10 @@ namespace DatasheetAnalyzer.Core.Services
             if (string.IsNullOrWhiteSpace(searchTerm))
                 return null;
 
-            // Spezifische Memory-Typen → Generische Katalog-Kategorien
+            // Spezifische Memory-Typen -> Generische Katalog-Kategorien
             searchTerm = MapSpecificMemoryTypesToCatalog(searchTerm);
 
-            // Coil/Inductor-Synonyme -> Katalog-Knoten "Coil"
-            //   Der Baum kennt nur "Coil" (unter Inductance), das LLM klassifiziert
-            //   aber typischerweise als "Inductor" / "Inductance" / "Power Choke".
+            // Coil/Inductor-Synonyme -> Katalog-Knoten "Coil" Der Baum kennt nur "Coil" (unter Inductance), das LLM klassifiziert aber typischerweise als "Inductor" / "Inductance" / "Power Choke".
             searchTerm = MapCoilSynonymsToCatalog(searchTerm);
 
             string normalizedSearch = Normalize(searchTerm);
@@ -383,9 +379,7 @@ namespace DatasheetAnalyzer.Core.Services
             );
         }
 
-        /// <summary>
-        /// Mappt Inductor/Inductance/Power Choke etc. auf den Katalog-Knoten "Coil".
-        /// </summary>
+        /// <summary>Mappt Inductor/Inductance/Power Choke etc. auf den Katalog-Knoten "Coil".</summary>
         private string MapCoilSynonymsToCatalog(string searchTerm)
         {
             string lower = searchTerm.ToLowerInvariant();
@@ -409,9 +403,7 @@ namespace DatasheetAnalyzer.Core.Services
             return searchTerm;
         }
 
-        /// <summary>
-        /// Mappt spezifische Memory-Typen (F-RAM, MRAM, etc.) auf generische Katalog-Kategorien
-        /// </summary>
+        /// <summary>Mappt spezifische Memory-Typen (F-RAM, MRAM, etc.) auf generische Katalog-Kategorien</summary>
         private string MapSpecificMemoryTypesToCatalog(string searchTerm)
         {
             // Normalisiere für Case-Insensitive Vergleich
@@ -429,7 +421,6 @@ namespace DatasheetAnalyzer.Core.Services
                 "async", "asynchronous"
             };
 
-            // SERIAL MEMORY TYPES (SPI, I2C)
             var serialMemoryKeywords = new[]
             {
                 "serial eeprom",
@@ -444,7 +435,7 @@ namespace DatasheetAnalyzer.Core.Services
             {
                 if (lower.Contains(keyword))
                 {
-                    _logger.LogDebug("Mapping '{SearchTerm}' → 'Non-Volatile Memory Parallel' (Keyword: {Keyword})",
+                    _logger.LogDebug("Mapping '{SearchTerm}' -> 'Non-Volatile Memory Parallel' (Keyword: {Keyword})",
                         searchTerm, keyword);
                     return "Non-Volatile Memory Parallel";
                 }
@@ -455,7 +446,7 @@ namespace DatasheetAnalyzer.Core.Services
             {
                 if (lower.Contains(keyword))
                 {
-                    _logger.LogDebug("Mapping '{SearchTerm}' → 'Non-Volatile Memory Serial' (Keyword: {Keyword})",
+                    _logger.LogDebug("Mapping '{SearchTerm}' -> 'Non-Volatile Memory Serial' (Keyword: {Keyword})",
                         searchTerm, keyword);
                     return "Non-Volatile Memory Serial";
                 }
@@ -465,7 +456,7 @@ namespace DatasheetAnalyzer.Core.Services
             if (lower.Contains("nonvolatile") || lower.Contains("non-volatile") || lower.Contains("nv memory"))
             {
                 // Default: Parallel (da häufigster Fall)
-                _logger.LogDebug("Mapping '{SearchTerm}' → 'Non-Volatile Memory Parallel' (Generic Memory)",
+                _logger.LogDebug("Mapping '{SearchTerm}' -> 'Non-Volatile Memory Parallel' (Generic Memory)",
                     searchTerm);
                 return "Non-Volatile Memory Parallel";
             }
@@ -514,9 +505,7 @@ namespace DatasheetAnalyzer.Core.Services
         }
 
         /// <summary>
-        /// Liefert fuer eine Kategorie (z.B. "Coil") die CSV-Properties sortiert
-        /// nach ORDNUM (PropertyNumber). Wird fuer die dynamische Kopplung
-        /// PDF-Property &lt;-&gt; DMS-Spalte via ORDNUM (siehe DmsLookupService) benutzt.
+        /// Liefert fuer eine Kategorie (z.B. "Coil") die CSV-Properties sortiert nach ORDNUM (PropertyNumber).
         /// </summary>
         public List<ComponentProperty> GetOrderedPropertiesForComponent(string componentGroup)
         {
@@ -598,8 +587,6 @@ namespace DatasheetAnalyzer.Core.Services
             }
 
             // Generische Kataloggruppen-Guidelines per Namenskonvention aus Azure Blob.
-            // Blob-Name: <slug(DisplayName)>_extraction_guidelines.txt
-            // Damit können Fachkolleg:innen neue Guidelines ohne Code-Änderung hinzufügen.
             var genericGuidelines = LoadGenericGuidelineFor(component);
             if (!string.IsNullOrEmpty(genericGuidelines))
             {
@@ -653,19 +640,19 @@ namespace DatasheetAnalyzer.Core.Services
         private void BuildForbiddenProperties(StringBuilder builder)
         {
             builder.AppendLine("FORBIDDEN - DO NOT EXTRACT THESE:");
-            builder.AppendLine("  • FrequencyRange, Gain_20to34GHz, Gain_34to44GHz");
-            builder.AppendLine("  • GainFlatness, GainVariationOverTemperature");
-            builder.AppendLine("  • NoiseFigure_20to34GHz, NoiseFigure_34to44GHz");
-            builder.AppendLine("  • InputReturnLoss, OutputReturnLoss");
-            builder.AppendLine("  • OutputPower_P1dB, SaturatedOutputPower, OutputIP3");
-            builder.AppendLine("  • InputOutputImpedance, DieSize");
-            builder.AppendLine("  • SupplyCurrent, DrainBiasVoltage, GateBiasVoltageRange");
-            builder.AppendLine("  • ContinuousPowerDissipation, ESD_HBM");
-            builder.AppendLine("  • OutlineDimensions, PadConfiguration, Mounting");
-            builder.AppendLine("  • ThermalResistance, StorageTemperatureRange");
-            builder.AppendLine("  • TechnicalSpecifications, ElectricalCharacteristics");
-            builder.AppendLine("  • MechanicalCharacteristics, EnvironmentalData");
-            builder.AppendLine("  • ANY property NOT in the ALLOWED list");
+            builder.AppendLine("  - FrequencyRange, Gain_20to34GHz, Gain_34to44GHz");
+            builder.AppendLine("  - GainFlatness, GainVariationOverTemperature");
+            builder.AppendLine("  - NoiseFigure_20to34GHz, NoiseFigure_34to44GHz");
+            builder.AppendLine("  - InputReturnLoss, OutputReturnLoss");
+            builder.AppendLine("  - OutputPower_P1dB, SaturatedOutputPower, OutputIP3");
+            builder.AppendLine("  - InputOutputImpedance, DieSize");
+            builder.AppendLine("  - SupplyCurrent, DrainBiasVoltage, GateBiasVoltageRange");
+            builder.AppendLine("  - ContinuousPowerDissipation, ESD_HBM");
+            builder.AppendLine("  - OutlineDimensions, PadConfiguration, Mounting");
+            builder.AppendLine("  - ThermalResistance, StorageTemperatureRange");
+            builder.AppendLine("  - TechnicalSpecifications, ElectricalCharacteristics");
+            builder.AppendLine("  - MechanicalCharacteristics, EnvironmentalData");
+            builder.AppendLine("  - ANY property NOT in the ALLOWED list");
             builder.AppendLine();
         }
 
@@ -747,9 +734,7 @@ namespace DatasheetAnalyzer.Core.Services
         }
 
 
-        /// <summary>
-        /// Prüft ob Komponente Pitch-Property hat und daher spezielle Guidelines benötigt
-        /// </summary>
+        /// <summary>Prüft ob Komponente Pitch-Property hat und daher spezielle Guidelines benötigt</summary>
         private bool RequiresPitchGuidelines(CatalogComponent component, List<ComponentProperty> properties)
         {
             // Prüfe ob Pitch in Properties vorhanden
@@ -820,24 +805,24 @@ namespace DatasheetAnalyzer.Core.Services
 ???????????????????????????????????????????????????????????????????????
 
 1. SECTION TITLES TO CHECK:
-   • ""Package Information""
-   • ""Package Dimensions""
-   • ""Mechanical Outline""
-   • ""Mechanical Drawing""
-   • ""Package and Pin Dimensions""
-   • ""Land Pattern""
+   - ""Package Information""
+   - ""Package Dimensions""
+   - ""Mechanical Outline""
+   - ""Mechanical Drawing""
+   - ""Package and Pin Dimensions""
+   - ""Land Pattern""
 
 2. VISUAL INDICATORS IN DRAWINGS:
-   • Package drawings showing pin layout (top view / bottom view)
-   • Dimension lines with arrows between pins: ? e ? or ? e
-   • Dimension tables near the drawing
-   • Symbol 'e' representing pin spacing
-   • Maßlinien (measurement lines) with arrows
+   - Package drawings showing pin layout (top view / bottom view)
+   - Dimension lines with arrows between pins: ? e ? or ? e
+   - Dimension tables near the drawing
+   - Symbol 'e' representing pin spacing
+   - Maßlinien (measurement lines) with arrows
 
 3. TYPICAL LOCATION IN PDF:
-   • Usually in middle/end of datasheet (pages 5-15)
-   • Often after ""Electrical Characteristics""
-   • Before or after ""Application Information""
+   - Usually in middle/end of datasheet (pages 5-15)
+   - Often after ""Electrical Characteristics""
+   - Before or after ""Application Information""
 
 ???????????????????????????????????????????????????????????????????????
 ?? WHAT IS PITCH
@@ -847,8 +832,8 @@ DEFINITION:
 Pin-to-Pin spacing = Center-to-center distance between TWO ADJACENT pins
 
 COMMON NOTATION:
-• Symbol: 'e' (in package drawings)
-• Format examples:
+- Symbol: 'e' (in package drawings)
+- Format examples:
   - ""0.50""
   - ""e = 0.5 mm""
   - ""pitch: 1.27mm""
@@ -857,7 +842,7 @@ COMMON NOTATION:
 IMPORTANT DISTINCTIONS:
 ? Pitch = PIN-TO-PIN spacing (e.g., 0.5mm)
 ? NOT row-to-row spacing (e.g., 7.5mm body width)
-? NOT package dimensions (e.g., 3.9mm × 4.9mm)
+? NOT package dimensions (e.g., 3.9mm x 4.9mm)
 
 ???????????????????????????????????????????????????????????????????????
 ? VALIDATION RULES
@@ -876,10 +861,10 @@ MANDATORY CHECKS:
    ? 3.9mm, 7.5mm, 10mm ? These are package dimensions, NOT pitch!
 
 4. Unit conversion:
-   • If value is in inches, convert to mm
-   • 0.1"" = 2.54mm
-   • 0.05"" = 1.27mm
-   • 0.025"" = 0.635mm
+   - If value is in inches, convert to mm
+   - 0.1"" = 2.54mm
+   - 0.05"" = 1.27mm
+   - 0.025"" = 0.635mm
 
 5. If unclear or not found:
    ? Return ""nicht gefunden"" (German!)
@@ -900,7 +885,7 @@ DIP      | 2.54mm (0.1"") | Through-hole standard      | e
 
 ? COMMON MISTAKES TO AVOID:
 ? SOIC: Confusing 0.65mm (pitch) with 3.9mm (body width)
-? QFN: Using package size (3×3mm) instead of pin spacing (0.5mm)
+? QFN: Using package size (3x3mm) instead of pin spacing (0.5mm)
 ? DIP: Confusing 2.54mm (pitch) with 7.62mm (row spacing)
 
 ???????????????????????????????????????????????????????????????????????
@@ -910,29 +895,29 @@ DIP      | 2.54mm (0.1"") | Through-hole standard      | e
 STEP-BY-STEP APPROACH:
 
 1. LOCATE MECHANICAL DRAWINGS:
-   • Scan through all images
-   • Focus on pages with package outlines
-   • Look for dimensioned technical drawings
+   - Scan through all images
+   - Focus on pages with package outlines
+   - Look for dimensioned technical drawings
 
 2. IDENTIFY DIMENSION LINES:
-   • Look for arrows: ? ? or ?
-   • Check for measurement lines between pins
-   • Find dimension tables near drawings
+   - Look for arrows: ? ? or ?
+   - Check for measurement lines between pins
+   - Find dimension tables near drawings
 
 3. READ DIMENSION VALUES:
-   • Focus on small values (0.3-5mm range)
-   • Check both horizontal and vertical dimensions
-   • Verify unit (mm vs inch)
+   - Focus on small values (0.3-5mm range)
+   - Check both horizontal and vertical dimensions
+   - Verify unit (mm vs inch)
 
 4. CROSS-REFERENCE:
-   • Compare dimension symbol 'e' in drawing with table
-   • Verify dimension label (e.g., ""e = pin pitch"")
-   • Check legend/notes for symbol definitions
+   - Compare dimension symbol 'e' in drawing with table
+   - Verify dimension label (e.g., ""e = pin pitch"")
+   - Check legend/notes for symbol definitions
 
 5. VALIDATE:
-   • Is value in realistic range (0.3-5mm)?
-   • Is it the smallest dimension (likely pin spacing)?
-   • Does it match package type expectations?
+   - Is value in realistic range (0.3-5mm)?
+   - Is it the smallest dimension (likely pin spacing)?
+   - Does it match package type expectations?
 
 ???????????????????????????????????????????????????????????????????????
 ?? IF PITCH IS NOT CLEARLY VISIBLE
@@ -1022,9 +1007,7 @@ REMEMBER:
             return hasMemoryProperties;
         }
 
-        /// <summary>
-        /// Lädt Memory-Extraction Guidelines aus Azure Blob Storage (Cached)
-        /// </summary>
+        /// <summary>Lädt Memory-Extraction Guidelines aus Azure Blob Storage (Cached)</summary>
         private string? _cachedMemoryGuidelines;
         
         private string LoadMemoryGuidelinesIfNeeded()
@@ -1050,9 +1033,7 @@ REMEMBER:
             }
         }
 
-        /// <summary>
-        /// Embedded Memory-Guidelines (Fallback wenn Azure nicht verfügbar)
-        /// </summary>
+        /// <summary>Embedded Memory-Guidelines (Fallback wenn Azure nicht verfügbar)</summary>
         private string GetEmbeddedMemoryGuidelines()
         {
             return @"
@@ -1094,60 +1075,60 @@ PARALLEL MEMORY:
    AVAILABLE OPTIONS (choose ONE that best matches):
    
    **FOR PARALLEL MEMORY:**
-   • ""NAND Flash SLC"" (Single-Level Cell)
-   • ""NAND Flash Single-Level Cell""
-   • ""NAND Flash MLC"" (Multi-Level Cell)
-   • ""NAND Flash Multi-Level Cell""
-   • ""NOR Flash""
-   • ""NOR Flash Single-Level Cell""
-   • ""EEPROM""
-   • ""FRAM"" (Ferroelectric RAM)
-   • ""Magnetoresistive RAM"" (MRAM)
-   • ""Ferroelectric RAM""
+   - ""NAND Flash SLC"" (Single-Level Cell)
+   - ""NAND Flash Single-Level Cell""
+   - ""NAND Flash MLC"" (Multi-Level Cell)
+   - ""NAND Flash Multi-Level Cell""
+   - ""NOR Flash""
+   - ""NOR Flash Single-Level Cell""
+   - ""EEPROM""
+   - ""FRAM"" (Ferroelectric RAM)
+   - ""Magnetoresistive RAM"" (MRAM)
+   - ""Ferroelectric RAM""
    
    **FOR SERIAL MEMORY:**
-   • ""Flash"" (Generic Flash Memory)
-   • ""EEPROM"" (Electrically Erasable Programmable Read-Only Memory)
-   • ""PROM"" (Programmable Read-Only Memory)
-   • ""ROM"" (Read-Only Memory)
-   • ""Flash"" (NAND Flash in Serial interface, e.g. UFS, eMMC)
-   • ""FRAM"" (Ferroelectric RAM with serial interface)
-   • ""MRAM"" (Magnetoresistive RAM with serial interface)
-   • ""eMMC"" (embedded Multi Media Card Flash IC)
+   - ""Flash"" (Generic Flash Memory)
+   - ""EEPROM"" (Electrically Erasable Programmable Read-Only Memory)
+   - ""PROM"" (Programmable Read-Only Memory)
+   - ""ROM"" (Read-Only Memory)
+   - ""Flash"" (NAND Flash in Serial interface, e.g. UFS, eMMC)
+   - ""FRAM"" (Ferroelectric RAM with serial interface)
+   - ""MRAM"" (Magnetoresistive RAM with serial interface)
+   - ""eMMC"" (embedded Multi Media Card Flash IC)
    
    CLASSIFICATION RULES:
    
    1. **NAND Flash SLC** - Indicators:
-      • Title mentions ""NAND"" + (""SLC"" or ""Single-Level Cell"")
-      • Features: High endurance (100K+ cycles), fast program/erase
-      • Organization: Large capacity (≥1Gbit), page-based access
-      • NO ""MLC"" or ""TLC"" mentioned
+      - Title mentions ""NAND"" + (""SLC"" or ""Single-Level Cell"")
+      - Features: High endurance (100K+ cycles), fast program/erase
+      - Organization: Large capacity (>=1Gbit), page-based access
+      - NO ""MLC"" or ""TLC"" mentioned
    
    2. **NAND Flash MLC** - Indicators:
-      • Title mentions ""NAND"" + (""MLC"" or ""Multi-Level Cell"")
-      • Features: Lower cost per bit, higher density
-      • Moderate endurance (10K cycles)
+      - Title mentions ""NAND"" + (""MLC"" or ""Multi-Level Cell"")
+      - Features: Lower cost per bit, higher density
+      - Moderate endurance (10K cycles)
    
    3. **NOR Flash** - Indicators:
-      • Title mentions ""NOR Flash"" or ""Parallel Flash""
-      • Features: Random access, XIP (execute-in-place)
-      • Organization: Byte/word addressable
-      • Typical sizes: 1-512 Mbit
+      - Title mentions ""NOR Flash"" or ""Parallel Flash""
+      - Features: Random access, XIP (execute-in-place)
+      - Organization: Byte/word addressable
+      - Typical sizes: 1-512 Mbit
    
    4. **EEPROM** - Indicators:
-      • Title mentions ""EEPROM"" (NOT Flash!)
-      • Features: Byte-level erase, high endurance (1M cycles)
-      • Organization: Small capacity (≤4Mbit)
-      • Serial interface (I2C/SPI) or Parallel
+      - Title mentions ""EEPROM"" (NOT Flash!)
+      - Features: Byte-level erase, high endurance (1M cycles)
+      - Organization: Small capacity (<=4Mbit)
+      - Serial interface (I2C/SPI) or Parallel
    
    5. **FRAM** - Indicators:
-      • Title mentions ""F-RAM"", ""FRAM"", or ""Ferroelectric""
-      • Features: Fast write (ns), virtually unlimited endurance
-      • NO erase cycles needed
+      - Title mentions ""F-RAM"", ""FRAM"", or ""Ferroelectric""
+      - Features: Fast write (ns), virtually unlimited endurance
+      - NO erase cycles needed
    
    6. **Magnetoresistive RAM (MRAM)** - Indicators:
-      • Title mentions ""MRAM"" or ""Magnetoresistive""
-      • Features: Non-volatile, fast access, high endurance
+      - Title mentions ""MRAM"" or ""Magnetoresistive""
+      - Features: Non-volatile, fast access, high endurance
    
    DECISION ALGORITHM:
    ```
@@ -1195,19 +1176,19 @@ PARALLEL MEMORY:
    EXAMPLE CLASSIFICATIONS:
    
    **PARALLEL MEMORY:**
-   ? ""2Gb: x8, x16 NAND Flash Memory"" → ""NAND Flash SLC"" (no MLC mentioned)
-   ? ""128-Megabit CMOS 3.0 Volt Flash Memory"" → ""NOR Flash"" (parallel interface)
-   ? ""1-Mbit Parallel EEPROM"" → ""EEPROM""
-   ? ""4-Mbit F-RAM Memory"" → ""FRAM""
+   ? ""2Gb: x8, x16 NAND Flash Memory"" -> ""NAND Flash SLC"" (no MLC mentioned)
+   ? ""128-Megabit CMOS 3.0 Volt Flash Memory"" -> ""NOR Flash"" (parallel interface)
+   ? ""1-Mbit Parallel EEPROM"" -> ""EEPROM""
+   ? ""4-Mbit F-RAM Memory"" -> ""FRAM""
    
    **SERIAL MEMORY:**
-   ? ""UFS 2.1 Device with NAND Flash Memory"" → ""Flash"" (UFS = serial NAND)
-   ? ""128GB eMMC 5.1 Flash Memory"" → ""eMMC""
-   ? ""1-Mbit Serial EEPROM"" → ""EEPROM""
-   ? ""64-Mbit SPI Flash Memory"" → ""Flash""
-   ? ""256Kb I2C EEPROM"" → ""EEPROM""
+   ? ""UFS 2.1 Device with NAND Flash Memory"" -> ""Flash"" (UFS = serial NAND)
+   ? ""128GB eMMC 5.1 Flash Memory"" -> ""eMMC""
+   ? ""1-Mbit Serial EEPROM"" -> ""EEPROM""
+   ? ""64-Mbit SPI Flash Memory"" -> ""Flash""
+   ? ""256Kb I2C EEPROM"" -> ""EEPROM""
    
-   ⚠️ NEVER:
+    NEVER:
    ? Return ""Memory"" (too generic!)
    ? Return ""nicht vorhanden"" if classification is possible
    ? Extract this from a table (it's a CLASSIFICATION task!)
@@ -1268,9 +1249,9 @@ tAA = Address Access Time
 ?? ONLY for PARALLEL Memory! Serial Memory: ""nicht relevant""
    
 EXTRACTION RULES:
-• tAA_Max → Read from MAX column (e.g., ""120 ns"")
-• tRC_Min → Read from MIN column (e.g., ""120 ns"")
-• Unit MUST be included (ns for Parallel, µs for Serial)
+- tAA_Max -> Read from MAX column (e.g., ""120 ns"")
+- tRC_Min -> Read from MIN column (e.g., ""120 ns"")
+- Unit MUST be included (ns for Parallel, µs for Serial)
    
 IF Serial Memory AND property is ""tAA_Max"":
 ? Return ""nicht relevant"" (Serial has no address access time!)
@@ -1280,12 +1261,12 @@ ClockRateHz = Serial Clock Frequency
 ?? ONLY for SERIAL Memory! Parallel Memory: ""nicht relevant""
    
 EXTRACTION RULES:
-• Look for ""Clock Frequency"", ""SCK Frequency"", ""Interface Speed""
-• Common values:
+- Look for ""Clock Frequency"", ""SCK Frequency"", ""Interface Speed""
+- Common values:
   - SPI/I2C EEPROM: 100 KHz to 50 MHz
   - UFS: 2.9 GHz (HS-G3), 5.8 GHz (HS-G4)
   - eMMC: 200 MHz (HS200), 400 MHz (HS400)
-• Unit MUST be included: ""MHz"", ""GHz"", ""KHz""
+- Unit MUST be included: ""MHz"", ""GHz"", ""KHz""
    
 WHERE TO FIND (Serial Memory):
 ? ""Interface Specifications"" section
@@ -1369,7 +1350,7 @@ REMEMBER:
 
         /// <summary>
         /// Prüft ob Komponente Coil/Inductor-Guidelines benötigt.
-        /// Coil-Datenblätter enthalten genau EINE Komponente → kein Part Number Decoding.
+        /// Coil-Datenblätter enthalten genau EINE Komponente -> kein Part Number Decoding.
         /// </summary>
         private bool RequiresCoilGuidelines(CatalogComponent component, List<ComponentProperty> properties)
         {
@@ -1407,9 +1388,7 @@ REMEMBER:
 
         private string? _cachedCoilGuidelines;
 
-        /// <summary>
-        /// Lädt Coil-Extraction Guidelines aus Azure Blob Storage (Cached) mit Embedded-Fallback.
-        /// </summary>
+        /// <summary>Lädt Coil-Extraction Guidelines aus Azure Blob Storage (Cached) mit Embedded-Fallback.</summary>
         private string LoadCoilGuidelinesIfNeeded()
         {
             if (_cachedCoilGuidelines != null)
@@ -1434,9 +1413,7 @@ REMEMBER:
         }
 
         /// <summary>
-        /// Embedded Fallback der Coil-Guidelines.
-        /// Funktions-Klassifikation: INDUCTOR, INDUCTOR SHIELDED, MULTILAYER CHIP,
-        /// POWER CHOKE, POWER CHOKE SHIELDED, TUNABLE, WIDEBAND BIAS CHOKE, WIRE WOUND.
+        /// Embedded Fallback der Coil-Guidelines. Funktions-Klassifikation: INDUCTOR, INDUCTOR SHIELDED, MULTILAYER CHIP, POWER CHOKE, POWER CHOKE SHIELDED, TUNABLE, WIDEBAND BIAS CHOKE, WIRE WOUND.
         /// </summary>
         private string GetEmbeddedCoilGuidelines()
         {
@@ -1522,7 +1499,7 @@ END OF COIL EXTRACTION GUIDELINES
 
         /// <summary>
         /// Prüft ob Komponente EMI-Filter-Guidelines benötigt.
-        /// EMI-Filter-Datenblätter enthalten genau EINE Komponente → kein Part Number Decoding.
+        /// EMI-Filter-Datenblätter enthalten genau EINE Komponente -> kein Part Number Decoding.
         /// </summary>
         private bool RequiresEmiFilterGuidelines(CatalogComponent component, List<ComponentProperty> properties)
         {
@@ -1567,9 +1544,7 @@ END OF COIL EXTRACTION GUIDELINES
 
         private string? _cachedEmiFilterGuidelines;
 
-        /// <summary>
-        /// Lädt EMI-Filter-Extraction Guidelines aus Azure Blob Storage (Cached) mit Embedded-Fallback.
-        /// </summary>
+        /// <summary>Lädt EMI-Filter-Extraction Guidelines aus Azure Blob Storage (Cached) mit Embedded-Fallback.</summary>
         private string LoadEmiFilterGuidelinesIfNeeded()
         {
             if (_cachedEmiFilterGuidelines != null)
@@ -1595,8 +1570,6 @@ END OF COIL EXTRACTION GUIDELINES
 
         /// <summary>
         /// Embedded Fallback der EMI-Filter-Guidelines.
-        /// Funktions-Klassifikation: EMI FILTER, FERRITE BEAD, COMMON MODE CHOKE,
-        /// FEEDTHROUGH FILTER, LC FILTER, PI FILTER, POWER LINE FILTER, SIGNAL LINE FILTER.
         /// </summary>
         private string GetEmbeddedEmiFilterGuidelines()
         {
@@ -1712,11 +1685,6 @@ END OF EMI FILTER EXTRACTION GUIDELINES
 
         /// <summary>
         /// Lädt eine kataloggruppen-spezifische Guideline per Namenskonvention aus Azure Blob Storage.
-        /// Blob-Name: "&lt;slug(DisplayName)&gt;_extraction_guidelines.txt"
-        /// z.B. "Voltage Regulator LDO" -> "voltage_regulator_ldo_extraction_guidelines.txt"
-        ///
-        /// Existiert die Datei nicht, wird das Ergebnis negativ gecacht (null) und der Prompt bleibt unverändert.
-        /// Damit kann eine neue Guideline ohne Code-Änderung nur durch Blob-Upload aktiviert werden.
         /// </summary>
         private string? LoadGenericGuidelineFor(CatalogComponent component)
         {
@@ -1773,10 +1741,6 @@ END OF EMI FILTER EXTRACTION GUIDELINES
 
         /// <summary>
         /// Wandelt einen Katalog-DisplayName in einen kleingeschriebenen, Blob-tauglichen Slug um.
-        /// - Buchstaben und Ziffern bleiben erhalten (kleingeschrieben)
-        /// - alle anderen Zeichen werden durch '_' ersetzt
-        /// - Mehrfach-Unterstriche werden zusammengefasst
-        /// Beispiel: "Voltage Regulator LDO" -> "voltage_regulator_ldo"
         /// </summary>
         private static string SlugifyForBlobName(string input)
         {

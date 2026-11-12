@@ -9,9 +9,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DatasheetAnalyzer.Core.Services;
 
-/// <summary>
-/// Builds the same parameter query for distributor pages. With a Mouser key, that search is called too.
-/// </summary>
+/// <summary>Builds the same parameter query for distributor pages. With a Mouser key, that search is called too.</summary>
 public static class DistributorSearch
 {
     public sealed record Link(string Name, string Url);

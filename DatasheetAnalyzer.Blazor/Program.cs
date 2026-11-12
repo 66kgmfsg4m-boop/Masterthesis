@@ -8,8 +8,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 // Inhalt liegt neben der Programmdatei, nicht im Arbeitsverzeichnis.
-// Eine Single-File-exe entpackt sich woanders, deshalb ProcessPath.
-// Im Container zeigt ProcessPath auf den dotnet-Host, dann bleibt es beim App-Ordner.
 var assemblyName = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
 var processPath = Environment.ProcessPath;
 var processFileName = processPath is not null
@@ -31,8 +29,7 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     WebRootPath = webRoot
 });
 
-// Sicherstellen, dass appsettings*.json vom .exe-Ordner geladen werden
-// (unabhaengig vom aktuellen Working-Directory beim Start).
+// Sicherstellen, dass appsettings*.json vom .exe-Ordner geladen werden (unabhaengig vom aktuellen Working-Directory beim Start).
 builder.Configuration.SetBasePath(exeDirectory);
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
 builder.Configuration.AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false);
@@ -56,8 +53,7 @@ if (!string.IsNullOrWhiteSpace(finalConnectionString))
 if (!string.IsNullOrWhiteSpace(finalContainerName))
     builder.Configuration["AzureStorage:ContainerName"]    = finalContainerName;
 
-// Diagnose: AccountName aus ConnectionString extrahieren, damit man im
-// Konsolenfenster sofort sieht, gegen welches Backend tatsaechlich gearbeitet wird.
+// Diagnose: AccountName aus ConnectionString extrahieren, damit man im Konsolenfenster sofort sieht, gegen welches Backend tatsaechlich gearbeitet wird.
 string accountName = "<unbekannt>";
 if (!string.IsNullOrWhiteSpace(finalConnectionString))
 {
@@ -76,10 +72,7 @@ if (string.IsNullOrWhiteSpace(finalConnectionString))
 }
 Console.ResetColor();
 
-// Wenn die App als eigenstaendige .exe gestartet wird (kein ASPNETCORE_URLS gesetzt
-// und nicht im Development-Modus), an einen festen HTTP-Port binden. So muss der
-// Endbenutzer kein HTTPS-Dev-Zertifikat installieren und die App ist sofort
-// unter http://localhost:5000 erreichbar.
+// Wenn die App als eigenstaendige .exe gestartet wird (kein ASPNETCORE_URLS gesetzt und nicht im Development-Modus), an einen festen HTTP-Port binden.
 const string StandaloneUrl = "http://localhost:5000";
 var hasExplicitUrls = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS"))
                       || args.Any(a => a.StartsWith("--urls", StringComparison.OrdinalIgnoreCase));
@@ -97,10 +90,7 @@ builder.Services.Configure<DatasheetAnalyzer.Core.Config.DmsOracleOptions>(
 builder.Services.Configure<DatasheetAnalyzer.Core.Config.DmsApiOptions>(
     builder.Configuration.GetSection(DatasheetAnalyzer.Core.Config.DmsApiOptions.SectionName));
 
-// Umschaltung DMS-Backend: Default ist die neue REST-API (Interface auf
-// https://dms-api-prod.cloud.rsint.net). Ueber die Konfiguration
-// "DmsIntegration:Backend" = "Oracle" laesst sich der alte direkte
-// Oracle-Weg reaktivieren, falls die API mal ausfaellt.
+// Umschaltung DMS-Backend: Default ist die neue REST-API (Interface auf https://dms-api-prod.cloud.rsint.net).
 string dmsBackend = builder.Configuration["DmsIntegration:Backend"] ?? "Api";
 if (string.Equals(dmsBackend, "Oracle", StringComparison.OrdinalIgnoreCase))
 {
@@ -132,13 +122,12 @@ builder.Services.AddServerSideBlazor()
     
 builder.Services.AddHealthChecks();
 
-// State Service - als Singleton, damit er über alle Circuits hinweg erhalten bleibt
+// State Service - als Singleton, damit er Ã¼ber alle Circuits hinweg erhalten bleibt
 builder.Services.AddScoped<ICurrentRecordService, CurrentRecordService>();
 builder.Services.AddSingleton<IAnalyzeStateService, AnalyzeStateService>();
 builder.Services.AddScoped<ICompareStateService, CompareStateService>();
 
-// HttpClient Factory für Azure OpenAI - mit System-Proxy-Unterstuetzung,
-// damit die App auch hinter Unternehmens-Proxys funktioniert.
+// HttpClient Factory fÃ¼r Azure OpenAI - mit System-Proxy-Unterstuetzung, damit die App auch hinter Unternehmens-Proxys funktioniert.
 builder.Services.AddHttpClient(string.Empty)
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
     {
@@ -150,24 +139,18 @@ builder.Services.AddHttpClient(string.Empty)
 var connectionString = builder.Configuration["AzureStorage:ConnectionString"];
 if (!string.IsNullOrWhiteSpace(connectionString))
 {
-    // SINGLETON: Diese Services laden Daten aus Azure Blob Storage (Katalog,
-    // Property-Definitionen, Prompts). Sie sind read-only nach dem Laden und
-    // koennen ueber alle Browser-Sessions/Circuits hinweg geteilt werden.
-    // -> Katalog wird nur EINMAL beim ersten Zugriff geladen statt bei
-    //    jedem Reconnect / jeder neuen Browser-Session.
+    // SINGLETON: Diese Services laden Daten aus Azure Blob Storage (Katalog, Property-Definitionen, Prompts).
     builder.Services.AddSingleton<IRemoteConfigService, RemoteConfigService>();
     builder.Services.AddSingleton<AzureConfig>();
     builder.Services.AddSingleton<DMSCatalogService>();
     builder.Services.AddSingleton<IDmsPropertyMappingService, DmsPropertyMappingService>();
 
-    // SCOPED bleibt: DatasheetAnalysisService haengt pro Analyse einen
-    // TokenStatsCallback-Event-Handler an. Als Singleton wuerden sich diese
+    // SCOPED bleibt: DatasheetAnalysisService haengt pro Analyse einen TokenStatsCallback-Event-Handler an.
     // Handler ueber alle User akkumulieren (Memory-Leak + falsche Token-Counts).
     builder.Services.AddScoped<DatasheetAnalysisService>();
     builder.Services.AddScoped<PartNumberDecoderService>();
 
-    // Chatbot-Service fuer die Ergebnisseite: nutzt dieselbe Azure-Konfiguration
-    // wie die Analyse. Kein State, keine Historie -> Singleton ist ausreichend.
+    // Chatbot-Service fuer die Ergebnisseite: nutzt dieselbe Azure-Konfiguration wie die Analyse.
     builder.Services.AddSingleton<IPdfChatService, PdfChatService>();
 
     Console.ForegroundColor = ConsoleColor.Green;
@@ -201,9 +184,7 @@ if (!app.Environment.IsDevelopment())
     }
 }
 
-// Einfacher /Error-Endpunkt, damit der Endbenutzer bei einem Startfehler
-// keine nackte "HTTP ERROR 500"-Browserseite sieht, sondern eine
-// verstaendliche Meldung inkl. Hinweis (Azure-Zugriff, Firewall, ...).
+// Einfacher /Error-Endpunkt, damit der Endbenutzer bei einem Startfehler keine nackte "HTTP ERROR 500"-Browserseite sieht, sondern eine verstaendliche Meldung inkl.
 app.MapGet("/Error", (HttpContext ctx) =>
 {
     var feature = ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
@@ -211,7 +192,7 @@ app.MapGet("/Error", (HttpContext ctx) =>
     ctx.Response.ContentType = "text/html; charset=utf-8";
     return ctx.Response.WriteAsync($$"""
         <!doctype html><html lang="de"><head><meta charset="utf-8">
-        <title>DatasheetAnalyzer – Fehler</title>
+        <title>DatasheetAnalyzer - Fehler</title>
         <style>body{font-family:Segoe UI,Arial,sans-serif;max-width:760px;margin:60px auto;padding:0 24px;color:#222}
         h1{color:#003c7e} code,pre{background:#f4f6f8;padding:2px 6px;border-radius:4px}
         pre{padding:12px;overflow:auto}</style></head><body>
@@ -227,7 +208,7 @@ app.MapGet("/Error", (HttpContext ctx) =>
                 die .exe liegt.</li>
             <li>Internet-/VPN-Verbindung pruefen (Zugriff auf
                 <code>*.blob.core.windows.net</code>).</li>
-            <li>Konsolenfenster der App ansehen – dort steht die Original-Meldung.</li>
+            <li>Konsolenfenster der App ansehen - dort steht die Original-Meldung.</li>
         </ol>
         <p><strong>Technische Details:</strong></p>
         <pre>{{System.Net.WebUtility.HtmlEncode(msg)}}</pre>
@@ -235,8 +216,7 @@ app.MapGet("/Error", (HttpContext ctx) =>
         """);
 });
 
-// Im Standalone-Modus (lokale .exe) verzichten wir bewusst auf HTTPS-Redirect,
-// da auf dem Empfaenger-PC kein vertrauenswuerdiges Dev-Zertifikat vorhanden ist.
+// Im Standalone-Modus (lokale .exe) verzichten wir bewusst auf HTTPS-Redirect, da auf dem Empfaenger-PC kein vertrauenswuerdiges Dev-Zertifikat vorhanden ist.
 if (!isStandalone)
 {
     app.UseHttpsRedirection();
@@ -264,9 +244,7 @@ if (isStandalone)
         Console.WriteLine("============================================================");
         Console.ResetColor();
 
-        // WARMUP: Katalog (67 Komponenten + 404 Property-Gruppen) im Hintergrund
-        // schon JETZT aus Azure laden, statt erst beim ersten User-Request.
-        // Da DMSCatalogService Singleton ist, profitieren danach alle Sessions.
+        // WARMUP: Katalog (67 Komponenten + 404 Property-Gruppen) im Hintergrund schon JETZT aus Azure laden, statt erst beim ersten User-Request.
         _ = Task.Run(() =>
         {
             try
@@ -292,8 +270,7 @@ if (isStandalone)
             }
         });
 
-        // Diagnose: Azure-Erreichbarkeit pruefen, damit der Endnutzer im
-        // Konsolenfenster sofort sieht, ob die Analyse funktionieren wird.
+        // Diagnose: Azure-Erreichbarkeit pruefen, damit der Endnutzer im Konsolenfenster sofort sieht, ob die Analyse funktionieren wird.
         _ = Task.Run(async () =>
         {
             try

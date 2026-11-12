@@ -27,8 +27,7 @@ namespace DatasheetAnalyzer.Core.Services
             _logger.LogInformation("Part number decoding requested: {PartNumber} from {Manufacturer}", 
                 partNumber, manufacturer);
             
-            // TODO: Implement full part number decoding with AI
-            // For now, return null to indicate feature not yet available
+            // TODO: Implement full part number decoding with AI For now, return null to indicate feature not yet available
             return Task.FromResult<JObject?>(null);
         }
     }

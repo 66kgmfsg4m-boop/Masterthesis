@@ -164,9 +164,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
 
         #region Validation Rules (COMPONENT only)
 
-        /// <summary>
-        /// RULE 1: All mandatory fields must be present.
-        /// </summary>
+        /// <summary>RULE 1: All mandatory fields must be present.</summary>
         private void ValidateMandatoryFields(JObject identification, ValidationResult result)
         {
             var mandatoryFields = new Dictionary<string, string>
@@ -238,9 +236,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             ValidateRFKeywords(category, name, result);
         }
 
-        /// <summary>
-        /// Helper: Validates operational amplifier keywords.
-        /// </summary>
+        /// <summary>Helper: Validates operational amplifier keywords.</summary>
         private void ValidateOperationalAmplifierKeywords(string category, string name, ValidationResult result)
         {
             var nameKeywords = name.ToLower();
@@ -259,9 +255,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Helper: Validates RF/microwave keywords.
-        /// </summary>
+        /// <summary>Helper: Validates RF/microwave keywords.</summary>
         private void ValidateRFKeywords(string category, string name, ValidationResult result)
         {
             var nameKeywords = name.ToLower();
@@ -280,9 +274,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// RULE 3: Check if category exists in DMS catalog.
-        /// </summary>
+        /// <summary>RULE 3: Check if category exists in DMS catalog.</summary>
         private void ValidateCategoryInCatalog(JObject identification, ValidationResult result)
         {
             string category = identification["ComponentCategory"]?.Value<string>()?.Trim() ?? "";
@@ -341,9 +333,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Helper: Tries multiple strategies to get properties from catalog.
-        /// </summary>
+        /// <summary>Helper: Tries multiple strategies to get properties from catalog.</summary>
         private List<ComponentProperty> TryGetPropertiesMultipleWays(CatalogComponent component, string category)
         {
             var strategies = new[]
@@ -367,9 +357,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             return new List<ComponentProperty>();
         }
 
-        /// <summary>
-        /// RULE 4: Part number format validation.
-        /// </summary>
+        /// <summary>RULE 4: Part number format validation.</summary>
         private void ValidatePartNumberFormat(JObject identification, ValidationResult result)
         {
             string partNumber = identification["PartNumber"]?.Value<string>();
@@ -404,9 +392,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// RULE 5: Consistency between category and name.
-        /// </summary>
+        /// <summary>RULE 5: Consistency between category and name.</summary>
         private void ValidateCategoryNameConsistency(JObject identification, ValidationResult result)
         {
             string category = identification["ComponentCategory"]?.Value<string>() ?? "";
@@ -435,9 +421,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// RULE 6: Detect common AI mistakes.
-        /// </summary>
+        /// <summary>RULE 6: Detect common AI mistakes.</summary>
         private void DetectCommonMistakes(JObject identification, ValidationResult result)
         {
             string category = identification["ComponentCategory"]?.Value<string>() ?? "";
@@ -486,9 +470,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Calculates confidence score based on validation issues.
-        /// </summary>
+        /// <summary>Calculates confidence score based on validation issues.</summary>
         private void CalculateConfidenceScore(ValidationResult result)
         {
             double errorPenalty = result.HasErrors ? ERROR_PENALTY : 0;

@@ -2,9 +2,7 @@ using System.Text.Json;
 
 namespace DatasheetAnalyzer.Blazor.Services;
 
-/// <summary>
-/// One comparison of a proposal with the DMS master. Stays on this machine.
-/// </summary>
+/// <summary>One comparison of a proposal with the DMS master. Stays on this machine.</summary>
 public sealed class FieldAgreementRecord
 {
     public DateTime RecordedAtUtc { get; init; }
@@ -27,9 +25,7 @@ public sealed class FieldAgreementField
     public string Outcome { get; init; } = "";
 }
 
-/// <summary>
-/// Latest run and the mean across runs for one material number.
-/// </summary>
+/// <summary>Latest run and the mean across runs for one material number.</summary>
 public sealed class PartAgreementSummary
 {
     public string MaterialNumber { get; init; } = "";
@@ -43,9 +39,7 @@ public sealed class PartAgreementSummary
     public DateTime LatestRecordedAtUtc { get; init; }
 }
 
-/// <summary>
-/// Appends each comparison and rewrites a per-part summary beside it.
-/// </summary>
+/// <summary>Appends each comparison and rewrites a per-part summary beside it.</summary>
 public sealed class FieldAgreementLog
 {
     private static readonly JsonSerializerOptions JsonOptions = new()

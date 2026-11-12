@@ -7,16 +7,13 @@ using System.Text.RegularExpressions;
 
 namespace DatasheetAnalyzer.Core.Services;
 
-/// <summary>
-/// Keeps up to five pages of one datasheet. The rank is BM25.
-/// </summary>
+/// <summary>Keeps up to five pages of one datasheet. The rank is BM25.</summary>
 public static class PassageRetrieval
 {
     public const int PassageCount = 5;
     private const double K1 = 1.2;
     private const double B = 0.75;
-    // Larger than any BM25 sum over a page, so a page that contains the confirmed
-    // part number is kept when other pages merely share the prompt vocabulary.
+    // Larger than any BM25 sum over a page, so a page that contains the confirmed part number is kept when other pages merely share the prompt vocabulary.
     private const double AnchorBonus = 1000;
     private const int MinimumAnchorLength = 4;
     private static readonly Regex TokenPattern = new(@"[A-Za-z0-9]+(?:[./-][A-Za-z0-9]+)*", RegexOptions.Compiled);
@@ -65,9 +62,7 @@ public static class PassageRetrieval
         return pages;
     }
 
-    /// <summary>
-    /// At most five pages, in page order. A page that contains the part number is preferred.
-    /// </summary>
+    /// <summary>At most five pages, in page order. A page that contains the part number is preferred.</summary>
     public static string Select(IReadOnlyDictionary<int, string>? pages, string? query, string? anchor = null)
     {
         if (pages == null || pages.Count == 0)

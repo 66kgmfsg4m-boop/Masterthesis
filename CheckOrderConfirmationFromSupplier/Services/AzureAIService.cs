@@ -9,11 +9,7 @@ using System.Threading.Tasks;
 
 namespace CheckOrderConfirmationFromSupplier.Services
 {
-    /// <summary>
-    /// Service for analyzing order confirmation PDFs using Azure OpenAI.
-    /// Loads prompts from Azure Blob Storage and communicates with Azure OpenAI API.
-    /// Tracks token usage and provides performance monitoring.
-    /// </summary>
+    /// <summary>Service for analyzing order confirmation PDFs using Azure OpenAI.</summary>
     public class AzureAIService
     {
         private readonly AzureConfig _config;
@@ -169,11 +165,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             return JsonConvert.SerializeObject(requestBody);
         }
 
-        /// <summary>
-        /// Executes the API call to Azure OpenAI.
-        /// Handles authentication, error responses, and token usage tracking.
-        /// Provides detailed logging for debugging and monitoring.
-        /// </summary>
+        /// <summary>Executes the API call to Azure OpenAI. Handles authentication, error responses, and token usage tracking.</summary>
         private async Task<string> MakeApiCallAsync(string requestBodyJson)
         {
             try

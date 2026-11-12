@@ -9,19 +9,13 @@ using System.Threading.Tasks;
 
 namespace DatasheetAnalyzer.Core.Services;
 
-/// <summary>
-/// Eine Frage zum gerade geladenen PDF. Kein Verlauf, kein Export.
-/// </summary>
+/// <summary>Eine Frage zum gerade geladenen PDF. Kein Verlauf, kein Export.</summary>
 public interface IPdfChatService
 {
-    /// <summary>
-    /// Gibt an, ob der Chatbot einsatzbereit ist (Azure-Konfig vorhanden).
-    /// </summary>
+    /// <summary>Gibt an, ob der Chatbot einsatzbereit ist (Azure-Konfig vorhanden).</summary>
     bool IsAvailable { get; }
 
-    /// <summary>
-    /// Beantwortet eine einzelne Nutzerfrage zum PDF-Kontext.
-    /// </summary>
+    /// <summary>Beantwortet eine einzelne Nutzerfrage zum PDF-Kontext.</summary>
     /// <param name="pdfTextContent">Extrahierter PDF-Text (aus PDFProcessor). Kann leer sein.</param>
     /// <param name="analysisJson">Optional: JSON-Ergebnis der Analyse als zusaetzlicher Kontext.</param>
     /// <param name="question">Frage des Nutzers.</param>
@@ -34,8 +28,7 @@ public class PdfChatService : IPdfChatService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<PdfChatService> _logger;
 
-    // Begrenzung des PDF-Kontexts, damit wir bei sehr grossen Datenblaettern
-    // nicht in Token-/Latenz-Probleme laufen. 60000 Zeichen ~= 12-15k Tokens.
+    // Begrenzung des PDF-Kontexts, damit wir bei sehr grossen Datenblaettern nicht in Token-/Latenz-Probleme laufen. 60000 Zeichen ~= 12-15k Tokens.
     private const int MaxPdfContextChars = 60000;
 
     public PdfChatService(
@@ -100,14 +93,9 @@ public class PdfChatService : IPdfChatService
         var requestBody = new
         {
             messages = new object[] { systemMessage, userMessage },
-            // WICHTIG bei Reasoning-Modellen (o1/o3/gpt-5-Serie):
-            // 'max_completion_tokens' zaehlt Reasoning-Tokens + Output-Tokens
-            // gemeinsam. 1200 ist zu knapp - dann bleibt fuer die eigentliche
-            // Antwort nichts uebrig. 4000 gibt genug Puffer fuer typische
-            // Datenblatt-Fragen.
+            // WICHTIG bei Reasoning-Modellen (o1/o3/gpt-5-Serie): 'max_completion_tokens' zaehlt Reasoning-Tokens + Output-Tokens gemeinsam. 1200 ist zu knapp - dann bleibt fuer die eigentliche Antwort
             max_completion_tokens = 4000
-            // 'temperature' bewusst NICHT setzen: neuere Azure-OpenAI-Modelle
-            // (o1/o3/gpt-5-Serie) akzeptieren nur den Default-Wert 1.
+            // 'temperature' bewusst NICHT setzen: neuere Azure-OpenAI-Modelle (o1/o3/gpt-5-Serie) akzeptieren nur den Default-Wert 1.
         };
 
         string requestJson = JsonConvert.SerializeObject(requestBody);
@@ -144,9 +132,7 @@ public class PdfChatService : IPdfChatService
         }
     }
 
-    /// <summary>
-    /// Kürzt auf maxChars und behält Anfang und Ende.
-    /// </summary>
+    /// <summary>Kürzt auf maxChars und behält Anfang und Ende.</summary>
     private static string TruncateForContext(string? text, int maxChars)
     {
         if (string.IsNullOrEmpty(text)) return string.Empty;

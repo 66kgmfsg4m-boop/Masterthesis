@@ -9,22 +9,7 @@ using Microsoft.Extensions.Options;
 namespace DatasheetAnalyzer.Core.Services;
 
 /// <summary>
-/// Read-only Lookup-Service, der das neue DMS-REST-Interface
-/// (https://dms-api-prod.cloud.rsint.net) nutzt und dieselbe
-/// <see cref="IDmsLookupService"/>-Vertragsflaeche erfuellt wie der
-/// bisherige Oracle-basierte Service. Damit ist die UI (Results.razor)
-/// unveraendert einsatzfaehig.
-///
-/// Ablauf:
-///   1) POST /request/send_query mit einem SELECT-Statement pro Materialtabelle
-///      -&gt; Antwort enthaelt eine Query-/Task-ID
-///   2) Polling: POST /request/receive mit der ID, bis Status "ready" o.ae.
-///   3) Ergebnis-Rows werden ueber alle Tabellen zu einem flachen Dictionary
-///      gemergt (analog zu <see cref="DmsLookupService"/>).
-///
-/// Auth: HTTP Basic gegen den registrierten API-User.
-///
-/// Wichtig: Der Service greift ausschliesslich lesend zu (nur SELECT).
+/// Read-only Lookup-Service, der das neue DMS-REST-Interface (https://dms-api-prod.cloud.rsint.net) nutzt und dieselbe <see cref="IDmsLookupService"/>-Vertragsflaeche erfuellt wie der bisherige Oracle-basierte Service.
 /// </summary>
 public class DmsApiLookupService : IDmsLookupService
 {
@@ -35,9 +20,7 @@ public class DmsApiLookupService : IDmsLookupService
 
     public const string HttpClientName = "DmsApi";
 
-    // Cache: skn_key -> (PropertyName -> DmsColumn). Wird prozessweit
-    // wiederverwendet, damit dieselbe Kataloggruppe nicht bei jedem
-    // Material-Lookup neu ueber TE_CLS_MERK abgefragt wird.
+    // Cache: skn_key -> (PropertyName -> DmsColumn).
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         string, (IReadOnlyDictionary<string, string> Map, HashSet<string> Tables)> _propertyMapCache =
         new(StringComparer.OrdinalIgnoreCase);
@@ -90,9 +73,7 @@ public class DmsApiLookupService : IDmsLookupService
             // 1) Tabellenliste via Metadatenabfrage holen (SELECT gegen ALL_TABLES).
             var tables = await DiscoverTablesAsync(http, cancellationToken);
 
-            // 1b) Property-Mapping vorziehen, damit wir die von TE_CLS_MERK
-            //     referenzierten Zieltabellen (SMT_TAB, z.B. TE_SACHNR1/2/3)
-            //     mit in die Datenabfrage aufnehmen koennen.
+            // 1b) Property-Mapping vorziehen, damit wir die von TE_CLS_MERK referenzierten Zieltabellen (SMT_TAB, z.B.
             IReadOnlyDictionary<string, string> propertyMap =
                 new Dictionary<string, string>();
             HashSet<string> referencedTables = new(StringComparer.OrdinalIgnoreCase);
@@ -113,8 +94,7 @@ public class DmsApiLookupService : IDmsLookupService
                 }
             }
 
-            // Referenzierte SMT_TAB-Tabellen in die Ladeliste aufnehmen, falls
-            // sie nicht ohnehin schon durch die Discovery gefunden wurden.
+            // Referenzierte SMT_TAB-Tabellen in die Ladeliste aufnehmen, falls sie nicht ohnehin schon durch die Discovery gefunden wurden.
             foreach (var t in referencedTables)
             {
                 if (!tables.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
@@ -134,9 +114,6 @@ public class DmsApiLookupService : IDmsLookupService
             }
 
             // 2) Pro Tabelle SELECT-Query PARALLEL absetzen, Ergebnisse mergen.
-            //    Die DMS-API ist bewusst langsam (jeder Poll dauert Sekunden),
-            //    deshalb bringt Parallelisierung hier den groessten Effekt:
-            //    N Tabellen laufen gleichzeitig statt sequenziell.
             var merged = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
             bool anyFound = false;
 
@@ -157,8 +134,7 @@ public class DmsApiLookupService : IDmsLookupService
 
             var results = await Task.WhenAll(tasks);
 
-            // Reihenfolge der Tabellen aus der Config beibehalten -> spaetere
-            // Tabellen ueberschreiben Werte frueherer (analog dem alten Verhalten).
+            // Reihenfolge der Tabellen aus der Config beibehalten -> spaetere Tabellen ueberschreiben Werte frueherer (analog dem alten Verhalten).
             foreach (var (_, row) in results)
             {
                 if (row is null || row.Count == 0) continue;
@@ -244,11 +220,6 @@ public class DmsApiLookupService : IDmsLookupService
 
     /// <summary>
     /// Neuer Weg: PropertyMap ueber ORDNUM-Kopplung.
-    ///   1. TE_OBJ.OBJ_COD    -> Kataloggruppe (SKN_COD) fuer die OBJ_ID
-    ///   2. TR_SMT + TE_CLS_MERK sortiert nach ORDNUM
-    ///   3. get_classes.csv (DMSCatalogService) sortiert nach ORDNUM
-    ///   4. Beide Listen positional koppeln:
-    ///      PropertyMap[csv.PropertyInternalName] = db.VAL_COLUMN
     /// </summary>
     private async Task<(IReadOnlyDictionary<string, string>? Map, HashSet<string> ReferencedTables)?> LoadPropertyMapByOrdnumAsync(
         HttpClient http, string objectId, string categoryDisplayName, CancellationToken ct)
@@ -335,16 +306,7 @@ public class DmsApiLookupService : IDmsLookupService
     }
 
     /// <summary>
-    /// Ermittelt ueber TE_OBK und TE_CLS_MERK die Zuordnung
-    /// (logischer Property-Name -&gt; DMS-Spaltenname) fuer ein Material.
-    ///
-    /// Ablauf:
-    ///   1. SELECT SKN_KEY  FROM TE_OBK      WHERE OBJ_ID = &lt;objectId&gt;
-    ///   2. SELECT MERKMAL, SMT_TAB, VAL_COLUMN FROM TE_CLS_MERK WHERE SKN_KEY = ...
-    ///   3. Rueckgabe als Dictionary { "Pitch" -&gt; "PITCH___1", ... }
-    ///
-    /// Ergebnisse werden pro SKN_KEY gecached, damit gleiche Kataloggruppen
-    /// nicht bei jedem Material erneut geladen werden.
+    /// Ermittelt ueber TE_OBK und TE_CLS_MERK die Zuordnung (logischer Property-Name -&gt; DMS-Spaltenname) fuer ein Material.
     /// </summary>
     private async Task<IReadOnlyDictionary<string, string>?> LoadPropertyMapAsync(
         HttpClient http, string objectId, CancellationToken ct)
@@ -404,11 +366,7 @@ public class DmsApiLookupService : IDmsLookupService
     /// </summary>
     private async Task<List<Dictionary<string, object?>>> RunSelectManyAsync(HttpClient http, string sql, CancellationToken ct)
     {
-        // ---- 1) send_query (Hybrid-Endpoint) ----
-        // Laut OpenAPI-Schema (https://dms-api-prod.cloud.rsint.net/docs) erwartet
-        // /request/send_query genau { "sql_query": "...", "force_refresh": bool }.
-        // Die Response ist entweder ein synchrones Ergebnis (Cache-Hit) ODER
-        // ein String-Token, das dann ueber /request/receive gepollt werden muss.
+        // ---- 1) send_query (Hybrid-Endpoint) ---- Laut OpenAPI-Schema (https://dms-api-prod.cloud.rsint.net/docs) erwartet /request/send_query genau { "sql_query": "...", "force_refresh": bool }.
         var sendPayload = new { sql_query = sql, force_refresh = _options.ForceRefresh };
         _logger.LogInformation("DMS-API SQL: {Sql}", sql);
         using var sendResp = await http.PostAsJsonAsync("request/send_query", sendPayload, ct);
@@ -430,9 +388,7 @@ public class DmsApiLookupService : IDmsLookupService
             return await PollReceiveAsync(http, tok!, ct);
         }
 
-        // Fall 2: Antwort ist ein Objekt. Priorisierung:
-        //   a) enthaelt ein Token-Feld -> polling
-        //   b) enthaelt bereits Rows (Sync/Cache-Hit) -> direkt zurueck
+        // Fall 2: Antwort ist ein Objekt. Priorisierung: a) enthaelt ein Token-Feld -> polling b) enthaelt bereits Rows (Sync/Cache-Hit) -> direkt zurueck
         if (sendRoot.ValueKind == JsonValueKind.Object)
         {
             // API meldet Fehler oft als 200er mit { status_code: 5xx, detail: "..." }.
@@ -448,8 +404,7 @@ public class DmsApiLookupService : IDmsLookupService
             if (!string.IsNullOrWhiteSpace(tokenFromObject))
                 return await PollReceiveAsync(http, tokenFromObject!, ct);
 
-            // Kein Token -> synchrone Payload; ExtractRows kann sowohl
-            // Objekt-mit-result als auch Objekt-mit-columns/rows verarbeiten.
+            // Kein Token -> synchrone Payload; ExtractRows kann sowohl Objekt-mit-result als auch Objekt-mit-columns/rows verarbeiten.
             var syncRows = ExtractRows(sendRoot);
             bool apiSaysEmpty = sendRoot.TryGetProperty("empty", out var emptyEl) &&
                                  emptyEl.ValueKind == JsonValueKind.True;
@@ -479,8 +434,7 @@ public class DmsApiLookupService : IDmsLookupService
             using var recvResp = await http.PostAsJsonAsync("request/receive", recvPayload, ct);
             recvResp.EnsureSuccessStatusCode();
 
-            // Fuer Diagnose einmal den Rohtext lesen (ReadAsStringAsync bleibt
-            // auch fuer JsonDocument.Parse verwendbar).
+            // Fuer Diagnose einmal den Rohtext lesen (ReadAsStringAsync bleibt auch fuer JsonDocument.Parse verwendbar).
             string rawBody = await recvResp.Content.ReadAsStringAsync(ct);
             using var recvDoc = JsonDocument.Parse(rawBody);
             var root = recvDoc.RootElement;
@@ -495,8 +449,7 @@ public class DmsApiLookupService : IDmsLookupService
                 throw new InvalidOperationException($"DMS-API-Fehler {scInt}: {detail}");
             }
 
-            // Status-Feld akzeptiert typische Auspraegungen ("ready", "done",
-            // "completed", "success"). Alles andere -> weiter pollen.
+            // Status-Feld akzeptiert typische Auspraegungen ("ready", "done", "completed", "success").
             string status = ReadString(root, "status") ?? string.Empty;
             _logger.LogDebug("DMS-API poll attempt {Attempt}/{Max}: status='{Status}'",
                 attempt + 1, _options.MaxPollAttempts, status);
@@ -519,12 +472,7 @@ public class DmsApiLookupService : IDmsLookupService
                 throw new InvalidOperationException($"DMS-API meldet Fehlerstatus '{status}': {errMsg}");
             }
 
-            // Progressive Backoff: Die ersten Polls kommen schnell hintereinander
-            // (viele Queries sind bei Cache-Hit nach 1-2 Versuchen fertig), erst
-            // bei laenger laufenden Queries wird das Intervall groesser. So sinkt
-            // die typische Wartezeit deutlich, ohne die API bei langsamen
-            // Abfragen mit Requests zu fluten. Das Delay ist bei PollDelayMs
-            // gedeckelt (Config-Wert = Obergrenze).
+            // Progressive Backoff: Die ersten Polls kommen schnell hintereinander (viele Queries sind bei Cache-Hit nach 1-2 Versuchen fertig), erst bei laenger laufenden Queries wird das Intervall groesser.
             int baseDelay = Math.Min(100 + attempt * 100, _options.PollDelayMilliseconds);
             await Task.Delay(baseDelay, ct);
         }
@@ -540,8 +488,7 @@ public class DmsApiLookupService : IDmsLookupService
             if (root.TryGetProperty(name, out var v) && v.ValueKind is JsonValueKind.String or JsonValueKind.Number)
                 return v.ToString();
         }
-        // Manche DMS-Antworten packen das Token in "result" als String,
-        // wenn kein synchrones Ergebnis vorliegt. Nur akzeptieren, wenn der
+        // Manche DMS-Antworten packen das Token in "result" als String, wenn kein synchrones Ergebnis vorliegt.
         // String NICHT nach eingebettetem JSON aussieht.
         if (root.TryGetProperty("result", out var r) && r.ValueKind == JsonValueKind.String)
         {
@@ -552,11 +499,7 @@ public class DmsApiLookupService : IDmsLookupService
         return null;
     }
 
-    // Die DMS-API meldet den finalen Zustand als 3-Buchstaben-Kuerzel
-    // (siehe API-Doku: "Repeat until status is COM (completed),
-    // DEN (denied), or an error is returned."). Wir akzeptieren zusaetzlich
-    // die ausgeschriebenen Varianten, falls die API sie an anderer Stelle
-    // (z.B. in send_query-Antworten) benutzt.
+    // Die DMS-API meldet den finalen Zustand als 3-Buchstaben-Kuerzel (siehe API-Doku: "Repeat until status is COM (completed), DEN (denied), or an error is returned.").
     private static bool IsTerminalStatus(string status) =>
         status.Equals("COM", StringComparison.OrdinalIgnoreCase) ||
         status.Equals("ready", StringComparison.OrdinalIgnoreCase) ||
@@ -580,13 +523,7 @@ public class DmsApiLookupService : IDmsLookupService
             : null;
 
     /// <summary>
-    /// Extrahiert Result-Rows aus der /receive-Antwort. Akzeptiert die
-    /// typischen Layout-Varianten:
-    ///   { "result": [ { "COL": "VAL", ... }, ... ] }
-    ///   { "data":   [ { "COL": "VAL", ... }, ... ] }
-    ///   { "rows":   [ { "COL": "VAL", ... }, ... ] }
-    /// oder ein direktes Array. Zusaetzlich wird das "columns"+"rows"-Format
-    /// (Array-of-Arrays) unterstuetzt.
+    /// Extrahiert Result-Rows aus der /receive-Antwort.
     /// </summary>
     private static List<Dictionary<string, object?>> ExtractRows(JsonElement root)
     {
@@ -599,10 +536,7 @@ public class DmsApiLookupService : IDmsLookupService
             if (root.ValueKind == JsonValueKind.Object &&
                 root.TryGetProperty(name, out var nested))
             {
-                // Die DMS-API liefert "result" haeufig als STRING, der JSON enthaelt
-                // (doppelt kodiert). Beispiel:  "result": "[{\"OBJ_ID\":\"...\"}]"
-                // Solche Strings hier einmal parsen, damit wir wieder ein
-                // JsonArray/JsonObject in der Hand haben.
+                // Die DMS-API liefert "result" haeufig als STRING, der JSON enthaelt (doppelt kodiert).
                 if (nested.ValueKind == JsonValueKind.String)
                 {
                     string? inner = nested.GetString();

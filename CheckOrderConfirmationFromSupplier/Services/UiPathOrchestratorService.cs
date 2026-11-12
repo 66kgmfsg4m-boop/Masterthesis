@@ -35,7 +35,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             var handler = new HttpClientHandler();
             try
             {
-                // Akzeptiere alle SSL-Zertifikate (nur für Entwicklung!)
+                // Akzeptiere alle SSL-Zertifikate (nur fÃ¼r Entwicklung!)
                 handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
             }
             catch (Exception e)
@@ -57,18 +57,18 @@ namespace CheckOrderConfirmationFromSupplier.Services
 
         public async Task<bool> SendJsonToQueue(string jsonData, string reference)
         {
-            Console.WriteLine("\n=== UiPath Queue Item Übertragung ===");
+            Console.WriteLine("\n=== UiPath Queue Item Ãœbertragung ===");
             Console.WriteLine($"Reference: {reference}");
             Console.WriteLine($"JSON Daten (erste 200 Zeichen): {jsonData.Substring(0, Math.Min(200, jsonData.Length))}");
 
             if (!IsTokenValid())
             {
-                Console.WriteLine("Token ungültig oder abgelaufen - authentifiziere neu...");
+                Console.WriteLine("Token ungÃ¼ltig oder abgelaufen - authentifiziere neu...");
                 await AuthenticateAsync();
             }
             else
             {
-                Console.WriteLine("Vorhandener Token ist noch gültig");
+                Console.WriteLine("Vorhandener Token ist noch gÃ¼ltig");
             }
 
             return await SendQueueItemAsync(jsonData, reference);
@@ -195,7 +195,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
                 if (parsedJson["position_details"] != null)
                 {
                     var positionDetails = parsedJson["position_details"];
-                    Console.WriteLine($"Position Details Array Größe: {(positionDetails as JArray)?.Count ?? 0}");
+                    Console.WriteLine($"Position Details Array GrÃ¶ÃŸe: {(positionDetails as JArray)?.Count ?? 0}");
                 }
 
                 specificContent["ExtractedJSON"] = cleanedJsonData;
@@ -257,7 +257,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
                     }
                 }
 
-                Console.WriteLine("Kein gültiges JSON-Format gefunden, Original-String wird zurückgegeben");
+                Console.WriteLine("Kein gÃ¼ltiges JSON-Format gefunden, Original-String wird zurÃ¼ckgegeben");
                 return azureResponse;
             }
             catch (Exception e)

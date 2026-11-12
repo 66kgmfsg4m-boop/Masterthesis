@@ -1,8 +1,6 @@
 namespace DatasheetAnalyzer.Blazor.Services;
 
-/// <summary>
-/// Share of filled DMS fields that match the proposal. Empty DMS fields stay outside that share.
-/// </summary>
+/// <summary>Share of filled DMS fields that match the proposal. Empty DMS fields stay outside that share.</summary>
 public static class FieldAgreement
 {
     public readonly record struct Score(int Matches, int ReferenceFields, int Unsupported)

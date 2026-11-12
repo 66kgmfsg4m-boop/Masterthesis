@@ -55,10 +55,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         #region Public API Methods
 
         /// <summary>
-        /// Erzeugt aus dem bereits extrahierten Datenblatt-Text ein SKILL.md
-        /// (AI-Skill im Markdown-Format). Nutzt denselben Azure-OpenAI-Endpoint
-        /// wie die uebrige Analyse, aber OHNE response_format=json_object, weil
-        /// die Ausgabe reines Markdown ist.
+        /// Erzeugt aus dem bereits extrahierten Datenblatt-Text ein SKILL.md (AI-Skill im Markdown-Format).
         /// </summary>
         public async Task<string> GenerateSkillMarkdownAsync(string datasheetText)
         {
@@ -157,13 +154,12 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                         _logger.LogInformation("Mode: HYBRID (Part Number Decoding + PDF Extraction)");
                         _logger.LogInformation("===========================================");
                         
-                        // Dekodiere Part Number (generisch für Memory + Interface IC)
+                        // Dekodiere Part Number (generisch fÃ¼r Memory + Interface IC)
                         decodedProperties = await DecodePartNumberAsync(pdfContent, partNumber, component);
                         
                         if (decodedProperties != null)
                         {
                             _logger.LogInformation("Part Number Decoding successful:");
-                            // Logge alle dekodierten Properties
                             foreach (var prop in decodedProperties.Properties())
                             {
                                 _logger.LogInformation("   {PropertyName}: {Value}", prop.Name, prop.Value ?? "N/A");
@@ -175,7 +171,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                         }
                     }
                     
-                    // PDF-Extraktion durchführen
+                    // PDF-Extraktion durchfÃ¼hren
                     string extractionResult = await AnalyzeComponentWithCatalogAsync(pdfContent, component, partNumber);
 
                     try
@@ -190,24 +186,16 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                         {
                             _logger.LogInformation("Combining Part Number Decoding results with PDF extraction");
                             
-                            // Kombiniere dekodierte Properties mit PDF-Extraktion
-                            // Strategie: Part Number Decoding überschreibt nur spezifische Properties (nicht Funktion!)
+                            // Kombiniere dekodierte Properties mit PDF-Extraktion Strategie: Part Number Decoding Ã¼berschreibt nur spezifische Properties (nicht Funktion!)
                             CombineDecodedPropertiesWithPdf(resultJson, decodedProperties, component);
 
                             _logger.LogInformation("Hybrid combination complete");
                         }
 
-                        // ===========================================
-                        // BESTÄTIGTE IDENTIFIKATION ÜBERNEHMEN
-                        // ===========================================
-                        // Vom User im Identification-Dialog bestätigte Werte
-                        // (PartNumber, Manufacturer, Description) müssen IMMER im
-                        // Endergebnis landen – die KI-Extraktion darf sie nicht
-                        // mit "nicht vorhanden" überschreiben.
+                        // Vom User im Identification-Dialog bestÃ¤tigte Werte (PartNumber, Manufacturer, Description) mÃ¼ssen IMMER im Endergebnis landen - die KI-Extraktion darf sie nicht mit "nicht vorhanden" Ã¼berschreiben.
                         ApplyConfirmedIdentificationFields(resultJson, confirmedIdentification);
 
-                        // FINALE NORMALISIERUNG: Alias-Mapping (z.B. tAA_Max -> TaaMaxS, Voltage -> VccVddTypV)
-                        // + Schema-Whitelist: alles was nicht im Schema steht wird entfernt.
+                        // FINALE NORMALISIERUNG: Alias-Mapping (z.B. tAA_Max -> TaaMaxS, Voltage -> VccVddTypV) + Schema-Whitelist: alles was nicht im Schema steht wird entfernt.
                         NormalizeAndFilterToSchema(resultJson, properties, component);
                         ReadingContext.Attach(resultJson, pdfContent.PageTexts, partNumber);
 
@@ -231,13 +219,11 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Dekodiert Part Number für Components mit Series Datasheets (Memory, Interface IC, etc.)
-        /// STAGE 1: Extrahiert Part Number Chart Struktur aus dem Datasheet
-        /// STAGE 2: Dekodiert spezifische Part Number basierend auf Chart
+        /// Dekodiert Part Number fÃ¼r Components mit Series Datasheets (Memory, Interface IC, etc.)
         /// </summary>
         private async Task<JObject?> DecodePartNumberAsync(PDFProcessor.PDFContent pdfContent, string partNumber, CatalogComponent component)
         {
-            // Bestimme den richtigen Prompt-Typ basierend auf Komponente (vor try-catch, damit im catch verfügbar)
+            // Bestimme den richtigen Prompt-Typ basierend auf Komponente (vor try-catch, damit im catch verfÃ¼gbar)
             string componentType = GetPartNumberDecodingType(component);
             
             try
@@ -248,9 +234,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 _logger.LogInformation("Component: {DisplayName}", component.DisplayName);
                 _logger.LogInformation("Part Number: {PartNumber}", partNumber);
                 
-                // ===========================================
                 // STAGE 1: Extrahiere Part Number Chart Struktur
-                // ===========================================
                 _logger.LogInformation("STAGE 1: Extracting Part Number Chart structure...");
                 
                 string seriesPrompt;
@@ -268,7 +252,6 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     return null;
                 }
                 
-                // KI-Call für Chart Extraktion (Stage 1)
                 string chartResult;
                 if (pdfContent.IsTextBased)
                 {
@@ -283,11 +266,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 var chartJson = JObject.Parse(chartResult);
                 _logger.LogInformation("Stage 1 complete: Part Number Chart extracted");
                 
-                // Prüfe ob Chart gefunden wurde.
-                // ACHTUNG: Auch ohne Chart wird Stage 2 weiterhin versucht – der Decoder
-                // kann anhand der PartNumber + dem Datenblatt-Inhalt häufig auch ohne
-                // formale Decoder-Tabelle Properties ableiten (typischerweise bei
-                // eMMC/UFS, wo Kapazität/Package direkt in den Features stehen).
+                // PrÃ¼fe ob Chart gefunden wurde. ACHTUNG: Auch ohne Chart wird Stage 2 weiterhin versucht - der Decoder kann anhand der PartNumber + dem Datenblatt-Inhalt hÃ¤ufig auch ohne formale
                 bool chartFound = chartJson["ChartFound"]?.Value<bool>() ?? false;
                 if (!chartFound)
                 {
@@ -301,9 +280,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     };
                 }
                 
-                // ===========================================
                 // STAGE 2: Dekodiere spezifische Part Number
-                // ===========================================
                 _logger.LogInformation("STAGE 2: Decoding specific part number...");
                 
                 string decodingPrompt;
@@ -326,7 +303,6 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 decodingPrompt = decodingPrompt.Replace("{COMPONENT_CATEGORY}", component.DisplayName);
                 decodingPrompt = decodingPrompt.Replace("{PART_NUMBER_STRUCTURE}", chartJson.ToString(Formatting.Indented));
                 
-                // KI-Call für Dekodierung (Stage 2)
                 string decodingResult;
                 if (pdfContent.IsTextBased)
                 {
@@ -338,7 +314,6 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     decodingResult = await AnalyzeImageContentAsync(pdfContent.Base64Images, decodingPrompt);
                 }
                 
-                // Parse Ergebnis
                 var decodedJson = JObject.Parse(decodingResult);
                 _logger.LogDebug("Decoding result: {Result}", decodedJson.ToString(Formatting.None));
                 
@@ -365,9 +340,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
             }
         }
 
-        /// <summary>
-        /// Prüft ob Component Part Number Decoding benötigt (Memory, Interface IC, etc.)
-        /// </summary>
+        /// <summary>PrÃ¼ft ob Component Part Number Decoding benÃ¶tigt (Memory, Interface IC, etc.)</summary>
         private bool RequiresPartNumberDecoding(CatalogComponent component)
         {
             var keywords = new[]
@@ -392,9 +365,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 component.FullPath.Contains(keyword, StringComparison.OrdinalIgnoreCase));
         }
         
-        /// <summary>
-        /// Bestimmt den Komponententyp für Part Number Decoding (für Prompt-Auswahl)
-        /// </summary>
+        /// <summary>Bestimmt den Komponententyp fÃ¼r Part Number Decoding (fÃ¼r Prompt-Auswahl)</summary>
         private string GetPartNumberDecodingType(CatalogComponent component)
         {
             // Memory Components ? "Memory"
@@ -423,14 +394,14 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         
         /// <summary>
         /// Kombiniert dekodierte Properties mit PDF-Extraktion
-        /// Strategie: Part Number Decoding überschreibt spezifische Properties, aber NICHT "Funktion"
+        /// Strategie: Part Number Decoding Ã¼berschreibt spezifische Properties, aber NICHT "Funktion"
         /// </summary>
         private void CombineDecodedPropertiesWithPdf(JObject resultJson, JObject decodedProperties, CatalogComponent component)
         {
-            // Properties die aus Part Number Decoding bevorzugt werden (präziser!)
+            // Properties die aus Part Number Decoding bevorzugt werden (prÃ¤ziser!)
             var preferDecoded = new[] { "SizeByte", "Width", "PackageType", "Interface_internal", "Interface_external" };
             
-            // Properties die aus PDF bevorzugt werden (spezifischer für exakte Variante)
+            // Properties die aus PDF bevorzugt werden (spezifischer fÃ¼r exakte Variante)
             var preferPdf = new[] { "Funktion", "NumberOfPin", "Pitch", "tAA_Max", "tRC_Min" };
             
             // "Leere" Werte aus PDF-Extraktion - bei diesen MUSS der Decoded-Fallback greifen
@@ -469,7 +440,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     continue;
                 }
                 
-                // Für alle anderen (inkl. preferPdf): Nur überschreiben wenn PDF keinen brauchbaren Wert hat
+                // FÃ¼r alle anderen (inkl. preferPdf): Nur Ã¼berschreiben wenn PDF keinen brauchbaren Wert hat
                 string? pdfValue = resultJson[propName]?.Value<string>();
                 if (IsEmptyValue(pdfValue))
                 {
@@ -490,10 +461,6 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
 
         /// <summary>
         /// Synonym-Gruppen: equivalente Bezeichnungen fuer dieselbe physikalische Eigenschaft.
-        /// Innerhalb jeder Gruppe findet <see cref="NormalizeAndFilterToSchema"/> automatisch
-        /// den tatsaechlichen Schema-Namen (aus get_classes.csv) und mappt alle anderen
-        /// Bezeichner darauf. Dadurch ist es egal, ob das Schema "Width" oder "WidthMax"
-        /// heisst und ob das Modell "Width", "DataWidth" o.ae. zurueckgibt.
         /// </summary>
         private static readonly string[][] PropertySynonyms = new[]
         {
@@ -518,9 +485,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
             new[] { "PackageType", "Package", "PackageName" },
         };
 
-        /// <summary>
-        /// Meta-Felder, die NICHT aus dem Property-Schema kommen, aber im Ergebnis erlaubt sind.
-        /// </summary>
+        /// <summary>Meta-Felder, die NICHT aus dem Property-Schema kommen, aber im Ergebnis erlaubt sind.</summary>
         private static readonly HashSet<string> AllowedMetaProperties =
             new(StringComparer.OrdinalIgnoreCase)
             {
@@ -533,10 +498,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
             };
 
         /// <summary>
-        /// 1) Mappt Synonym-Felder auf den tatsaechlichen Schema-Namen
-        ///    (Schema-Wert wird nur ueberschrieben, wenn er leer / "nicht vorhanden" ist).
-        /// 2) Entfernt anschliessend alle Felder, die weder im Property-Schema
-        ///    noch in <see cref="AllowedMetaProperties"/> stehen.
+        /// 1) Mappt Synonym-Felder auf den tatsaechlichen Schema-Namen (Schema-Wert wird nur ueberschrieben, wenn er leer / "nicht vorhanden" ist).
         /// </summary>
         private void NormalizeAndFilterToSchema(JObject resultJson, IList<ComponentProperty> properties, CatalogComponent? component = null)
         {
@@ -547,21 +509,8 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 properties.Select(p => p.PropertyInternalName).Where(n => !string.IsNullOrWhiteSpace(n)),
                 StringComparer.OrdinalIgnoreCase);
 
-            // -------- Phase 0: Varianten-Suffix-Konsolidierung --------
-            // Manche Datenblaetter (typisch bei Multi-Package Memory-ICs)
-            // beschreiben mehrere Package-/Varianten in einem Dokument.
-            // Das Modell tendiert dann dazu, pro Variante eigene Felder zu
-            // liefern:
-            //     "NumberOfPin_1": "28", "NumberOfPin_2": "48",
-            //     "PackageType_1": "SOIC", "PackageType_2": "TSOP",
-            //     "SizeByte_1": "32 KB",  "SizeByte_2": "32 KB", ...
+            // -------- Phase 0: Varianten-Suffix-Konsolidierung -------- Manche Datenblaetter (typisch bei Multi-Package Memory-ICs) beschreiben mehrere Package-/Varianten in einem Dokument.
             // Diese _1/_2/_3-Felder stehen NICHT im Schema und wuerden vom
-            // Whitelist-Filter (Phase 2) verworfen -> im Ergebnis waeren
-            // dann alle Werte leer, obwohl das Modell sie eigentlich hatte.
-            //
-            // Loesung: Alle "<Feld>_<Zahl>"-Felder auf "<Feld>" konsolidieren.
-            // Regel: ersten nicht-leeren Wert nehmen (deterministisch nach
-            // aufsteigendem Suffix), Rest der Suffix-Felder entfernen.
             var suffixRegex = new System.Text.RegularExpressions.Regex(
                 @"^(?<base>.+?)_(?<n>\d+)$",
                 System.Text.RegularExpressions.RegexOptions.Compiled);
@@ -603,9 +552,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     resultJson.Remove(name);
             }
 
-            // -------- Phase 1: Synonym-Mapping --------
-            // Pro Synonym-Gruppe: finde den Namen, der WIRKLICH im Schema steht,
-            // und uebernimm Werte aus jedem anderen Synonym, falls Schema-Feld leer.
+            // -------- Phase 1: Synonym-Mapping -------- Pro Synonym-Gruppe: finde den Namen, der WIRKLICH im Schema steht, und uebernimm Werte aus jedem anderen Synonym, falls Schema-Feld leer.
             foreach (var family in PropertySynonyms)
             {
                 string? schemaName = family.FirstOrDefault(n => schemaNames.Contains(n));
@@ -631,8 +578,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 }
             }
 
-            // -------- Phase 1b: Spezial-Fallback NumberOfPin aus PackageType ableiten --------
-            // Beispiele: "48-ball FBGA" -> 48, "TSOP-56" -> 56, "LBGA-64" -> 64, "SOIC-8" -> 8
+            // -------- Phase 1b: Spezial-Fallback NumberOfPin aus PackageType ableiten -------- Beispiele: "48-ball FBGA" -> 48, "TSOP-56" -> 56, "LBGA-64" -> 64, "SOIC-8" -> 8
             string? pinSchemaName = new[] { "NumberOfPin", "NumberOfPins" }
                 .FirstOrDefault(n => schemaNames.Contains(n));
             if (pinSchemaName != null && IsEmpty(resultJson[pinSchemaName]))
@@ -653,11 +599,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 }
             }
 
-            // -------- Phase 1c: Wert-Normalisierung 'Function' fuer Memory Serial --------
-            // DMS-Dropdown fuer Non-Volatile Memory Serial akzeptiert nur:
-            //   EEPROM, PROM, ROM, Flash, FRAM, MRAM, eMMC
-            // Falls das Modell trotz Prompt z.B. 'NAND Flash SLC' liefert,
-            // mappen wir hier auf den erlaubten Sammelwert.
+            // -------- Phase 1c: Wert-Normalisierung 'Function' fuer Memory Serial -------- DMS-Dropdown fuer Non-Volatile Memory Serial akzeptiert nur: EEPROM, PROM, ROM, Flash, FRAM, MRAM, eMMC Falls
             if (component != null && IsMemorySerialComponent(component))
             {
                 string? functionField = new[] { "Function", "Funktion" }
@@ -780,9 +722,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
             return match;
         }
 
-        /// <summary>
-        /// Prüft ob Komponente Vision API benötigt (für technische Zeichnungen)
-        /// </summary>
+        /// <summary>PrÃ¼ft ob Komponente Vision API benÃ¶tigt (fÃ¼r technische Zeichnungen)</summary>
         private bool RequiresVisionAnalysis(CatalogComponent component, PDFProcessor.PDFContent pdfContent)
         {
             if (pdfContent.Base64Images == null || pdfContent.Base64Images.Count == 0)
@@ -836,10 +776,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         {
             string dynamicPrompt = _catalogService.GenerateDynamicPrompt(component);
 
-            // Wenn der User eine konkrete PartNumber bestaetigt/eingetragen hat,
-            // MUSS die Extraktion sich exakt auf diese Variante beziehen.
-            // Ohne diesen Block waehlt das Modell bei Serien-Datenblaettern
-            // (Part-Number-Matrix) haeufig eine falsche Zeile.
+            // Wenn der User eine konkrete PartNumber bestaetigt/eingetragen hat, MUSS die Extraktion sich exakt auf diese Variante beziehen.
             if (!string.IsNullOrWhiteSpace(partNumber))
             {
                 string pnBlock =
@@ -850,7 +787,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     $"The user has explicitly selected the following manufacturer part number:\n" +
                     $"    ? {partNumber}\n" +
                     "\n" +
-                    "STEP 0 – CLASSIFY THE DATASHEET FIRST (do this before anything else):\n" +
+                    "STEP 0 - CLASSIFY THE DATASHEET FIRST (do this before anything else):\n" +
                     "  (A) SINGLE-PRODUCT datasheet: the datasheet describes exactly ONE\n" +
                     "      device / base part number. There is NO variant matrix that\n" +
                     "      changes electrical values per row. Typical indicators:\n" +
@@ -871,16 +808,16 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     "  (B) MULTI-VARIANT datasheet: the datasheet contains a part-number\n" +
                     "      matrix where DIFFERENT rows have DIFFERENT electrical values\n" +
                     "      (e.g. inductance, tolerance, voltage class, frequency band).\n" +
-                    "      ? In this case follow rules 1–7 below strictly.\n" +
+                    "      ? In this case follow rules 1-7 below strictly.\n" +
                     "\n" +
-                    "RULES FOR MULTI-VARIANT DATASHEETS (case B) – NON-NEGOTIABLE:\n" +
+                    "RULES FOR MULTI-VARIANT DATASHEETS (case B) - NON-NEGOTIABLE:\n" +
                     "  1. Locate the exact row in the matrix whose part number matches\n" +
                     $"     '{partNumber}'. Match is done character-by-character on the\n" +
                     "     base code; wildcard/placeholder characters in the datasheet\n" +
                     "     (e.g. '_', 'X', '[Y|W]', trailing packaging suffix) are ignored\n" +
                     "     ONLY if they are not part of the user's selection.\n" +
                     "  2. ALL variant-specific values (inductance, tolerance, current,\n" +
-                    "     DCR, SRF, Q, frequency, height, …) MUST come from THAT row.\n" +
+                    "     DCR, SRF, Q, frequency, height, ...) MUST come from THAT row.\n" +
                     "     NEVER return values from a different row.\n" +
                     "  3. If a technical value is not per-variant but given once for the\n" +
                     "     whole series (e.g. mechanical dimensions, package type,\n" +
@@ -898,7 +835,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     "  6. Values printed in a 'Features' bullet list or in a general\n" +
                     "     'Electrical Characteristics' / 'Specifications' section are\n" +
                     "     VALID sources. You do NOT need a Min/Typ/Max table to accept\n" +
-                    "     a value – a single stated value (e.g. 'Gain: 20 dB',\n" +
+                    "     a value - a single stated value (e.g. 'Gain: 20 dB',\n" +
                     "     'Noise figure: 0.65 dB', 'Supply voltage: 1.5 V to 3.6 V') is\n" +
                     "     sufficient and MUST be extracted.\n" +
                     "  7. Return 'PartNumber' in the JSON exactly as given above.\n" +
@@ -909,8 +846,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     component.DisplayName, partNumber);
             }
 
-            // Memory-Komponenten: Function-Klassifikation immer im Hauptprompt erzwingen
-            // (auch ohne Part Number, damit "Function" nie "nicht vorhanden" bleibt).
+            // Memory-Komponenten: Function-Klassifikation immer im Hauptprompt erzwingen (auch ohne Part Number, damit "Function" nie "nicht vorhanden" bleibt).
             string? functionEnumBlock = BuildFunctionEnumBlockIfApplicable(component);
             if (!string.IsNullOrEmpty(functionEnumBlock))
             {
@@ -918,25 +854,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 _logger.LogDebug("Function-Klassifikations-Block fuer {Name} an Hauptprompt angehaengt", component.DisplayName);
             }
 
-            // ---------------------------------------------------------------
             // STRATEGIE (bewusst einfach & vorhersagbar):
-            //   1. Wenn Text extrahierbar ist -> IMMER zuerst Text-Extraktion.
-            //      Der Text aus iTextSharp ist praezise fuer Zahlenwerte
-            //      (Frequenzen, Gain, Spannungen, Package-Groessen) und liefert
-            //      auf beiden Datenblaettern reproduzierbar dieselben Werte.
-            //   2. Wenn das Property-Schema mechanische Angaben enthaelt, die
-            //      typisch NUR im Package-Drawing stehen ('Pitch'),
-            //      dann DANACH einen kleinen, gezielten Vision-Zusatzcall
-            //      machen (nur fuer diese Properties) und die Ergebnisse
-            //      in das Text-Resultat mergen.
-            //   3. Nur wenn ueberhaupt kein Text extrahiert werden konnte
-            //      (echtes Scan-PDF), faellt die Analyse auf Vision-only zurueck.
-            //
-            // WICHTIG (Compare-Flow): Beide PDFs muessen ueber DENSELBEN Pfad
-            // laufen, sonst kommen inkonsistente Ergebnisse (mal Text, mal
-            // Vision) und der Vergleich wird unbrauchbar. Deshalb genuegt hier
-            // "hat ueberhaupt Text extrahiert" - kein Mindest-Zeichen-Schwellwert.
-            // ---------------------------------------------------------------
 
             int textLength = pdfContent.TextContent?.Length ?? 0;
             bool hasUsableText = !string.IsNullOrWhiteSpace(pdfContent.TextContent);
@@ -951,19 +869,15 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 return await AnalyzeImageContentAsync(pdfContent.Base64Images, dynamicPrompt);
             }
 
-            // Schritt 1: Text-basierte Extraktion (Haupt-Ergebnis)
             _logger.LogInformation(
                 "TEXT-Extraktion: {ComponentName} - {TextLength} chars, IsTextBased={IsTextBased}",
                 component.DisplayName, textLength, pdfContent.IsTextBased);
             string documentForModel = TextForModel(pdfContent, dynamicPrompt, partNumber);
             string textResult = await AnalyzeTextContentAsync(documentForModel, dynamicPrompt);
 
-            // Kurzer Blick auf das Roh-Ergebnis loggen, damit man beim Compare
-            // sofort sehen kann, ob das Modell fuer dieses PDF wirklich Werte
-            // geliefert hat oder nur "nicht vorhanden" fuellt.
+            // Kurzer Blick auf das Roh-Ergebnis loggen, damit man beim Compare sofort sehen kann, ob das Modell fuer dieses PDF wirklich Werte geliefert hat oder nur "nicht vorhanden" fuellt.
             LogExtractionSummary(textResult, component.DisplayName);
 
-            // Schritt 2: Gezielter Vision-Zusatzcall NUR fuer mechanische
             // Properties, die im Text meist nicht vorkommen (Pitch, ...).
             var properties = _catalogService.GetPropertiesForComponent(component.FullPath);
             if (properties.Count == 0)
@@ -991,17 +905,8 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 }
             }
 
-            // Schritt 3 (VISION-RESCUE): Bei komplexen Datenblaettern zerreisst die
-            // reine Textextraktion oft mehrspaltige Spezifikationstabellen
-            // (Frequenz-Matrix mit Min/Typ/Max pro Zeile, Absolute Maximum
-            // Ratings usw.). Das fuehrt zu "nicht vorhanden" fuer Werte, die
-            // im Bild eindeutig sichtbar sind (z.B. GainTypDb, NfTypDb,
-            // Op1DbDbm, IsupplyMaxA, PdissW, RfinMaxDbm).
-            //
+            // reine Textextraktion oft mehrspaltige Spezifikationstabellen (Frequenz-Matrix mit Min/Typ/Max pro Zeile, Absolute Maximum Ratings usw.).
             // Wir sammeln daher ALLE Properties, die im Text leer geblieben
-            // sind, und fragen sie gezielt per Vision nach. Text-Werte bleiben
-            // Vorrang (MergeVisionExtras ersetzt nur leere Slots), daher gibt
-            // es keine Regression fuer sauber extrahierte Datenblaetter.
             if (pdfContent.Base64Images.Count > 0)
             {
                 try
@@ -1030,11 +935,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Ermittelt Properties, die im Text-Ergebnis leer bzw. mit einem
-        /// Empty-Marker ("nicht vorhanden", "nicht gefunden", ...) belegt sind
-        /// und daher per Vision nachgereicht werden sollen. Meta-Felder
-        /// (ComponentType, PartNumber, Manufacturer, Description, Function)
-        /// werden ausgeklammert.
+        /// Ermittelt Properties, die im Text-Ergebnis leer bzw. mit einem Empty-Marker ("nicht vorhanden", "nicht gefunden", ...) belegt sind und daher per Vision nachgereicht werden sollen.
         /// </summary>
         private static List<string> GetMissingPropertyNames(string textResultJson, IList<ComponentProperty> properties)
         {
@@ -1064,11 +965,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Fragt das Modell per Vision nach beliebigen Properties, die aus dem
-        /// Text nicht extrahierbar waren. Anders als der reine Package-Drawing
-        /// -Call darf sich das Modell hier bewusst auf ALLE Sektionen des PDF
-        /// stuetzen (Features, Nominal Operating Parameters, Absolute Maximum
-        /// Ratings, Package Drawing).
+        /// Fragt das Modell per Vision nach beliebigen Properties, die aus dem Text nicht extrahierbar waren.
         /// </summary>
         private async Task<JObject?> ExtractMissingPropertiesFromImagesAsync(
             List<string> base64Images, List<string> propertyNames, string componentName)
@@ -1122,14 +1019,11 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Liefert die Namen der Properties, die typischerweise NUR aus dem
-        /// Package-Drawing / technischen Zeichnungen ablesbar sind und daher
-        /// einen separaten Vision-Call rechtfertigen.
+        /// Liefert die Namen der Properties, die typischerweise NUR aus dem Package-Drawing / technischen Zeichnungen ablesbar sind und daher einen separaten Vision-Call rechtfertigen.
         /// </summary>
         private static List<string> GetVisionOnlyPropertyNames(IList<ComponentProperty> properties)
         {
             // Nur echte Vision-Only-Kandidaten. Alles andere (FMinHz, Gain, ...)
-            // ist im Text vorhanden und braucht keinen Vision-Zusatz.
             var candidates = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "Pitch"
@@ -1143,10 +1037,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Fragt das Modell in einem separaten Vision-Call ausschliesslich
-        /// nach den mechanischen Properties, die im Text meist fehlen
-        /// (Pitch, ...). Der Prompt ist minimal, damit die Antwort kompakt
-        /// bleibt und wenig Reasoning-Tokens frisst.
+        /// Fragt das Modell in einem separaten Vision-Call ausschliesslich nach den mechanischen Properties, die im Text meist fehlen (Pitch, ...).
         /// </summary>
         private async Task<JObject?> ExtractPackageDrawingPropertiesAsync(
             List<string> base64Images, List<string> propertyNames)
@@ -1197,8 +1088,6 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
 
         /// <summary>
         /// Merged die Werte aus dem Vision-Zusatzcall in das Text-Ergebnis.
-        /// Regel: Text-Werte gewinnen, AUSSER der Text hat kein/leeres Ergebnis
-        /// fuer dieses Feld - dann uebernehmen wir den Vision-Wert.
         /// </summary>
         private string MergeVisionExtras(string textResultJson, JObject visionExtras, List<string> propertyNames)
         {
@@ -1213,8 +1102,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
             }
             catch
             {
-                // Wenn das Text-Ergebnis nicht als JSON parsebar ist,
-                // koennen wir nicht mergen. Rueckgabe unveraendert.
+                // Wenn das Text-Ergebnis nicht als JSON parsebar ist, koennen wir nicht mergen.
                 return textResultJson;
             }
 
@@ -1241,11 +1129,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Logt eine Kurzuebersicht des Extraktions-Ergebnisses:
-        /// wie viele Felder wurden vom Modell mit "nicht vorhanden" o.ae.
-        /// gefuellt vs. mit einem echten Wert. Wichtig fuer Compare-Debugging,
-        /// weil man beim Vergleich zweier PDFs sonst nicht sieht, WELCHES
-        /// PDF Werte liefert und WELCHES nicht.
+        /// Logt eine Kurzuebersicht des Extraktions-Ergebnisses: wie viele Felder wurden vom Modell mit "nicht vorhanden" o.ae.
         /// </summary>
         private void LogExtractionSummary(string extractionResultJson, string componentDisplayName)
         {
@@ -1291,11 +1175,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Stempelt die im Identification-Dialog vom Nutzer bestätigten Felder
-        /// (PartNumber, Manufacturer/ManufacturerInfo, Description, ComponentCategory)
-        /// in das finale Ergebnis. Damit überschreibt die KI-Extraktion sie nicht
-        /// mit Werten wie 'nicht vorhanden', wenn z.B. die PartNumber nicht im
-        /// PDF-Text auftaucht (interne Bestellnummern, OEM-Customizing, …).
+        /// Stempelt die im Identification-Dialog vom Nutzer bestÃ¤tigten Felder (PartNumber, Manufacturer/ManufacturerInfo, Description, ComponentCategory) in das finale Ergebnis.
         /// </summary>
         private void ApplyConfirmedIdentificationFields(JObject resultJson, JObject confirmedIdentification)
         {
@@ -1316,7 +1196,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 resultJson["PartNumber"] = confirmedPartNumber;
             }
 
-            // Manufacturer / ManufacturerInfo: nur überschreiben wenn KI-Wert leer ist.
+            // Manufacturer / ManufacturerInfo: nur Ã¼berschreiben wenn KI-Wert leer ist.
             var confirmedManufacturer = confirmedIdentification["ManufacturerInfo"]?.Value<string>()
                                      ?? confirmedIdentification["Manufacturer"]?.Value<string>();
             if (!IsEmpty(confirmedManufacturer))
@@ -1327,7 +1207,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                     resultJson["ManufacturerInfo"] = confirmedManufacturer;
             }
 
-            // ComponentCategory + Description: ergänzen wenn leer (User-Korrektur respektieren).
+            // ComponentCategory + Description: ergÃ¤nzen wenn leer (User-Korrektur respektieren).
             var confirmedCategory = confirmedIdentification["ComponentCategory"]?.Value<string>();
             if (!IsEmpty(confirmedCategory) && IsEmpty(resultJson["ComponentCategory"]?.Value<string>()))
             {
@@ -1355,10 +1235,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Mappt einen vom Modell gelieferten Function-Wert auf einen der DMS-Dropdown-
-        /// Werte fuer Non-Volatile Memory Serial:
-        ///   EEPROM, PROM, ROM, Flash, FRAM, MRAM, eMMC
-        /// Liefert null, wenn der Wert leer/unbekannt ist (dann nicht ueberschreiben).
+        /// Mappt einen vom Modell gelieferten Function-Wert auf einen der DMS-Dropdown- Werte fuer Non-Volatile Memory Serial: EEPROM, PROM, ROM, Flash, FRAM, MRAM, eMMC Liefert null, wenn der Wert leer/unbekannt ist (dann nicht ueberschreiben).
         /// </summary>
         private static string? NormalizeMemorySerialFunctionValue(string? value)
         {
@@ -1392,10 +1269,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
         }
 
         /// <summary>
-        /// Liefert einen "Function"-Klassifikations-Block (Dropdown-Werte + Decision-Tree),
-        /// der dem Hauptprompt fuer Memory-Komponenten angehaengt wird.
-        /// Damit ist "Function" auch ohne Part Number Decoding garantiert klassifiziert.
-        /// Gibt null zurueck wenn die Komponente keine bekannte Function-Enum hat.
+        /// Liefert einen "Function"-Klassifikations-Block (Dropdown-Werte + Decision-Tree), der dem Hauptprompt fuer Memory-Komponenten angehaengt wird.
         /// </summary>
         private static string? BuildFunctionEnumBlockIfApplicable(CatalogComponent component)
         {
@@ -1410,11 +1284,7 @@ Return JSON with: DocumentType, ComponentCategory, ComponentName, ManufacturerIn
                 return BuildMemoryParallelFunctionBlock("Non-Volatile Memory Parallel");
             }
 
-            // ---- Non-Volatile Memory Serial ----
-            // ACHTUNG: Serial hat im DMS ein ANDERES Function-Dropdown als Parallel!
-            // Erlaubte Werte (DMS-Dropdown):
-            //   EEPROM, PROM, ROM, Flash, FRAM, MRAM, eMMC
-            // Werte wie 'NAND Flash SLC' / 'NOR Flash' werden vom DMS abgelehnt.
+            // ---- Non-Volatile Memory Serial ---- ACHTUNG: Serial hat im DMS ein ANDERES Function-Dropdown als Parallel!
             if (name.Contains("Non-Volatile Memory Serial", StringComparison.OrdinalIgnoreCase) ||
                 name.Contains("NV Memory Serial",          StringComparison.OrdinalIgnoreCase) ||
                 name.Contains("EEPROM Serial",             StringComparison.OrdinalIgnoreCase) ||
@@ -1493,8 +1363,6 @@ ANTI-BEISPIELE (falsch, NICHT machen):
 
         /// <summary>
         /// Function-Klassifikations-Block fuer 'Non-Volatile Memory Serial'.
-        /// WICHTIG: DMS-Dropdown fuer Serial unterscheidet sich von Parallel!
-        /// Erlaubte Werte: EEPROM, PROM, ROM, Flash, FRAM, MRAM, eMMC
         /// </summary>
         private static string BuildMemorySerialFunctionBlock(string componentLabel) => $@"
 ================================================================
@@ -1678,15 +1546,7 @@ VORGEHEN:
         }
 
         /// <summary>
-        /// ECHTER Hybrid-Modus: schickt den extrahierten PDF-Text UND die
-        /// gerenderten Bilder gemeinsam an das Modell.
-        /// Wichtig fuer Komponenten wie RF Amplifier, wo:
-        ///   - numerische Parameter (FMinHz, FMaxHz, Gain, ...) in TABELLEN stehen
-        ///     und aus dem Text zuverlaessig lesbar sind, aber
-        ///   - PackageType/Pitch/NumberOfPin nur aus BILDERN (Package Drawing)
-        ///     abgeleitet werden koennen.
-        /// Reines Vision (nur Bilder) verpasst haeufig die Tabellenwerte,
-        /// reines Text (ohne Bilder) verpasst die mechanischen Angaben.
+        /// ECHTER Hybrid-Modus: schickt den extrahierten PDF-Text UND die gerenderten Bilder gemeinsam an das Modell.
         /// </summary>
         private async Task<string> AnalyzeHybridContentAsync(string textContent, List<string> base64Images, string prompt)
         {
@@ -1696,10 +1556,7 @@ VORGEHEN:
 
         private string CreateTextRequestBody(string textContent, string prompt)
         {
-            // Anti-Suffix-Regel: verhindert, dass das Modell bei Multi-Package-
-            // Datenblaettern Varianten-Suffixe erzeugt (NumberOfPin_1, _2, ...).
-            // Solche Feldnamen wuerden von der Schema-Whitelist verworfen und
-            // die Werte gingen verloren.
+            // Anti-Suffix-Regel: verhindert, dass das Modell bei Multi-Package- Datenblaettern Varianten-Suffixe erzeugt (NumberOfPin_1, _2, ...).
             string effectivePrompt = prompt + @"
 
 ================================================================
@@ -1732,9 +1589,7 @@ STATTDESSEN:
             {
                 messages = new[] { message },
                 max_completion_tokens = 16000,
-                // 'temperature' bewusst NICHT setzen: neuere Azure-OpenAI-Modelle
-                // (o1/o3/gpt-5-Serie) akzeptieren nur den Default-Wert 1 und
-                // liefern sonst 'BadRequest: unsupported_value' fuer temperature.
+                // 'temperature' bewusst NICHT setzen: neuere Azure-OpenAI-Modelle (o1/o3/gpt-5-Serie) akzeptieren nur den Default-Wert 1 und liefern sonst 'BadRequest: unsupported_value' fuer temperature.
                 response_format = new { type = "json_object" }
             };
 
@@ -1748,8 +1603,6 @@ STATTDESSEN:
             content.Add(new { type = "text", text = prompt + ReadingContext.PromptRule });
 
             // Limit fuer Vision-API. Muss mit PDFProcessor.MAX_RENDERED_PAGES konsistent sein!
-            // 15 ist ein guter Kompromiss aus Erkennungsqualitaet, Geschwindigkeit und Token-Kosten.
-            // Die Auswahl WELCHE 15 Seiten geschickt werden, macht PDFProcessor.SelectRelevantPages.
             const int MaxImagesToSend = 15;
             int imageCount = Math.Min(base64Images.Count, MaxImagesToSend);
             _logger.LogInformation("Sending {ImageCount} images to Vision API (detail=high)", imageCount);
@@ -1768,15 +1621,9 @@ STATTDESSEN:
             var requestBody = new
             {
                 messages = new[] { message },
-                // WICHTIG bei Reasoning-Modellen (o1/o3/gpt-5-Serie):
-                // 'max_completion_tokens' zaehlt REASONING-Tokens + OUTPUT-Tokens
-                // gemeinsam. Mit 4096 hat das Modell nach dem internen Reasoning
-                // kaum noch Budget fuer das tatsaechliche JSON und liefert
-                // ueberall "nicht vorhanden". Deshalb hier grosszuegig auf
-                // 16000 setzen (analog zum Text-Pfad).
+                // WICHTIG bei Reasoning-Modellen (o1/o3/gpt-5-Serie): 'max_completion_tokens' zaehlt REASONING-Tokens + OUTPUT-Tokens gemeinsam.
                 max_completion_tokens = 16000,
-                // JSON erzwingen, damit die Antwort auch im Bild-Pfad ohne
-                // Nach-Parsing/Regex direkt als JObject einlesbar ist.
+                // JSON erzwingen, damit die Antwort auch im Bild-Pfad ohne Nach-Parsing/Regex direkt als JObject einlesbar ist.
                 response_format = new { type = "json_object" }
                 // 'temperature' bewusst NICHT setzen (siehe CreateTextRequestBody).
             };
@@ -1785,11 +1632,7 @@ STATTDESSEN:
         }
 
         /// <summary>
-        /// Kombiniertes Text+Bild-Request-Payload. Der Prompt wird durch einen
-        /// klaren Hinweis erweitert, DASS Text-Tabellen den Bildern bei
-        /// numerischen Werten vorzuziehen sind - andernfalls tendiert das
-        /// Modell dazu, Zahlenwerte aus (unscharf gerenderten) Package-
-        /// Drawings ablesen zu wollen und liefert dann "nicht vorhanden".
+        /// Kombiniertes Text+Bild-Request-Payload. Der Prompt wird durch einen klaren Hinweis erweitert, DASS Text-Tabellen den Bildern bei numerischen Werten vorzuziehen sind - andernfalls tendiert das Modell dazu,
         /// </summary>
         private string CreateHybridRequestBody(string textContent, List<string> base64Images, string prompt)
         {
@@ -1824,8 +1667,7 @@ das Feld nicht enthalten. NICHT wenn nur eine Quelle es nicht zeigt.
 
             content.Add(new { type = "text", text = hybridPrompt });
 
-            // Text-Inhalt als eigener Text-Block anhaengen, damit das Modell ihn
-            // klar von der Instruktion trennt.
+            // Text-Inhalt als eigener Text-Block anhaengen, damit das Modell ihn klar von der Instruktion trennt.
             if (!string.IsNullOrWhiteSpace(textContent))
             {
                 content.Add(new { type = "text", text = "PDF-TEXT-INHALT:\n" + textContent });
@@ -1887,11 +1729,7 @@ das Feld nicht enthalten. NICHT wenn nur eine Quelle es nicht zeigt.
                 {
                     int promptTokens = usage["prompt_tokens"]?.Value<int>() ?? 0;
                     int completionTokens = usage["completion_tokens"]?.Value<int>() ?? 0;
-                    // Reasoning-Modelle (o1/o3/gpt-5) melden zusaetzlich
-                    // 'reasoning_tokens'. Wenn diese Zahl fast das gesamte
-                    // completion_tokens-Budget aufbraucht, bleibt fuer den
-                    // tatsaechlichen JSON-Output kaum was uebrig -> deswegen
-                    // zur Diagnose mitloggen.
+                    // Reasoning-Modelle (o1/o3/gpt-5) melden zusaetzlich 'reasoning_tokens'.
                     int reasoningTokens = usage["completion_tokens_details"]?["reasoning_tokens"]?.Value<int>() ?? 0;
                     if (reasoningTokens > 0)
                     {
@@ -1902,10 +1740,7 @@ das Feld nicht enthalten. NICHT wenn nur eine Quelle es nicht zeigt.
                     TokenStatsCallback?.Invoke(promptTokens, completionTokens);
                 }
 
-                // 'finish_reason' pruefen: 'length' bedeutet, das Modell wurde
-                // abgeschnitten -> der Response-JSON ist unvollstaendig.
-                // Das ist bei Reasoning-Modellen ein sehr haeufiger Grund fuer
-                // "nicht vorhanden"-Werte in der Extraktion.
+                // 'finish_reason' pruefen: 'length' bedeutet, das Modell wurde abgeschnitten -> der Response-JSON ist unvollstaendig.
                 string finishReason = jsonResponse["choices"]?[0]?["finish_reason"]?.Value<string>() ?? "";
                 if (string.Equals(finishReason, "length", StringComparison.OrdinalIgnoreCase))
                 {

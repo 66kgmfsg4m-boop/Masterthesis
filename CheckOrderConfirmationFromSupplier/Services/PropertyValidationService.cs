@@ -6,37 +6,12 @@ using System.Text.RegularExpressions;
 
 namespace CheckOrderConfirmationFromSupplier.Services
 {
-    /// <summary>
-    /// Property Validation Service
-    /// 
-    /// Validates extracted property values from datasheets against objective rules.
-    /// Checks plausibility, units, value ranges, and component-specific constraints.
-    /// 
-    /// Features:
-    /// - Unit validation (e.g., dB, mm, Hz)
-    /// - Range validation (min/max values)
-    /// - Common value suggestions
-    /// - Component-type specific hints
-    /// - Enumeration validation (allowed values)
-    /// - Integer constraints
-    /// 
-    /// Architecture:
-    /// - Rule-based validation system
-    /// - Extensible property rules
-    /// - Detailed warning and error reporting
-    /// - Unit conversion support
-    /// 
-    /// Usage:
-    /// var validator = new PropertyValidationService();
-    /// var result = validator.ValidateExtractedProperties(jsonData, "RF Amplifier");
-    /// </summary>
+    /// <summary>Property Validation Service Validates extracted property values from datasheets against objective rules.</summary>
     public class PropertyValidationService
     {
         #region Data Classes
 
-        /// <summary>
-        /// Container for validation results with warnings and errors.
-        /// </summary>
+        /// <summary>Container for validation results with warnings and errors.</summary>
         public class ValidationResult
         {
             public bool IsValid { get; set; }
@@ -53,9 +28,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             public bool HasIssues => Warnings.Count > 0 || Errors.Count > 0;
         }
 
-        /// <summary>
-        /// Validation warning for suspicious but not necessarily incorrect values.
-        /// </summary>
+        /// <summary>Validation warning for suspicious but not necessarily incorrect values.</summary>
         public class ValidationWarning
         {
             public string PropertyName { get; set; }
@@ -64,9 +37,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             public string CurrentValue { get; set; }
         }
 
-        /// <summary>
-        /// Validation error for clearly incorrect values.
-        /// </summary>
+        /// <summary>Validation error for clearly incorrect values.</summary>
         public class ValidationError
         {
             public string PropertyName { get; set; }
@@ -74,9 +45,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             public string CurrentValue { get; set; }
         }
 
-        /// <summary>
-        /// Definition of a validation rule for a specific property.
-        /// </summary>
+        /// <summary>Definition of a validation rule for a specific property.</summary>
         public class PropertyRule
         {
             public string PropertyName { get; set; }
@@ -192,9 +161,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             AppendComponentTypeHints(rule, componentType, result);
         }
 
-        /// <summary>
-        /// Validates that value is in the list of allowed values.
-        /// </summary>
+        /// <summary>Validates that value is in the list of allowed values.</summary>
         private void ValidateAllowedValues(string value, PropertyRule rule, string componentType, ValidationResult result)
         {
             string[] allowedValues = rule.AllowedValues[componentType];
@@ -213,9 +180,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Validates that value contains the required unit.
-        /// </summary>
+        /// <summary>Validates that value contains the required unit.</summary>
         private void ValidateUnit(string value, PropertyRule rule, ValidationResult result)
         {
             if (!value.Contains(rule.RequiredUnit) && !ContainsUnitVariant(value, rule))
@@ -230,9 +195,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Validates that numeric value is within expected range.
-        /// </summary>
+        /// <summary>Validates that numeric value is within expected range.</summary>
         private void ValidateRange(double numericValue, PropertyRule rule, ValidationResult result, string originalValue)
         {
             if (numericValue < rule.MinValue || numericValue > rule.MaxValue)
@@ -247,9 +210,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Suggests common values if current value is unusual but close to a standard value.
-        /// </summary>
+        /// <summary>Suggests common values if current value is unusual but close to a standard value.</summary>
         private void ValidateCommonValues(double numericValue, PropertyRule rule, ValidationResult result, string originalValue)
         {
             if (rule.CommonValues != null && rule.CommonValues.Length > 0)
@@ -271,9 +232,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Validates that value is an integer if required.
-        /// </summary>
+        /// <summary>Validates that value is an integer if required.</summary>
         private void ValidateInteger(double numericValue, PropertyRule rule, ValidationResult result, string originalValue)
         {
             if (rule.MustBeInteger && numericValue != Math.Floor(numericValue))
@@ -287,9 +246,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             }
         }
 
-        /// <summary>
-        /// Appends component-type specific hints to the last warning.
-        /// </summary>
+        /// <summary>Appends component-type specific hints to the last warning.</summary>
         private void AppendComponentTypeHints(PropertyRule rule, string componentType, ValidationResult result)
         {
             if (rule.ComponentTypeHints != null && rule.ComponentTypeHints.ContainsKey(componentType))
@@ -306,9 +263,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
 
         #region Helper Methods
 
-        /// <summary>
-        /// Checks if a field is metadata and should be skipped.
-        /// </summary>
+        /// <summary>Checks if a field is metadata and should be skipped.</summary>
         private bool IsMetadataField(string propertyName)
         {
             return propertyName == "ComponentType" ||
@@ -317,9 +272,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
                    propertyName == "Description";
         }
 
-        /// <summary>
-        /// Extracts numeric value from string and applies unit conversions.
-        /// </summary>
+        /// <summary>Extracts numeric value from string and applies unit conversions.</summary>
         private bool TryExtractNumericValue(string value, PropertyRule rule, out double numericValue)
         {
             numericValue = 0;
@@ -348,9 +301,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
             return true;
         }
 
-        /// <summary>
-        /// Checks if value contains any unit variant defined in the rule.
-        /// </summary>
+        /// <summary>Checks if value contains any unit variant defined in the rule.</summary>
         private bool ContainsUnitVariant(string value, PropertyRule rule)
         {
             if (rule.UnitConversions == null)
@@ -587,7 +538,7 @@ namespace CheckOrderConfirmationFromSupplier.Services
                 {
                     {"A", 1},
                     {"mA", 0.001},
-                    {"µA", 0.000001},
+                    {"ÂµA", 0.000001},
                     {"uA", 0.000001}
                 }
             };

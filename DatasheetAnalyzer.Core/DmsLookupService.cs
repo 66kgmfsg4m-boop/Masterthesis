@@ -7,18 +7,6 @@ namespace DatasheetAnalyzer.Core.Services;
 
 /// <summary>
 /// Read-only Lookup-Service fuer das DMS (Oracle).
-/// Holt zu einer gegebenen Materialnummer alle Properties aus den
-/// CMSLIB.TE_SACHNR*-Tabellen und mergt sie zu einem flachen Dictionary.
-///
-/// Datenmodell-Hintergrund (siehe Referenz-Skript dms.py):
-/// - Properties sind ueber mehrere Tabellen (TE_SACHNR, TE_SACHNR1, ...)
-///   verteilt; jede Tabelle hat OBJ_ID als Primaerschluessel.
-/// - OBJ_ID = Praefix (Default "001000") + User-Eingabe (Materialnummer).
-/// - Spaltennamen entsprechen 1:1 den Property-Namen im PDF-Analyse-Ergebnis
-///   (siehe Azure-Blob "get_classes.csv").
-///
-/// WICHTIG: Dieser Service ist ausdruecklich read-only. Es werden ausschliesslich
-/// SELECT-Statements gegen den gebundenen User (LLM-VIEW-1GD) abgesetzt.
 /// </summary>
 public interface IDmsLookupService
 {
@@ -26,18 +14,12 @@ public interface IDmsLookupService
     bool IsConfigured { get; }
 
     /// <summary>
-    /// Holt alle Spalten aus allen TE_SACHNR*-Tabellen fuer die uebergebene
-    /// Materialnummer (ohne Praefix). NULL-Werte werden uebersprungen,
-    /// damit das Dictionary nur tatsaechlich gepflegte Felder enthaelt.
+    /// Holt alle Spalten aus allen TE_SACHNR*-Tabellen fuer die uebergebene Materialnummer (ohne Praefix).
     /// </summary>
     Task<DmsLookupResult> GetMaterialInfoAsync(string materialNumber, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Wie <see cref="GetMaterialInfoAsync(string, CancellationToken)"/>, koppelt
-    /// zusaetzlich per ORDNUM die CSV-Properties der uebergebenen Kategorie
-    /// (z.B. "Coil") an die DMS-Zielspalten und liefert die Zuordnung als
-    /// <see cref="DmsLookupResult.PropertyMap"/> (PDF-Property -&gt; DMS-Spalte).
-    /// Wenn die Kategorie leer ist, verhaelt sich die Methode wie ohne Mapping.
+    /// Wie <see cref="GetMaterialInfoAsync(string, CancellationToken)"/>, koppelt zusaetzlich per ORDNUM die CSV-Properties der uebergebenen Kategorie (z.B. "Coil") an die DMS-Zielspalten und liefert die Zuordnung als <see cref="DmsLookupResult.PropertyMap"/> (PDF-Property -&gt; DMS-Spalte).
     /// </summary>
     Task<DmsLookupResult> GetMaterialInfoAsync(string materialNumber, string? categoryDisplayName, CancellationToken cancellationToken = default);
 }
@@ -53,8 +35,6 @@ public class DmsLookupResult
 
     /// <summary>
     /// Alle Spaltennamen aller TE_SACHNR*-Tabellen (auch NULL-Spalten des Datensatzes).
-    /// Wird fuer den Property-Match herangezogen, damit auch leere DMS-Felder als
-    /// mappbare Zielspalte erkannt werden.
     /// </summary>
     public IReadOnlyCollection<string> AllColumns { get; init; } = Array.Empty<string>();
 
@@ -65,11 +45,7 @@ public class DmsLookupResult
     public string? ObjectId { get; init; }
 
     /// <summary>
-    /// Optionale Zuordnung von logischem Property-Namen (wie im PDF-JSON,
-    /// z.B. "Pitch", "PackageType") zum konkreten DMS-Spaltennamen
-    /// (z.B. "PITCH___1", "GEH_TYP1"). Wird aus TE_CLS_MERK gelesen, falls
-    /// DmsApi:Metadata:Enabled=true ist. Leer, wenn kein Mapping ermittelt
-    /// werden konnte - dann faellt die UI auf Namensheuristik zurueck.
+    /// Optionale Zuordnung von logischem Property-Namen (wie im PDF-JSON, z.B. "Pitch", "PackageType") zum konkreten DMS-Spaltennamen (z.B. "PITCH___1", "GEH_TYP1").
     /// </summary>
     public IReadOnlyDictionary<string, string> PropertyMap { get; init; } =
         new Dictionary<string, string>();
@@ -192,11 +168,7 @@ public class DmsLookupService : IDmsLookupService
                 return new DmsLookupResult { Found = false, ObjectId = objectId, AllColumns = allColumns };
             }
 
-            // 3) Dynamisches Property-Mapping via ORDNUM koppeln:
-            //    - Kataloggruppe des Materials: TE_OBJ.OBJ_COD (SKN_COD)
-            //    - DMS-Merkmale sortiert nach ORDNUM aus TR_SMT + TE_CLS_MERK
-            //    - CSV-Merkmale sortiert nach ORDNUM aus get_classes.csv (DMSCatalogService)
-            //    Beide Listen werden per ORDNUM gekoppelt -> PropertyMap[PDF-Name] = DMS-Spalte.
+            // 3) Dynamisches Property-Mapping via ORDNUM koppeln: - Kataloggruppe des Materials: TE_OBJ.OBJ_COD (SKN_COD) - DMS-Merkmale sortiert nach ORDNUM aus TR_SMT + TE_CLS_MERK - CSV-Merkmale
             var propertyMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             try
             {
@@ -278,10 +250,7 @@ public class DmsLookupService : IDmsLookupService
     private sealed record DmsProperty(int Ordnum, string SmtSmw, string SmtTab, string ValColumn);
 
     /// <summary>
-    /// Ermittelt fuer die uebergebene OBJ_ID die Merkmalsliste in der Reihenfolge
-    /// aus TR_SMT (ORDNUM). Dazu wird zunaechst die Kataloggruppe (SKN_COD)
-    /// via TE_OBJ.OBJ_COD ermittelt und anschliessend TR_SMT + TE_CLS_MERK
-    /// gejoined. Rueckgabe ist sortiert nach ORDNUM.
+    /// Ermittelt fuer die uebergebene OBJ_ID die Merkmalsliste in der Reihenfolge aus TR_SMT (ORDNUM).
     /// </summary>
     private async Task<List<DmsProperty>> DiscoverDmsPropertiesAsync(OracleConnection connection, string objectId, CancellationToken cancellationToken)
     {

@@ -2,9 +2,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DatasheetAnalyzer.Blazor.Services;
 
-/// <summary>
-/// Pro-User-State fuer die Vergleichs-Seite (genau 2 PDFs).
-/// </summary>
+/// <summary>Pro-User-State fuer die Vergleichs-Seite (genau 2 PDFs).</summary>
 public interface ICompareStateService
 {
     /// <summary>Ergebnisse der bisher analysierten PDFs (max. 2).</summary>
@@ -21,9 +19,7 @@ public interface ICompareStateService
     void Reset();
 }
 
-/// <summary>
-/// Ergebnis einer einzelnen Datei innerhalb des Vergleichs.
-/// </summary>
+/// <summary>Ergebnis einer einzelnen Datei innerhalb des Vergleichs.</summary>
 public class ComparisonFileResult
 {
     public string FileName { get; set; } = string.Empty;

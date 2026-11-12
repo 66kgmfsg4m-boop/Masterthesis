@@ -4,9 +4,7 @@ using System.Linq;
 
 namespace DatasheetAnalyzer.Core.Util;
 
-/// <summary>
-/// Converts JSON structures into formatted display items for UI presentation.
-/// </summary>
+/// <summary>Converts JSON structures into formatted display items for UI presentation.</summary>
 public class JsonParser
 {
     private const int MAX_SUMMARY_FIELDS = 5;
